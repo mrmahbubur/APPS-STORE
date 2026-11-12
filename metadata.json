@@ -1,0 +1,6 @@
+{
+  "name": "MRS App Store",
+  "description": "Discover and download official MRS apps with direct high-speed downloads, verified package security, and auto-renewed privacy policies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

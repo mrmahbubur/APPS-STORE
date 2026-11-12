@@ -1,0 +1,43 @@
+[
+  {
+    "appTitle": "M R S IPTV Pro Stream",
+    "apkDownloadUrl": "https://www.upload-apk.com/en/hsl5Ad44tfC5AjC",
+    "category": "Entertainment",
+    "platform": "Smart TV & Android Mobile",
+    "version": "1.0.0",
+    "description": "Verified application package",
+    "developerName": "Stream Lab",
+    "developerEmail": "developer@test.com",
+    "targetAdminEmail": "mr216873@gmail.com",
+    "tier": "Standard",
+    "amountPaidUsd": 25,
+    "paymentMethod": "VISA (ending in 4242)",
+    "paymentDetails": {
+      "brand": "visa",
+      "last4": "4242",
+      "cardholderName": "Stream Lab"
+    },
+    "id": "sub-1792763642675",
+    "transactionId": "TXN-MRS-1792763642675-1490",
+    "invoiceNumber": "INV-MRS-2026-1490",
+    "status": "Payment Verified",
+    "submittedAt": "2026-10-23T13:54:02.676Z"
+  },
+  {
+    "appTitle": "Test Streamer",
+    "apkDownloadUrl": "https://www.upload-apk.com/en/sample",
+    "category": "Entertainment",
+    "platform": "Smart TV & Android Mobile",
+    "version": "1.0.0",
+    "description": "Verified application package",
+    "developerName": "Verified Developer",
+    "developerEmail": "dev@stream.com",
+    "targetAdminEmail": "mr216873@gmail.com",
+    "amountPaidUsd": 25,
+    "paymentMethod": "Credit / Debit Card (USD)",
+    "id": "sub-1792763014005",
+    "transactionId": "TXN-MRS-1792763014005-9642",
+    "status": "Payment Verified",
+    "submittedAt": "2026-10-23T13:43:34.005Z"
+  }
+]

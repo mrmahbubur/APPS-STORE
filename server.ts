@@ -172,6 +172,44 @@ app.get('/api/meta', (_req: Request, res: Response) => {
   });
 });
 
+// 4b. Real Ratings & Reviews API (list, submit, mark helpful)
+app.get('/api/reviews/:appId', (req: Request, res: Response) => {
+  const result = AppDatabase.getReviewsByApp(req.params.appId);
+  res.json({
+    success: true,
+    ...result
+  });
+});
+
+app.post('/api/reviews/:appId', (req: Request, res: Response) => {
+  const { author, title, rating, comment, device } = req.body || {};
+  if (!author || !comment || !rating) {
+    return res.status(400).json({
+      success: false,
+      message: 'Author name, star rating, and review comment are required.'
+    });
+  }
+  const result = AppDatabase.addReview(req.params.appId, {
+    author: String(author),
+    title: String(title || 'App Review'),
+    rating: Number(rating),
+    comment: String(comment),
+    device: device ? String(device) : 'Android Device'
+  });
+  return res.status(201).json({
+    success: true,
+    ...result
+  });
+});
+
+app.post('/api/reviews/:appId/:reviewId/helpful', (req: Request, res: Response) => {
+  const result = AppDatabase.markReviewHelpful(req.params.appId, req.params.reviewId);
+  return res.json({
+    success: true,
+    ...result
+  });
+});
+
 // 5. Root Service Worker handler for Monetag push notifications
 app.get('/sw.js', (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');

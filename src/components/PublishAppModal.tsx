@@ -19,8 +19,6 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const adminEmail = 'mr216873@gmail.com';
   const publishingFee = '$25.00 USD';
 
@@ -35,6 +33,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const [copiedValue, setCopiedValue] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState(false);
 
+  if (!isOpen) return null;
+
   // Exact data from user's uploaded Binance QR codes
   const paymentDetails = {
     USDT_BEP20: {
@@ -42,7 +42,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       network: 'BNB Smart Chain (BEP20)',
       label: 'Deposit Wallet Address',
       value: '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e',
-      qrImage: '/assets/aistudio/unnamed__2__145559af.png',
+      qrImage: './assets/aistudio/unnamed__2__145559af.png',
       instructions: 'Deposit $25 USDT via BNB Smart Chain (BEP20)',
       notice: "Don't send NFTs to this address.",
     },
@@ -51,7 +51,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       network: 'Binance App (Instant Zero Fee)',
       label: 'Binance Pay ID / Username',
       value: 'mrxshahin',
-      qrImage: '/assets/aistudio/unnamed__1__2b5c7e8c.png',
+      qrImage: './assets/aistudio/unnamed__1__2b5c7e8c.png',
       instructions: 'Scan with Binance App to pay $25 USD',
       notice: 'Send payment directly to Binance ID: mrxshahin',
     },
@@ -82,7 +82,7 @@ I have completed the $25.00 USD publishing fee via ${activeMethod.title} for my 
 --- APPLICATION DETAILS ---
 App Name: ${appTitle || '[Enter App Name]'}
 Target Platform: ${platform}
-Direct APK Download Link: ${apkDownloadUrl || '[Enter Link: https://www.upload-apk.com/... or direct APK URL]'}
+Direct APK Download Link: ${apkDownloadUrl || '[Enter Direct APK URL]'}
 Developer Name: ${developerName || '[Enter Developer Name]'}
 
 --- PAYMENT DETAILS ($25.00 USD) ---
@@ -251,13 +251,13 @@ Thank you!`;
 
               <div>
                 <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                  Direct APK Download Link (upload-apk.com or direct link)
+                  Direct APK Download Link
                 </label>
                 <input
                   type="text"
                   value={apkDownloadUrl}
                   onChange={(e) => setApkDownloadUrl(e.target.value)}
-                  placeholder="https://www.upload-apk.com/en/... or direct APK URL"
+                  placeholder="https://example.com/your-app.apk"
                   className="w-full bg-zinc-900 border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                 />
               </div>

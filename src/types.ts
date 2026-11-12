@@ -1,3 +1,45 @@
+export interface ReviewItem {
+  id: string;
+  appId: string;
+  author: string;
+  title: string;
+  rating: number;
+  comment: string;
+  device: string;
+  helpfulCount: number;
+  createdAt: string;
+  developerReply?: {
+    author: string;
+    text: string;
+    date: string;
+  };
+}
+
+export interface ReviewBreakdown {
+  5: number;
+  4: number;
+  3: number;
+  2: number;
+  1: number;
+}
+
+export interface ReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  breakdown: ReviewBreakdown;
+}
+
+export interface OwnerInfo {
+  ownerName: string;
+  organization: string;
+  email: string;
+  role: string;
+  location: string;
+  supportResponseTime: string;
+  publishingFeeUsd: number;
+  verificationNote: string;
+}
+
 export interface AppItem {
   id: string;
   title: string;
@@ -12,10 +54,14 @@ export interface AppItem {
   reviewsCount: number;
   downloads: number;
   minAndroid: string;
+  ageRating?: string;
+  languages?: string;
+  chartRank?: string;
   icon: string;
   banner?: string;
   developer: string;
   developerEmail: string;
+  ownerName?: string;
   packageId: string;
   sha256: string;
   directDownloadUrl: string;
@@ -65,6 +111,7 @@ export interface SiteMeta {
   currentYear: number;
   copyrightNotice: string;
   adminEmail: string;
+  ownerInfo?: OwnerInfo;
   submissionFeeUsd: number;
   lastUpdated: string;
   policies: {

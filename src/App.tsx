@@ -10,16 +10,25 @@ import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { AppItem, SiteMeta } from './types';
 import {
+  DEFAULT_APPS,
+  STORE_OWNER_INFO,
+  getDefaultSiteMeta,
+  normalizeAssetPath,
+  getAppLocalApkFile,
+} from './data/catalog';
+import {
   Search,
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
   Tv,
   Download,
   AlertCircle,
   DollarSign,
   Mail,
-  SlidersHorizontal
+  Zap,
+  UserCheck,
+  ShieldCheck,
+  Code2,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -32,6 +41,7 @@ const CATEGORIES = [
 export default function App() {
   const [apps, setApps] = useState<AppItem[]>([]);
   const [siteMeta, setSiteMeta] = useState<SiteMeta | null>(null);
+  const [hasBackend, setHasBackend] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,29 +60,49 @@ export default function App() {
   // Mobile navigation
   const [mobileTab, setMobileTab] = useState<'discover' | 'categories' | 'publish' | 'legal'>('discover');
 
-  // Download notification toast
+  // Toast & Owner email copy
   const [activeDownloadNotification, setActiveDownloadNotification] = useState<string | null>(null);
+  const [copiedOwnerEmail, setCopiedOwnerEmail] = useState(false);
 
-  // Load apps and site metadata
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const [appsRes, metaRes] = await Promise.all([
-        fetch('/api/apps'),
-        fetch('/api/meta')
+        fetch('./api/apps').catch(() => null),
+        fetch('./api/meta').catch(() => null),
       ]);
 
-      if (!appsRes.ok) throw new Error('Failed to retrieve applications catalog');
-      const appsData = await appsRes.json();
-      setApps(appsData.apps || []);
+      const appsContentType = appsRes?.headers.get('content-type') || '';
+      if (appsRes && appsRes.ok && appsContentType.includes('application/json')) {
+        const appsData = await appsRes.json();
+        const normalizedApps = (appsData.apps || []).map((app: AppItem) => ({
+          ...app,
+          icon: normalizeAssetPath(app.icon),
+          banner: normalizeAssetPath(app.banner),
+          screenshots: (app.screenshots || []).map(normalizeAssetPath),
+        }));
+        setApps(normalizedApps);
+        setHasBackend(true);
 
-      if (metaRes.ok) {
-        const metaData = await metaRes.json();
-        setSiteMeta(metaData.meta || null);
+        const metaContentType = metaRes?.headers.get('content-type') || '';
+        if (metaRes && metaRes.ok && metaContentType.includes('application/json')) {
+          const metaData = await metaRes.json();
+          setSiteMeta(metaData.meta || getDefaultSiteMeta());
+        } else {
+          setSiteMeta(getDefaultSiteMeta());
+        }
+      } else {
+        setHasBackend(false);
+        setApps(DEFAULT_APPS);
+        setSiteMeta(getDefaultSiteMeta());
       }
-    } catch (err: any) {
-      console.error('Fetch error:', err);
-      setError(err.message || 'Unable to connect to application server.');
+    } catch (err) {
+      console.warn('Falling back to static catalog:', err);
+      setHasBackend(false);
+      setApps(DEFAULT_APPS);
+      setSiteMeta(getDefaultSiteMeta());
     } finally {
       setLoading(false);
     }
@@ -88,12 +118,8 @@ export default function App() {
       const params = new URLSearchParams(window.location.search);
       const appQuery = params.get('app');
       if (appQuery) {
-        const found = apps.find(
-          (a) => a.id.toLowerCase() === appQuery.toLowerCase()
-        );
-        if (found) {
-          setSelectedApp(found);
-        }
+        const found = apps.find((a) => a.id.toLowerCase() === appQuery.toLowerCase());
+        if (found) setSelectedApp(found);
       }
     }
   }, [apps]);
@@ -104,7 +130,7 @@ export default function App() {
       const url = new URL(window.location.href);
       url.searchParams.set('app', app.id);
       window.history.replaceState({}, '', url.toString());
-    } catch (e) {}
+    } catch {}
   };
 
   const handleCloseDetail = () => {
@@ -113,10 +139,18 @@ export default function App() {
       const url = new URL(window.location.href);
       url.searchParams.delete('app');
       window.history.replaceState({}, '', url.toString());
-    } catch (e) {}
+    } catch {}
   };
 
-  // Filtered and sorted apps
+  const handleReviewStatsUpdated = (appId: string, rating: number, reviewsCount: number) => {
+    setApps((prev) =>
+      prev.map((a) => (a.id === appId ? { ...a, rating, reviewsCount } : a))
+    );
+    setSelectedApp((prev) =>
+      prev && prev.id === appId ? { ...prev, rating, reviewsCount } : prev
+    );
+  };
+
   const filteredApps = useMemo(() => {
     return apps
       .filter((app) => {
@@ -145,27 +179,24 @@ export default function App() {
       });
   }, [apps, selectedCategory, searchQuery, sortBy]);
 
-  // Featured App for Apple-style Today section
   const featuredApp = useMemo(() => {
     return apps.find((a) => a.featured) || apps[0];
   }, [apps]);
 
-  // Direct In-House APK Download Handler
   const handleDirectDownload = (app: AppItem) => {
-    // Optimistically increment download count
     setApps((prev) =>
       prev.map((item) =>
         item.id === app.id ? { ...item, downloads: item.downloads + 1 } : item
       )
     );
 
-    // Show toast feedback
     setActiveDownloadNotification(`Downloading ${app.fileName} directly from MRS App Store...`);
     setTimeout(() => setActiveDownloadNotification(null), 4000);
 
-    // Trigger direct in-browser download
     const link = document.createElement('a');
-    link.href = `/api/download/${app.id}`;
+    link.href = hasBackend
+      ? `./api/download/${app.id}`
+      : `./apks/${getAppLocalApkFile(app.id)}`;
     link.setAttribute('download', app.fileName);
     document.body.appendChild(link);
     link.click();
@@ -192,9 +223,14 @@ export default function App() {
     }
   };
 
+  const handleCopyOwner = () => {
+    navigator.clipboard.writeText(STORE_OWNER_INFO.email);
+    setCopiedOwnerEmail(true);
+    setTimeout(() => setCopiedOwnerEmail(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white pb-20 md:pb-0">
-      {/* Top Header */}
       <Header
         onOpenPublish={() => setIsPublishModalOpen(true)}
         onOpenLegal={handleOpenLegal}
@@ -203,105 +239,114 @@ export default function App() {
         activeCategory={selectedCategory}
       />
 
-      {/* Download Alert Toast */}
       {activeDownloadNotification && (
-        <div className="fixed top-20 right-4 sm:right-8 z-50 animate-in slide-in-from-top duration-300">
+        <div className="fixed top-20 right-4 sm:right-8 z-50">
           <div className="p-4 rounded-2xl bg-zinc-900 text-white shadow-2xl flex items-center gap-3 border border-white/15 text-xs font-semibold">
-            <Download className="w-4 h-4 text-blue-400 animate-bounce" />
+            <Download className="w-4 h-4 text-blue-400" />
             <span>{activeDownloadNotification}</span>
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        {/* Apple Store "Today" Editorial Hero Section */}
         {featuredApp && !searchQuery && selectedCategory === 'All' && (
           <HeroFeatured
             app={featuredApp}
             onSelectApp={handleSelectApp}
             onDirectDownload={handleDirectDownload}
+            hasBackend={hasBackend}
           />
         )}
 
-        {/* Verification & Developer Network Strip */}
+        {/* Store Highlights Strip */}
         <section className="my-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
               <Tv className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-bold text-white text-sm">Smart TV Optimized</p>
+              <p className="font-bold text-white text-sm">Smart TV &amp; Mobile</p>
               <p className="text-zinc-400 text-[11px]">Firestick &amp; Android TV</p>
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-bold text-white text-sm">Direct Download Link</p>
-              <p className="text-zinc-400 text-[11px]">upload-apk.com Host</p>
+              <p className="font-bold text-white text-sm">Self-Hosted APKs</p>
+              <p className="text-zinc-400 text-[11px]">Instant Direct CDN</p>
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400">
+            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
               <DollarSign className="w-5 h-5" />
             </div>
             <div>
               <p className="font-bold text-white text-sm">$25 USD Publish</p>
-              <p className="text-zinc-400 text-[11px]">Developer Review</p>
+              <p className="text-zinc-400 text-[11px]">Binance &amp; USDT BEP20</p>
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400">
+            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 shrink-0">
               <Mail className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-bold text-white text-sm">mr216873@gmail.com</p>
-              <p className="text-zinc-400 text-[11px]">Administrator Dispatch</p>
+            <div className="min-w-0">
+              <p className="font-bold text-white text-sm truncate">{STORE_OWNER_INFO.email}</p>
+              <p className="text-zinc-400 text-[11px]">Store Owner Support</p>
             </div>
           </div>
         </section>
 
-        {/* Catalog Section: Search, Category Filters & App Grid */}
+        {/* Catalog Section */}
         <section id="catalog-section" className="mt-8 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {selectedCategory === 'All' ? 'Featured Applications' : selectedCategory}
+                {selectedCategory === 'All' ? 'Verified Applications' : selectedCategory}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Official verified APKs from MRS TV Network with direct download channel.
+                Tap any application to view full details, customer ratings, owner info, and sharing links.
               </p>
             </div>
 
-            {/* Apple-style Search Bar */}
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search M R S IPTV..."
-                className="w-full bg-zinc-900 border border-white/[0.08] rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white"
-                >
-                  Clear
-                </button>
-              )}
+            <div className="flex items-center gap-2.5 w-full md:w-auto">
+              <div className="relative flex-1 md:w-72">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search apps & APKs..."
+                  className="w-full bg-zinc-900 border border-white/[0.08] rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                aria-label="Sort apps"
+                className="bg-zinc-900 border border-white/[0.08] rounded-full px-3.5 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-blue-500"
+              >
+                <option value="popular">Top Charts</option>
+                <option value="rating">Top Rated</option>
+                <option value="newest">Latest</option>
+              </select>
             </div>
           </div>
 
-          {/* Apple Store Filter Segmented Bar */}
           <div className="flex items-center justify-between gap-4 overflow-x-auto pb-2 border-b border-white/[0.08]">
             <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border border-white/[0.08] rounded-full">
               {CATEGORIES.map((cat) => (
@@ -320,22 +365,20 @@ export default function App() {
               ))}
             </div>
 
-            {/* Developer Publish Action shortcut */}
             <button
               type="button"
               onClick={() => setIsPublishModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 whitespace-nowrap"
             >
               <DollarSign className="w-3.5 h-3.5" />
               <span>Submit New App ($25 USD) ›</span>
             </button>
           </div>
 
-          {/* Genuine Apps Grid */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-8">
-              {[1, 2].map((n) => (
-                <div key={n} className="h-56 rounded-[2rem] bg-zinc-900/50 border border-white/[0.08] animate-pulse p-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-8">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-56 rounded-[1.75rem] bg-zinc-900/50 border border-white/[0.08] animate-pulse p-6" />
               ))}
             </div>
           ) : error ? (
@@ -355,7 +398,7 @@ export default function App() {
               <Tv className="w-8 h-8 text-zinc-600 mx-auto" />
               <h3 className="text-base font-bold text-white">No applications match your filter</h3>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                Select 'All' to view all official M R S IPTV applications.
+                Reset filters to view all official M R S IPTV and Camellia Ai applications.
               </p>
               <button
                 type="button"
@@ -369,7 +412,7 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredApps.map((app) => (
                 <AppCard
                   key={app.id}
@@ -381,9 +424,67 @@ export default function App() {
             </div>
           )}
         </section>
+
+        {/* Owner Information & Store About Section */}
+        <section id="owner-section" className="mt-16 pt-10 border-t border-white/[0.08]">
+          <div className="rounded-[2rem] bg-zinc-950 border border-white/[0.08] p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                <UserCheck className="w-4 h-4" />
+                <span>Store Owner &amp; About</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                {STORE_OWNER_INFO.organization} · {STORE_OWNER_INFO.ownerName}
+              </h2>
+              <p className="text-sm text-zinc-300 leading-relaxed max-w-2xl">
+                {STORE_OWNER_INFO.verificationNote}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <a
+                  href={`mailto:${STORE_OWNER_INFO.email}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-colors min-h-[40px]"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Email Owner ({STORE_OWNER_INFO.email})</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyOwner}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors min-h-[40px]"
+                >
+                  {copiedOwnerEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedOwnerEmail ? 'Email Copied' : 'Copy Contact Email'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsThemeExportOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 text-xs font-semibold transition-colors min-h-[40px]"
+                >
+                  <Code2 className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Export Store XML Theme</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 text-xs">
+              <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.07]">
+                <p className="text-zinc-400 font-semibold">Official Administrator</p>
+                <p className="text-sm font-bold text-white mt-1">{STORE_OWNER_INFO.ownerName}</p>
+                <p className="text-zinc-400 font-mono mt-0.5">{STORE_OWNER_INFO.email}</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.07]">
+                <p className="text-zinc-400 font-semibold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Support &amp; Developer Review</span>
+                </p>
+                <p className="text-sm font-bold text-white mt-1">{STORE_OWNER_INFO.supportResponseTime}</p>
+                <p className="text-zinc-400 mt-0.5">Publishing Fee: $25.00 USD (Binance / USDT)</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
       <Footer
         siteMeta={siteMeta}
         onOpenLegal={handleOpenLegal}
@@ -391,26 +492,25 @@ export default function App() {
         onOpenPublish={() => setIsPublishModalOpen(true)}
       />
 
-      {/* Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         activeTab={mobileTab}
         onSelectTab={handleMobileNav}
       />
 
-      {/* App Details Modal */}
       <AppDetailModal
         app={selectedApp}
         onClose={handleCloseDetail}
         onDirectDownload={handleDirectDownload}
+        hasBackend={hasBackend}
+        onReviewStatsUpdated={handleReviewStatsUpdated}
+        onOpenLegal={handleOpenLegal}
       />
 
-      {/* Developer Publishing Modal ($25 USD Payment + Email to mr216873@gmail.com) */}
       <PublishAppModal
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
       />
 
-      {/* Legal & Policies Modal */}
       <LegalPoliciesModal
         isOpen={isLegalModalOpen}
         onClose={() => setIsLegalModalOpen(false)}
@@ -418,7 +518,6 @@ export default function App() {
         initialTab={legalTab}
       />
 
-      {/* Theme XML Export Modal */}
       <ThemeExportModal
         isOpen={isThemeExportOpen}
         onClose={() => setIsThemeExportOpen(false)}

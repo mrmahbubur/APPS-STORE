@@ -7,24 +7,37 @@ interface ThemeExportModalProps {
 }
 
 export const ThemeExportModal: React.FC<ThemeExportModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
   const [xmlContent, setXmlContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
-    fetch('/api/theme/xml')
-      .then((res) => res.text())
-      .then((text) => {
-        setXmlContent(text);
-        setLoading(false);
-      })
-      .catch((err) => {
+    if (!isOpen) return;
+    setLoading(true);
+    const loadXml = async () => {
+      try {
+        const apiRes = await fetch('./api/theme/xml').catch(() => null);
+        if (apiRes && apiRes.ok) {
+          const text = await apiRes.text();
+          if (text.trim().startsWith('<?xml')) {
+            setXmlContent(text);
+            setLoading(false);
+            return;
+          }
+        }
+        const staticRes = await fetch('./mrs-theme.xml');
+        const staticText = await staticRes.text();
+        setXmlContent(staticText);
+      } catch (err) {
         console.error('Failed to load theme XML:', err);
+      } finally {
         setLoading(false);
-      });
-  }, []);
+      }
+    };
+    loadXml();
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(xmlContent);

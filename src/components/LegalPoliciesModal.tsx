@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Scale, RefreshCw, DollarSign, Mail } from 'lucide-react';
 import { SiteMeta } from '../types';
 
@@ -15,9 +15,15 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   siteMeta,
   initialTab = 'privacy',
 }) => {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  if (!isOpen) return null;
 
   const policies = siteMeta?.policies;
   const currentPolicy = policies ? policies[activeTab] : null;

@@ -1,7 +1,7 @@
 [
   {
     "id": "m-r-s-iptv",
-    "title": "M R S IPTV",
+    "title": "M R S IPTV Android",
     "fileName": "M R S IPTV.apk",
     "tagline": "High-Definition Live IPTV, Sports & Global Streaming for Smart TV and Mobile",
     "category": "IPTV & Streaming",
@@ -11,7 +11,7 @@
     "size": "28.6 MB",
     "rating": 4.9,
     "reviewsCount": 1840,
-    "downloads": 14201,
+    "downloads": 14200,
     "minAndroid": "Android 5.0+ (Firestick, Android TV, Mobile)",
     "icon": "/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png",
     "banner": "/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png",
@@ -23,7 +23,7 @@
     "downloadUrl": "/api/download/m-r-s-iptv",
     "shareUrl": "/?app=m-r-s-iptv",
     "localApkPath": "/apks/M_R_S_IPTV.apk",
-    "description": "M R S IPTV is the flagship streaming application designed for seamless television and mobile entertainment. Enjoy high-speed, zero-buffering live channels, sports broadcasts, video-on-demand, and dynamic EPG guides with full D-Pad remote control ergonomics.",
+    "description": "M R S IPTV Android is the flagship streaming application designed for seamless television and mobile entertainment. Enjoy high-speed, zero-buffering live channels, sports broadcasts, video-on-demand, and dynamic EPG guides with full D-Pad remote control ergonomics.",
     "whatsNew": [
       "Official direct high-speed APK download from MRS App Store",
       "Enhanced hardware acceleration for 4K 60FPS sports channels",
@@ -51,7 +51,7 @@
   },
   {
     "id": "m-r-s-iptv-pro",
-    "title": "M_R_S_IPTV",
+    "title": "M R S IPTV TV",
     "fileName": "M_R_S_IPTV.apk",
     "tagline": "Direct Stream Edition with Custom Multi-Screen Player & Low-Bandwidth Mode",
     "category": "Smart TV & Video",
@@ -61,7 +61,7 @@
     "size": "29.2 MB",
     "rating": 4.9,
     "reviewsCount": 1520,
-    "downloads": 12801,
+    "downloads": 12800,
     "minAndroid": "Android 5.0+ (Smart TV, Box, Mobile)",
     "icon": "/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png",
     "banner": "/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png",
@@ -73,7 +73,7 @@
     "downloadUrl": "/api/download/m-r-s-iptv-pro",
     "shareUrl": "/?app=m-r-s-iptv-pro",
     "localApkPath": "/apks/M_R_S_IPTV_Pro.apk",
-    "description": "M_R_S_IPTV (Pro Edition) offers dedicated live network streaming with multi-screen grid capability, parental control filters, and advanced audio boost for Smart TV home theaters and Android smartphones.",
+    "description": "M R S IPTV TV (Pro Edition) offers dedicated live network streaming with multi-screen grid capability, parental control filters, and advanced audio boost for Smart TV home theaters and Android smartphones.",
     "whatsNew": [
       "Hosted directly on MRS Store with instant one-click download",
       "Custom multi-screen grid view (watch up to 4 streams simultaneously)",
@@ -111,7 +111,7 @@
     "size": "34.5 MB",
     "rating": 4.9,
     "reviewsCount": 2350,
-    "downloads": 21401,
+    "downloads": 21400,
     "minAndroid": "Android 7.0+ (ARM64 / ARMv7)",
     "icon": "/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg",
     "banner": "/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg",

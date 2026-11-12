@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export interface AppItem {
   id: string;
@@ -7,7 +8,7 @@ export interface AppItem {
   fileName: string;
   tagline: string;
   category: 'Entertainment' | 'IPTV & Streaming' | 'Smart TV & Video' | 'AI & Virtual Assistant' | string;
-  platform: 'Smart TV & Android Mobile' | 'Smart TV (Firestick / Android TV)' | 'Android Mobile' | string;
+  platform: 'Smart TV & Android Mobile' | 'Android Mobile & Smart TV' | 'Android Mobile' | string;
   version: string;
   updatedAt: string;
   size: string;
@@ -15,10 +16,14 @@ export interface AppItem {
   reviewsCount: number;
   downloads: number;
   minAndroid: string;
+  ageRating?: string;
+  languages?: string;
+  chartRank?: string;
   icon: string;
   banner?: string;
   developer: string;
   developerEmail: string;
+  ownerName?: string;
   packageId: string;
   sha256: string;
   directDownloadUrl: string;
@@ -98,174 +103,314 @@ export interface SiteMeta {
   };
 }
 
+export interface ReviewItem {
+  id: string;
+  appId: string;
+  author: string;
+  title: string;
+  rating: number;
+  comment: string;
+  device: string;
+  helpfulCount: number;
+  createdAt: string;
+  developerReply?: {
+    author: string;
+    text: string;
+    date: string;
+  };
+}
+
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const APPS_FILE = path.join(DATA_DIR, 'apps.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
+const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
 
-// Genuine apps requested by user
-const GENUINE_APPS: AppItem[] = [
-  {
-    id: 'm-r-s-iptv',
-    title: 'M R S IPTV',
-    fileName: 'M R S IPTV.apk',
-    tagline: 'High-Definition Live IPTV, Sports & Global Streaming for Smart TV and Mobile',
-    category: 'IPTV & Streaming',
-    platform: 'Smart TV & Android Mobile',
-    version: '3.4.0',
-    updatedAt: '2026-10-23',
-    size: '28.6 MB',
-    rating: 4.9,
-    reviewsCount: 1840,
-    downloads: 14200,
-    minAndroid: 'Android 5.0+ (Firestick, Android TV, Mobile)',
-    icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    developer: 'MRS TV Network',
-    developerEmail: 'mr216873@gmail.com',
-    packageId: 'com.mrs.iptv.network',
-    sha256: '8b7f1903e1a4d8c7b6a95e01f283c4d7e9a01b2c3d4e5f6a7b8c9d0e1f2a3b4c',
-    directDownloadUrl: '/api/download/m-r-s-iptv',
-    downloadUrl: '/api/download/m-r-s-iptv',
-    shareUrl: '/?app=m-r-s-iptv',
-    localApkPath: '/apks/M_R_S_IPTV.apk',
-    description: 'M R S IPTV is the flagship streaming application designed for seamless television and mobile entertainment. Enjoy high-speed, zero-buffering live channels, sports broadcasts, video-on-demand, and dynamic EPG guides with full D-Pad remote control ergonomics.',
-    whatsNew: [
-      'Official direct high-speed APK download from MRS App Store',
-      'Enhanced hardware acceleration for 4K 60FPS sports channels',
-      'Ultra-responsive Smart TV and Firestick D-Pad remote navigation',
-      'Integrated dynamic Electronic Program Guide (EPG)'
-    ],
-    features: [
-      'Universal M3U8, Xtream Codes & HLS Stream Player',
-      'Optimized for Android TV, Fire TV, Google TV & Android Smartphones',
-      'Direct Fast APK Download (No Third-Party Hosting)',
-      'Dual Audio Tracks & Multi-Language Subtitles',
-      'Low Latency Engine with Zero Buffer Lag'
-    ],
-    permissions: [
-      'android.permission.INTERNET',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.WAKE_LOCK',
-      'android.permission.REQUEST_INSTALL_PACKAGES'
-    ],
-    screenshots: [
-      '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'
-    ],
-    featured: true,
-    editorChoice: true
-  },
-  {
-    id: 'm-r-s-iptv-pro',
-    title: 'M_R_S_IPTV',
-    fileName: 'M_R_S_IPTV.apk',
-    tagline: 'Direct Stream Edition with Custom Multi-Screen Player & Low-Bandwidth Mode',
-    category: 'Smart TV & Video',
-    platform: 'Smart TV & Android Mobile',
-    version: '3.4.2',
-    updatedAt: '2026-10-23',
-    size: '29.2 MB',
-    rating: 4.9,
-    reviewsCount: 1520,
-    downloads: 12800,
-    minAndroid: 'Android 5.0+ (Smart TV, Box, Mobile)',
-    icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    developer: 'MRS TV Network',
-    developerEmail: 'mr216873@gmail.com',
-    packageId: 'com.mrs.iptv.pro',
-    sha256: '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
-    directDownloadUrl: '/api/download/m-r-s-iptv-pro',
-    downloadUrl: '/api/download/m-r-s-iptv-pro',
-    shareUrl: '/?app=m-r-s-iptv-pro',
-    localApkPath: '/apks/M_R_S_IPTV_Pro.apk',
-    description: 'M_R_S_IPTV (Pro Edition) offers dedicated live network streaming with multi-screen grid capability, parental control filters, and advanced audio boost for Smart TV home theaters and Android smartphones.',
-    whatsNew: [
-      'Hosted directly on MRS Store with instant one-click download',
-      'Custom multi-screen grid view (watch up to 4 streams simultaneously)',
-      'Enhanced dark mode user interface designed for OLED screens',
-      'Quick channel switcher with custom favorites list'
-    ],
-    features: [
-      'Direct High-Speed APK Download',
-      'Multi-Screen Simultaneous Channel Playback',
-      'Dolby Digital & Spatial Sound Virtualizer',
-      'Zero Ads, Clean Apple-Grade Store Interface',
-      'Automated TV Sleep Timer and Screen Lock'
-    ],
-    permissions: [
-      'android.permission.INTERNET',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.WAKE_LOCK',
-      'android.permission.REQUEST_INSTALL_PACKAGES'
-    ],
-    screenshots: [
-      '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'
-    ],
-    featured: false,
-    editorChoice: true
-  },
-  {
-    id: 'camellia-ai',
-    title: 'Camellia Ai',
-    fileName: 'Camellia Ai.apk',
-    tagline: 'Intelligent Conversational Virtual Companion & Real-Time Voice Assistant',
-    category: 'AI & Virtual Assistant',
-    platform: 'Android Mobile',
-    version: '2.1.0',
-    updatedAt: '2026-10-23',
-    size: '34.5 MB',
-    rating: 4.9,
-    reviewsCount: 2350,
-    downloads: 21400,
-    minAndroid: 'Android 7.0+ (ARM64 / ARMv7)',
-    icon: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
-    banner: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
-    developer: 'Camellia Studio',
-    developerEmail: 'mr216873@gmail.com',
-    packageId: 'com.camellia.ai.assistant',
-    sha256: '7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d',
-    directDownloadUrl: '/api/download/camellia-ai',
-    downloadUrl: '/api/download/camellia-ai',
-    shareUrl: '/?app=camellia-ai',
-    localApkPath: '/apks/Camellia_Ai.apk',
-    description: 'Camellia Ai is an intelligent, empathetic virtual companion powered by modern conversational AI models. Features ultra-responsive natural voice chat, custom personality modes, daily assistance, and creative brainstorming on Android devices.',
-    whatsNew: [
-      'Hosted directly on MRS Store with instant one-click download',
-      'Ultra-low latency conversational voice responses',
-      'Adaptive personality tuning and personalized memory retention',
-      'Clean, private, offline-first voice recognition mode'
-    ],
-    features: [
-      'Real-Time Conversational AI Assistant',
-      'Direct High-Speed APK Download',
-      'Adaptive Emotion & Voice Engine',
-      'Zero Bloatware & Ad-Free Experience',
-      'Custom Personality & Voice Modes'
-    ],
-    permissions: [
-      'android.permission.INTERNET',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.RECORD_AUDIO',
-      'android.permission.REQUEST_INSTALL_PACKAGES'
-    ],
-    screenshots: [
-      '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg'
-    ],
-    featured: false,
-    editorChoice: true
+/** Read real byte size, SHA-256 hash, and mtime directly from the APK binary on disk */
+function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackSha256: string) {
+  try {
+    const cleanRel = relApkPath.replace(/^\//, '');
+    const fullPath = path.resolve(process.cwd(), 'public', cleanRel);
+    if (fs.existsSync(fullPath)) {
+      const stat = fs.statSync(fullPath);
+      const mb = (stat.size / (1024 * 1024)).toFixed(2);
+      const buf = fs.readFileSync(fullPath);
+      const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+      const updatedAt = stat.mtime.toISOString().split('T')[0];
+      return { size: `${mb} MB`, sha256, updatedAt };
+    }
+  } catch (err) {
+    console.error('Error reading real APK stats:', err);
   }
-];
+  return { size: fallbackSize, sha256: fallbackSha256, updatedAt: '2026-11-12' };
+}
+
+function buildGenuineApps(): AppItem[] {
+  const mrsMeta = readRealApkFileMeta(
+    'apks/M_R_S_IPTV.apk',
+    '9.33 MB',
+    'd8358fae651e182a9dae7e098962b94afd9ddb8eb228923c76184250d7ccf28c'
+  );
+  const mrsTvMeta = readRealApkFileMeta(
+    'apks/M_R_S_IPTV_Pro.apk',
+    '31.93 MB',
+    'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92'
+  );
+  const camelliaMeta = readRealApkFileMeta(
+    'apks/Camellia_Ai.apk',
+    '9.33 MB',
+    '78d49e74f404c870714494d59634fa3c7ba1f30cb7e4a132b523e481925f56d4'
+  );
+
+  return [
+    {
+      id: 'm-r-s-iptv',
+      title: 'M R S IPTV Android',
+      fileName: 'M R S IPTV.apk',
+      tagline: 'Official M R S IPTV Android APK hosted directly on MRS App Store.',
+      category: 'IPTV & Streaming',
+      platform: 'Android Mobile & Smart TV',
+      version: '1.0.0',
+      updatedAt: mrsMeta.updatedAt,
+      size: mrsMeta.size,
+      rating: 0,
+      reviewsCount: 0,
+      downloads: 0,
+      minAndroid: 'Android 8.0+ (API 26)',
+      ageRating: 'Everyone',
+      languages: 'Android System Locale',
+      chartRank: 'v1.0.0',
+      icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
+      banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
+      developer: 'MRS TV Network',
+      developerEmail: 'mr216873@gmail.com',
+      ownerName: 'Shahin (mrxshahin)',
+      packageId: 'co.median.android.rdalmaa',
+      sha256: mrsMeta.sha256,
+      directDownloadUrl: '/api/download/m-r-s-iptv',
+      downloadUrl: '/api/download/m-r-s-iptv',
+      shareUrl: '/?app=m-r-s-iptv',
+      localApkPath: '/apks/M_R_S_IPTV.apk',
+      description:
+        'M R S IPTV Android is the official Android application published by MRS TV Network. The APK binary (M R S IPTV.apk) is hosted directly in MRS App Store for one-click download and installation on Android 8.0+ devices.',
+      whatsNew: [
+        `Direct in-house APK hosting from MRS App Store (${mrsMeta.size})`,
+        'Build 3 (Version 1.0.0) compiled for Android API 26+',
+        'Verified SHA-256 binary checksum published on product page',
+      ],
+      features: [
+        'Direct APK download with no third-party redirects',
+        'Supports Android 8.0 (API 26) and above',
+        'Published and maintained by MRS TV Network',
+        'Shareable app page link and direct APK download URL',
+      ],
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.READ_PHONE_STATE',
+        'android.permission.VIBRATE',
+        'android.permission.DUMP',
+      ],
+      screenshots: ['/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'],
+      featured: true,
+      editorChoice: false,
+    },
+    {
+      id: 'm-r-s-iptv-pro',
+      title: 'M R S IPTV TV',
+      fileName: 'M_R_S_IPTV.apk',
+      tagline: 'Official M R S IPTV TV APK hosted directly on MRS App Store.',
+      category: 'Smart TV & Video',
+      platform: 'Smart TV & Android Mobile',
+      version: '1.0',
+      updatedAt: mrsTvMeta.updatedAt,
+      size: mrsTvMeta.size,
+      rating: 0,
+      reviewsCount: 0,
+      downloads: 0,
+      minAndroid: 'Android 8.0+ (API 26)',
+      ageRating: 'Everyone',
+      languages: 'Android System Locale',
+      chartRank: 'v1.0',
+      icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
+      banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
+      developer: 'MRS TV Network',
+      developerEmail: 'mr216873@gmail.com',
+      ownerName: 'Shahin (mrxshahin)',
+      packageId: 'com.wMRSIPTV_20119768',
+      sha256: mrsTvMeta.sha256,
+      directDownloadUrl: '/api/download/m-r-s-iptv-pro',
+      downloadUrl: '/api/download/m-r-s-iptv-pro',
+      shareUrl: '/?app=m-r-s-iptv-pro',
+      localApkPath: '/apks/M_R_S_IPTV_Pro.apk',
+      description:
+        'M R S IPTV TV (M_R_S_IPTV.apk) is the Smart TV and Android edition distributed directly by MRS TV Network. Hosted locally on MRS App Store for direct sideloading and mobile installation.',
+      whatsNew: [
+        `Direct in-house APK hosting from MRS App Store (${mrsTvMeta.size})`,
+        'Package com.wMRSIPTV_20119768 (Version 1.0)',
+        'Verified SHA-256 binary checksum published on product page',
+      ],
+      features: [
+        'Direct APK download with no external hosting redirects',
+        'Supports Android 8.0 (API 26) and above',
+        'Published and maintained by MRS TV Network',
+        'Shareable app link and direct binary URL',
+      ],
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.ACCESS_WIFI_STATE',
+        'android.permission.CHANGE_WIFI_STATE',
+        'android.permission.WAKE_LOCK',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.POST_NOTIFICATIONS',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.CAMERA',
+        'android.permission.MODIFY_AUDIO_SETTINGS',
+        'android.permission.BLUETOOTH',
+        'android.permission.BLUETOOTH_ADMIN',
+        'android.permission.NFC',
+        'android.permission.VIBRATE',
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'android.permission.SYSTEM_ALERT_WINDOW',
+        'android.permission.INSTALL_PACKAGES',
+        'android.permission.BIND_JOB_SERVICE',
+        'android.permission.QUICKBOOT_POWERON',
+        'android.permission.READ_APP_BADGE',
+        'android.permission.DUMP',
+      ],
+      screenshots: ['/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'],
+      featured: false,
+      editorChoice: false,
+    },
+    {
+      id: 'camellia-ai',
+      title: 'Camellia Ai',
+      fileName: 'Camellia Ai.apk',
+      tagline: 'Official Camellia Ai Android APK hosted directly on MRS App Store.',
+      category: 'AI & Virtual Assistant',
+      platform: 'Android Mobile',
+      version: '1.0.0',
+      updatedAt: camelliaMeta.updatedAt,
+      size: camelliaMeta.size,
+      rating: 0,
+      reviewsCount: 0,
+      downloads: 0,
+      minAndroid: 'Android 8.0+ (API 26)',
+      ageRating: 'Everyone',
+      languages: 'Android System Locale',
+      chartRank: 'v1.0.0',
+      icon: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
+      banner: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
+      developer: 'Camellia Studio',
+      developerEmail: 'mr216873@gmail.com',
+      ownerName: 'Shahin (mrxshahin)',
+      packageId: 'co.median.android.rdalmaa',
+      sha256: camelliaMeta.sha256,
+      directDownloadUrl: '/api/download/camellia-ai',
+      downloadUrl: '/api/download/camellia-ai',
+      shareUrl: '/?app=camellia-ai',
+      localApkPath: '/apks/Camellia_Ai.apk',
+      description:
+        'Camellia Ai is an Android AI assistant package (Camellia Ai.apk) hosted directly on MRS App Store for Android 8.0+ smartphones and tablets.',
+      whatsNew: [
+        `Direct in-house APK hosting from MRS App Store (${camelliaMeta.size})`,
+        'Build 3 (Version 1.0.0) compiled for Android API 26+',
+        'Verified SHA-256 binary checksum published on product page',
+      ],
+      features: [
+        'Direct APK download from MRS App Store',
+        'Supports Android 8.0 (API 26) and above',
+        'Verified SHA-256 integrity hash',
+        'Shareable app page link and direct APK download URL',
+      ],
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.READ_PHONE_STATE',
+        'android.permission.VIBRATE',
+        'android.permission.DUMP',
+      ],
+      screenshots: ['/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg'],
+      featured: false,
+      editorChoice: false,
+    },
+  ];
+}
 
 let memoryStore: AppItem[] = [];
 let submissionsStore: DeveloperSubmission[] = [];
+let reviewsStore: Record<string, ReviewItem[]> = {};
+
+function computeStats(reviews: ReviewItem[]) {
+  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  if (!reviews.length) {
+    return {
+      averageRating: 0,
+      totalReviews: 0,
+      breakdown,
+    };
+  }
+  let total = 0;
+  for (const r of reviews) {
+    const score = Math.min(5, Math.max(1, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5;
+    breakdown[score] += 1;
+    total += score;
+  }
+  return {
+    averageRating: Number((total / reviews.length).toFixed(1)),
+    totalReviews: reviews.length,
+    breakdown,
+  };
+}
 
 function ensureDatabase() {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(APPS_FILE, JSON.stringify(GENUINE_APPS, null, 2), 'utf-8');
-    memoryStore = [...GENUINE_APPS];
+
+    // Preserve any real download counts previously recorded in apps.json (if below artificial threshold or valid real counts)
+    let existingDownloads: Record<string, number> = {};
+    if (fs.existsSync(APPS_FILE)) {
+      try {
+        const oldApps: AppItem[] = JSON.parse(fs.readFileSync(APPS_FILE, 'utf-8'));
+        for (const old of oldApps) {
+          // Discard previously seeded fake counts (14200, 12800, 21400)
+          if (
+            typeof old.downloads === 'number' &&
+            old.downloads > 0 &&
+            old.downloads !== 14200 &&
+            old.downloads !== 12800 &&
+            old.downloads !== 21400
+          ) {
+            existingDownloads[old.id] = old.downloads;
+          }
+        }
+      } catch {}
+    }
+
+    if (fs.existsSync(REVIEWS_FILE)) {
+      const revContent = fs.readFileSync(REVIEWS_FILE, 'utf-8');
+      reviewsStore = JSON.parse(revContent);
+    } else {
+      reviewsStore = {};
+      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+    }
+
+    const genuineApps = buildGenuineApps().map((app) => {
+      const appReviews = reviewsStore[app.id] || [];
+      const stats = computeStats(appReviews);
+      return {
+        ...app,
+        downloads: existingDownloads[app.id] || 0,
+        rating: stats.averageRating,
+        reviewsCount: stats.totalReviews,
+      };
+    });
+
+    fs.writeFileSync(APPS_FILE, JSON.stringify(genuineApps, null, 2), 'utf-8');
+    memoryStore = genuineApps;
 
     if (fs.existsSync(SUBMISSIONS_FILE)) {
       const subContent = fs.readFileSync(SUBMISSIONS_FILE, 'utf-8');
@@ -276,7 +421,8 @@ function ensureDatabase() {
     }
   } catch (err) {
     console.error('Database initialization error:', err);
-    memoryStore = [...GENUINE_APPS];
+    memoryStore = buildGenuineApps();
+    reviewsStore = {};
   }
 }
 
@@ -291,7 +437,70 @@ export const AppDatabase = {
     return memoryStore.find((a) => a.id === id);
   },
 
-  createSubmission(submission: Omit<DeveloperSubmission, 'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'>): DeveloperSubmission {
+  getReviewsByApp(appId: string) {
+    const list = reviewsStore[appId] || [];
+    return {
+      reviews: list,
+      stats: computeStats(list),
+    };
+  },
+
+  addReview(
+    appId: string,
+    payload: { author: string; title: string; rating: number; comment: string; device?: string }
+  ) {
+    const app = this.getAppById(appId);
+    const list = reviewsStore[appId] ? [...reviewsStore[appId]] : [];
+    const cleanRating = Math.min(5, Math.max(1, Math.round(Number(payload.rating) || 5)));
+
+    const newReview: ReviewItem = {
+      id: `rev-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      appId,
+      author: String(payload.author || 'User').trim().slice(0, 60),
+      title: String(payload.title || 'App Review').trim().slice(0, 100),
+      rating: cleanRating,
+      comment: String(payload.comment || '').trim().slice(0, 1200),
+      device: String(payload.device || 'Android Device').trim().slice(0, 60),
+      helpfulCount: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    list.unshift(newReview);
+    reviewsStore[appId] = list;
+
+    try {
+      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Failed to save review:', err);
+    }
+
+    const stats = computeStats(list);
+    if (app) {
+      app.rating = stats.averageRating;
+      app.reviewsCount = stats.totalReviews;
+      try {
+        fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+      } catch (e) {}
+    }
+
+    return { review: newReview, reviews: list, stats };
+  },
+
+  markReviewHelpful(appId: string, reviewId: string) {
+    const list = reviewsStore[appId] || [];
+    const updated = list.map((r) =>
+      r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+    );
+    reviewsStore[appId] = updated;
+    try {
+      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+    } catch (e) {}
+    return { reviews: updated, stats: computeStats(updated) };
+  },
+
+  createSubmission(
+    submission: Omit<DeveloperSubmission, 'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'>
+  ): DeveloperSubmission {
     const timestamp = Date.now();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const transactionId = `TXN-MRS-${timestamp}-${randomSuffix}`;
@@ -303,7 +512,7 @@ export const AppDatabase = {
       transactionId,
       invoiceNumber,
       status: 'Payment Verified',
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
 
     submissionsStore.unshift(newSubmission);
@@ -335,70 +544,73 @@ export const AppDatabase = {
     const currentYear = new Date().getFullYear();
     return {
       appName: 'MRS App Store',
-      tagline: 'The Premier Marketplace for Verified Applications & IPTV Networks',
+      tagline: 'Direct APK Marketplace by MRS TV Network',
       currentYear,
       copyrightNotice: `© ${currentYear} MRS TV Network. All rights reserved.`,
       adminEmail: 'mr216873@gmail.com',
-      submissionFeeUsd: 25.00,
+      submissionFeeUsd: 25.0,
       lastUpdated: new Date().toISOString(),
       policies: {
         privacy: {
           title: 'App Privacy Policy',
-          lastRenewed: `January 1, ${currentYear} (Automated Annual Review)`,
-          summary: 'We believe privacy is a fundamental human right. The MRS App Store does not track users across third-party websites or sell personal data.',
+          lastRenewed: `January 1, ${currentYear}`,
+          summary:
+            'MRS App Store serves direct APK files without third-party redirect walls or cross-site tracking.',
           sections: [
             {
-              heading: '1. Privacy-Preserving Distribution',
-              content: 'All direct downloads are served over encrypted channels. We do not inspect personal device identifiers or store location fingerprints.'
+              heading: '1. Direct APK Distribution',
+              content:
+                'APK binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
             },
             {
-              heading: '2. Direct APK Delivery',
-              content: 'Packages are verified clean and delivered directly via official hosting mirrors without deceptive redirect walls.'
-            }
-          ]
+              heading: '2. Submitted Reviews',
+              content:
+                'User reviews submitted on app pages store only the name, device type, rating, and review text entered by the reviewer.',
+            },
+          ],
         },
         terms: {
           title: 'Terms & Conditions',
-          lastRenewed: `January 1, ${currentYear} (Automated Annual Review)`,
-          summary: 'Guidelines governing the access and direct downloading of verified application packages.',
+          lastRenewed: `January 1, ${currentYear}`,
+          summary: 'Terms governing access to applications and APK binaries hosted on MRS App Store.',
           sections: [
             {
-              heading: '1. Verified Software License',
-              content: 'Applications distributed on MRS App Store are verified by MRS TV Network for Smart TV and Mobile compatibility.'
+              heading: '1. Direct Package Downloads',
+              content:
+                'Users can inspect APK file size, version, permissions, and SHA-256 hash prior to downloading.',
             },
-            {
-              heading: '2. High-Speed Distribution Guarantee',
-              content: 'All package downloads maintain zero artificial bandwidth throttling.'
-            }
-          ]
+          ],
         },
         developer: {
           title: 'Developer Publishing & Review Agreement',
-          lastRenewed: `January 1, ${currentYear} (Active Standard)`,
-          summary: 'Every submitted package undergoes mandatory cryptographic safety checks and manual developer review by mr216873@gmail.com upon receipt of the $25.00 USD publishing fee via Binance Pay (mrxshahin) or USDT BEP-20.',
+          lastRenewed: `January 1, ${currentYear}`,
+          summary:
+            'Developers may submit applications for review at mr216873@gmail.com after completing the $25.00 USD publishing fee via Binance Pay (mrxshahin) or USDT BEP-20.',
           sections: [
             {
               heading: '1. Submission Fee & Payment Options ($25 USD)',
-              content: 'A one-time application publishing review fee of $25.00 USD is accepted exclusively via Binance Pay (ID: mrxshahin) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).'
+              content:
+                'A one-time publishing fee of $25.00 USD is accepted via Binance Pay (ID: mrxshahin) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
             },
             {
-              heading: '2. Review Dispatch to mr216873@gmail.com',
-              content: 'Upon sending payment, developers email their APK download link and transaction proof to mr216873@gmail.com for expedited catalog indexing.'
-            }
-          ]
+              heading: '2. Submission Dispatch',
+              content:
+                'Send your APK link and payment transaction proof to mr216873@gmail.com for review.',
+            },
+          ],
         },
         dmca: {
           title: 'DMCA & Intellectual Property Compliance',
-          lastRenewed: `January 1, ${currentYear} (Continuous Automated Policy)`,
-          summary: 'Notice and takedown standards honoring intellectual property rights.',
+          lastRenewed: `January 1, ${currentYear}`,
+          summary: 'Intellectual property and takedown contact information.',
           sections: [
             {
-              heading: '1. Rights Inquiries',
-              content: 'For intellectual property queries or copyright notices, contact the administrator directly at mr216873@gmail.com.'
-            }
-          ]
-        }
-      }
+              heading: '1. Contact',
+              content: 'Direct any copyright or package verification queries to mr216873@gmail.com.',
+            },
+          ],
+        },
+      },
     };
-  }
+  },
 };

@@ -1,21 +1,31 @@
 import React from 'react';
-import {createRoot} from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+
+declare global {
+  interface Window {
+    __MRS_APP_MOUNTED__?: boolean;
+  }
+}
 
 interface ErrorBoundaryState {
   hasError: boolean;
   message: string;
 }
 
-class AppErrorBoundary extends React.Component<{children: React.ReactNode}, ErrorBoundaryState> {
-  constructor(props: {children: React.ReactNode}) {
+class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = {hasError: false, message: ''};
+    this.state = { hasError: false, message: '' };
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return {hasError: true, message: error?.message || 'Unexpected application error'};
+    return { hasError: true, message: error?.message || 'Unexpected application error' };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('MRS App Store runtime error:', error, info);
   }
 
   render() {
@@ -40,8 +50,13 @@ class AppErrorBoundary extends React.Component<{children: React.ReactNode}, Erro
   }
 }
 
-createRoot(document.getElementById('root')!).render(
-  <AppErrorBoundary>
-    <App />
-  </AppErrorBoundary>
-);
+window.__MRS_APP_MOUNTED__ = true;
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  createRoot(rootElement).render(
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  );
+}

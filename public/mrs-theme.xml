@@ -1215,9 +1215,9 @@
   <div class='modal-overlay' id='publishModal' onclick='closePublishModal(event)'>
     <div class='modal-box' onclick='event.stopPropagation()'>
       <button class='modal-close' onclick='closePublishModal(event)' type='button'>&#10005;</button>
-      <div class='fee-badge'>Publishing Review Fee: $25.00 USD</div>
+      <div class='fee-badge'>Inbuilt Developer Publishing &#183; $25.00 USD</div>
       <h3 class='modal-title'>Publish Your Application</h3>
-      <p class='modal-subtitle'>We accept developer submissions exclusively via Crypto (USDT BEP-20) or Binance Pay. Review fee is strictly $25.00 USD.</p>
+      <p class='modal-subtitle'>Pay the $25.00 USD publishing fee via USDT (BEP-20) or Binance Pay, then complete the inbuilt submission form below.</p>
 
       <div class='qr-container'>
         <strong style='font-size: 0.95rem; color: #2997ff;'>Option 1: Deposit USDT (BEP-20 / BSC)</strong>
@@ -1239,17 +1239,27 @@
         </div>
       </div>
 
-      <div style='background:#16161c;border:1px solid var(--border-subtle);border-radius:16px;padding:1.15rem;margin-top:0.85rem;'>
-        <h4 style='font-size:0.9rem;font-weight:800;margin-bottom:0.45rem;'>After Payment Verification:</h4>
-        <p style='font-size:0.82rem;color:#a1a1a6;line-height:1.6;'>
-          Email your APK file/link and transaction hash or Binance Order ID to Store Owner <strong style='color:#fff;'>mr216873@gmail.com</strong>.
-        </p>
-        <div style='margin-top:0.9rem;'>
-          <a class='apple-get-btn' href='mailto:mr216873@gmail.com?subject=App%20Publishing%20Payment%20Proof%20($25%20USD)&amp;body=Hello%20MRS%20App%20Store%2C%0A%0AI%20have%20paid%20the%20%2425%20USD%20publishing%20fee.%0A%0AApp%20Name%3A%20%0ADirect%20APK%20Link%3A%20%0APayment%20Method%3A%20%5BUSDT%20BEP-20%20%2F%20Binance%20Pay%5D%0ATransaction%20Hash%20%2F%20Order%20ID%3A%20%0A%0APlease%20publish%20my%20application.' style='width:100%;justify-content:center;'>
-            Email Submission to mr216873@gmail.com
-          </a>
+      <form id='xmlPublishForm' onsubmit='submitXmlAppPublish(event)' style='background:#16161c;border:1px solid var(--border-subtle);border-radius:16px;padding:1.15rem;margin-top:0.85rem;display:flex;flex-direction:column;gap:0.75rem;'>
+        <h4 style='font-size:0.92rem;font-weight:800;'>Inbuilt App Submission Form</h4>
+        <div class='form-grid-2' style='margin-bottom:0;'>
+          <input class='apple-input' id='pubAppTitle' placeholder='App Name *' required='required' type='text'/>
+          <input class='apple-input' id='pubVersion' placeholder='Version (e.g. 1.0.0)' required='required' type='text' value='1.0.0'/>
+          <input class='apple-input' id='pubDevName' placeholder='Developer / Studio Name *' required='required' type='text'/>
+          <input class='apple-input' id='pubDevEmail' placeholder='Developer Email *' required='required' type='email'/>
+          <select class='apple-input' id='pubPayMethod'>
+            <option value='USDT (BEP-20)'>USDT (BEP-20)</option>
+            <option value='Binance Pay'>Binance Pay (mrxshahin)</option>
+          </select>
+          <input class='apple-input' id='pubTxHash' placeholder='TxHash / Binance Order ID *' required='required' type='text'/>
         </div>
-      </div>
+        <input class='apple-input' id='pubApkUrl' placeholder='Direct APK Download URL (https://...) *' required='required' type='url'/>
+        <textarea class='apple-textarea' id='pubDesc' placeholder='Brief app description and supported Android devices...' style='margin-top:0;'></textarea>
+        <div id='pubReceiptBox' style='display:none;padding:0.85rem;border-radius:12px;background:rgba(48,209,88,0.12);border:1px solid rgba(48,209,88,0.35);font-size:0.8rem;color:#d1fae5;'></div>
+        <div style='display:flex;flex-wrap:wrap;gap:0.65rem;'>
+          <button class='apple-get-btn' style='flex:1;justify-content:center;' type='submit'>Submit &amp; Publish App</button>
+          <a class='hero-secondary-btn' href='mailto:mr216873@gmail.com' id='pubMailtoBtn'>Email Proof: mr216873@gmail.com</a>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1303,7 +1313,7 @@
         owner: 'Shahin (mrxshahin) · MRS TV Network',
         packageId: 'co.median.android.rdalmaa',
         version: '1.0.0',
-        updatedAt: '2026-11-12',
+        updatedAt: '2026-11-13',
         ageRating: '8.0+',
         chartRank: 'v1.0.0',
         languages: 'Android System Locale',
@@ -1342,7 +1352,7 @@
         owner: 'Shahin (mrxshahin) · MRS TV Network',
         packageId: 'com.wMRSIPTV_20119768',
         version: '1.0',
-        updatedAt: '2026-11-12',
+        updatedAt: '2026-11-13',
         ageRating: '8.0+',
         chartRank: 'v1.0',
         languages: 'Android System Locale',
@@ -1398,7 +1408,7 @@
         owner: 'Shahin (mrxshahin) · MRS TV Network',
         packageId: 'co.median.android.rdalmaa',
         version: '1.0.0',
-        updatedAt: '2026-11-12',
+        updatedAt: '2026-11-13',
         ageRating: '8.0+',
         chartRank: 'v1.0.0',
         languages: 'Android System Locale',
@@ -1722,6 +1732,49 @@
     function closePublishModal() {
       var modal = document.getElementById('publishModal');
       if (modal) modal.classList.remove('active');
+    }
+
+    function submitXmlAppPublish(e) {
+      e.preventDefault();
+      var title = (document.getElementById('pubAppTitle').value || '').trim();
+      var ver = (document.getElementById('pubVersion').value || '1.0.0').trim();
+      var dev = (document.getElementById('pubDevName').value || '').trim();
+      var email = (document.getElementById('pubDevEmail').value || '').trim();
+      var pay = document.getElementById('pubPayMethod').value;
+      var tx = (document.getElementById('pubTxHash').value || '').trim();
+      var apkUrl = (document.getElementById('pubApkUrl').value || '').trim();
+      var desc = (document.getElementById('pubDesc').value || '').trim();
+      if (!title || !dev || !email || !tx || !apkUrl) return;
+
+      var txnId = 'TXN-MRS-' + Date.now();
+      var record = {
+        id: txnId,
+        title: title,
+        version: ver,
+        developer: dev,
+        email: email,
+        paymentMethod: pay,
+        txHash: tx,
+        apkUrl: apkUrl,
+        description: desc,
+        submittedAt: new Date().toISOString()
+      };
+      try {
+        var existing = JSON.parse(localStorage.getItem('mrs_xml_submissions') || '[]');
+        existing.unshift(record);
+        localStorage.setItem('mrs_xml_submissions', JSON.stringify(existing));
+      } catch (err) {}
+
+      var box = document.getElementById('pubReceiptBox');
+      if (box) {
+        box.style.display = 'block';
+        box.innerHTML = '<strong>Submission Receipt Recorded: ' + escapeHtml(txnId) + '</strong><br/>' + escapeHtml(title) + ' (v' + escapeHtml(ver) + ') via ' + escapeHtml(pay) + '.<br/>Proof: ' + escapeHtml(tx);
+      }
+
+      var mailBtn = document.getElementById('pubMailtoBtn');
+      if (mailBtn) {
+        mailBtn.href = 'mailto:mr216873@gmail.com?subject=' + encodeURIComponent('[App Submission] ' + title + ' (' + txnId + ')') + '&body=' + encodeURIComponent('Transaction ID: ' + txnId + '\nPayment Method: ' + pay + ' ($25 USD)\nTxHash / Order ID: ' + tx + '\nApp Name: ' + title + '\nVersion: ' + ver + '\nDirect APK URL: ' + apkUrl + '\nDeveloper: ' + dev + ' (' + email + ')\nDescription: ' + desc);
+      }
     }
 
     function openLegalModal(tab) {

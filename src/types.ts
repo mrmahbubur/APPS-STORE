@@ -80,7 +80,11 @@ export interface AppItem {
 export interface DeveloperSubmission {
   id: string;
   appTitle: string;
+  packageId?: string;
   apkDownloadUrl: string;
+  size?: string;
+  sha256?: string;
+  publishedAppId?: string;
   category: string;
   platform: string;
   version: string;

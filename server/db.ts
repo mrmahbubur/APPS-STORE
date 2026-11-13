@@ -42,7 +42,11 @@ export interface AppItem {
 export interface DeveloperSubmission {
   id: string;
   appTitle: string;
+  packageId?: string;
   apkDownloadUrl: string;
+  size?: string;
+  sha256?: string;
+  publishedAppId?: string;
   category: string;
   platform: string;
   version: string;
@@ -370,8 +374,11 @@ function ensureDatabase() {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
 
-    // Preserve any real download counts previously recorded in apps.json (if below artificial threshold or valid real counts)
-    let existingDownloads: Record<string, number> = {};
+    // Preserve any real download counts and any developer-published custom apps from apps.json
+    const existingDownloads: Record<string, number> = {};
+    const customPublishedApps: AppItem[] = [];
+    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai']);
+
     if (fs.existsSync(APPS_FILE)) {
       try {
         const oldApps: AppItem[] = JSON.parse(fs.readFileSync(APPS_FILE, 'utf-8'));
@@ -385,6 +392,9 @@ function ensureDatabase() {
             old.downloads !== 21400
           ) {
             existingDownloads[old.id] = old.downloads;
+          }
+          if (!builtInIds.has(old.id)) {
+            customPublishedApps.push(old);
           }
         }
       } catch {}
@@ -409,8 +419,27 @@ function ensureDatabase() {
       };
     });
 
-    fs.writeFileSync(APPS_FILE, JSON.stringify(genuineApps, null, 2), 'utf-8');
-    memoryStore = genuineApps;
+    const refreshedCustomApps = customPublishedApps.map((app) => {
+      const appReviews = reviewsStore[app.id] || [];
+      const stats = computeStats(appReviews);
+      const localMeta =
+        app.localApkPath && app.localApkPath.startsWith('/apks/')
+          ? readRealApkFileMeta(app.localApkPath, app.size, app.sha256)
+          : { size: app.size, sha256: app.sha256, updatedAt: app.updatedAt };
+      return {
+        ...app,
+        size: localMeta.size,
+        sha256: localMeta.sha256,
+        updatedAt: localMeta.updatedAt,
+        downloads: existingDownloads[app.id] || app.downloads || 0,
+        rating: stats.averageRating,
+        reviewsCount: stats.totalReviews,
+      };
+    });
+
+    const mergedApps = [...genuineApps, ...refreshedCustomApps];
+    fs.writeFileSync(APPS_FILE, JSON.stringify(mergedApps, null, 2), 'utf-8');
+    memoryStore = mergedApps;
 
     if (fs.existsSync(SUBMISSIONS_FILE)) {
       const subContent = fs.readFileSync(SUBMISSIONS_FILE, 'utf-8');
@@ -498,8 +527,106 @@ export const AppDatabase = {
     return { reviews: updated, stats: computeStats(updated) };
   },
 
+  readRealApkFileMeta(relApkPath: string, fallbackSize = 'External APK', fallbackSha256 = 'External URL (Not Self-Hosted)') {
+    return readRealApkFileMeta(relApkPath, fallbackSize, fallbackSha256);
+  },
+
+  publishApp(input: {
+    appTitle: string;
+    fileName?: string;
+    packageId?: string;
+    category: string;
+    platform: string;
+    version: string;
+    description: string;
+    developerName: string;
+    developerEmail: string;
+    apkDownloadUrl: string;
+    localApkPath?: string;
+    size?: string;
+    sha256?: string;
+  }): AppItem {
+    const slugBase = input.appTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'custom-app';
+    let uniqueId = slugBase;
+    if (memoryStore.some((a) => a.id === uniqueId)) {
+      uniqueId = `${slugBase}-${Date.now().toString().slice(-5)}`;
+    }
+
+    const cleanLocalPath = input.localApkPath ? input.localApkPath.trim() : '';
+    const diskFacts =
+      cleanLocalPath && cleanLocalPath.startsWith('/apks/')
+        ? readRealApkFileMeta(cleanLocalPath, input.size || 'Unknown', input.sha256 || 'Not Verified')
+        : {
+            size: input.size || 'External APK',
+            sha256: input.sha256 || 'Provided by Developer URL',
+            updatedAt: new Date().toISOString().split('T')[0],
+          };
+
+    const resolvedFileName =
+      input.fileName?.trim() ||
+      (cleanLocalPath ? path.basename(cleanLocalPath) : `${input.appTitle.replace(/\s+/g, '_')}.apk`);
+    const resolvedPkg =
+      input.packageId?.trim() || `com.mrs.${slugBase.replace(/-/g, '')}`;
+
+    const newApp: AppItem = {
+      id: uniqueId,
+      title: input.appTitle.trim(),
+      fileName: resolvedFileName,
+      tagline: `Published by ${input.developerName.trim()} on MRS App Store.`,
+      category: input.category.trim() || 'Entertainment',
+      platform: input.platform.trim() || 'Smart TV & Android Mobile',
+      version: input.version.trim() || '1.0.0',
+      updatedAt: diskFacts.updatedAt,
+      size: diskFacts.size,
+      rating: 0,
+      reviewsCount: 0,
+      downloads: 0,
+      minAndroid: 'Android 8.0+ (API 26)',
+      ageRating: 'Everyone',
+      languages: 'Android System Locale',
+      chartRank: `v${input.version.trim() || '1.0.0'}`,
+      icon: '/assets/site-logo-icon.jpg',
+      banner: '/assets/site-logo-icon.jpg',
+      developer: input.developerName.trim(),
+      developerEmail: input.developerEmail.trim(),
+      ownerName: input.developerName.trim(),
+      packageId: resolvedPkg,
+      sha256: diskFacts.sha256,
+      directDownloadUrl: cleanLocalPath ? `/api/download/${uniqueId}` : input.apkDownloadUrl.trim(),
+      downloadUrl: cleanLocalPath ? `/api/download/${uniqueId}` : input.apkDownloadUrl.trim(),
+      shareUrl: `/?app=${uniqueId}`,
+      localApkPath: cleanLocalPath || input.apkDownloadUrl.trim(),
+      description: input.description.trim(),
+      whatsNew: [
+        `Published to MRS App Store on ${diskFacts.updatedAt}`,
+        `Version ${input.version.trim() || '1.0.0'} (${diskFacts.size})`,
+      ],
+      features: [
+        `Direct download link (${cleanLocalPath ? 'Self-hosted on MRS App Store' : 'Developer-hosted APK URL'})`,
+        `Target platform: ${input.platform.trim() || 'Smart TV & Android Mobile'}`,
+        `Developer contact: ${input.developerEmail.trim()}`,
+      ],
+      permissions: ['android.permission.INTERNET'],
+      screenshots: ['/assets/site-logo-icon.jpg'],
+      featured: false,
+      editorChoice: false,
+    };
+
+    memoryStore = [...memoryStore, newApp];
+    try {
+      fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('Failed to persist published app:', err);
+    }
+    return newApp;
+  },
+
   createSubmission(
-    submission: Omit<DeveloperSubmission, 'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'>
+    submission: Omit<DeveloperSubmission, 'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'>,
+    statusOverride: DeveloperSubmission['status'] = 'Live'
   ): DeveloperSubmission {
     const timestamp = Date.now();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -511,7 +638,7 @@ export const AppDatabase = {
       id: `sub-${timestamp}`,
       transactionId,
       invoiceNumber,
-      status: 'Payment Verified',
+      status: statusOverride,
       submittedAt: new Date().toISOString(),
     };
 

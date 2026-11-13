@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { AppDatabase } from './server/db.ts';
 import { generateBloggerThemeXml } from './server/theme-xml.ts';
 
@@ -79,36 +80,127 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     'camellia-ai': 'Camellia_Ai.apk',
   };
 
-  const filename = apkMap[appItem.id] || `${appItem.id}.apk`;
-  const filePath = path.resolve(process.cwd(), 'public/apks', filename);
-
-  if (fs.existsSync(filePath)) {
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
-    return res.sendFile(filePath);
+  if (apkMap[appItem.id]) {
+    const filePath = path.resolve(process.cwd(), 'public/apks', apkMap[appItem.id]);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
+      return res.sendFile(filePath);
+    }
   }
 
-  // Fallback if local file not found
+  // Serve developer-uploaded local APKs stored inside public/apks/
+  if (appItem.localApkPath && appItem.localApkPath.startsWith('/apks/')) {
+    const safeRel = appItem.localApkPath.replace(/^\/apks\//, '').replace(/\.\./g, '');
+    const filePath = path.resolve(process.cwd(), 'public/apks', safeRel);
+    const apksRoot = path.resolve(process.cwd(), 'public/apks');
+    if (filePath.startsWith(apksRoot) && fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
+      return res.sendFile(filePath);
+    }
+  }
+
+  // External HTTPS fallback if submitted with an external direct APK link
   return res.redirect(appItem.directDownloadUrl);
 });
 
 // Direct APK download route by filename
 app.get('/download/:filename', (req: Request, res: Response) => {
-  const filePath = path.resolve(process.cwd(), 'public/apks', req.params.filename);
+  const safeName = path.basename(req.params.filename);
+  const filePath = path.resolve(process.cwd(), 'public/apks', safeName);
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     return res.sendFile(filePath);
   }
   return res.status(404).send('APK file not found.');
 });
 
-// 3. App Publishing Pipeline with USD Payment and Email to mr216873@gmail.com
+// 3a. Inbuilt Binary APK Upload Endpoint (computes real size + SHA-256)
+app.post(
+  '/api/publish/upload-apk',
+  express.raw({ type: 'application/octet-stream', limit: '150mb' }),
+  (req: Request, res: Response) => {
+    try {
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length < 128) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please upload a valid .apk package file.',
+        });
+      }
+
+      // Every Android .apk archive is a ZIP binary starting with PK\x03\x04 (0x50 0x4B)
+      if (buf[0] !== 0x50 || buf[1] !== 0x4b) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid APK binary signature. Expected a valid Android .apk archive.',
+        });
+      }
+
+      const rawHeaderName = String(req.headers['x-file-name'] || 'app.apk');
+      const decodedName = decodeURIComponent(rawHeaderName);
+      const cleanBase = path
+        .basename(decodedName)
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/\.apk$/i, '');
+      const originalFileName = `${cleanBase || 'app'}.apk`;
+      const storedFileName = `${Date.now()}-${originalFileName}`;
+
+      const uploadsDir = path.resolve(process.cwd(), 'public/apks/uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const targetPath = path.join(uploadsDir, storedFileName);
+      fs.writeFileSync(targetPath, buf);
+
+      const bytes = buf.length;
+      const size = `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+      const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+      const updatedAt = new Date().toISOString().split('T')[0];
+      const hasManifest = buf.includes(Buffer.from('AndroidManifest.xml'));
+
+      return res.status(201).json({
+        success: true,
+        fileName: originalFileName,
+        localApkPath: `/apks/uploads/${storedFileName}`,
+        directDownloadUrl: `/apks/uploads/${storedFileName}`,
+        size,
+        bytes,
+        sha256,
+        hasManifest,
+        updatedAt,
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        message: err?.message || 'Failed to store APK upload.',
+      });
+    }
+  }
+);
+
+// 3b. List real developer submissions & receipts
+app.get('/api/publish/submissions', (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    submissions: AppDatabase.getAllSubmissions(),
+  });
+});
+
+// 3c. Inbuilt App Publishing Pipeline (USDT BEP-20 & Binance Pay $25 USD)
 app.post('/api/publish/submit', (req: Request, res: Response) => {
   try {
     const {
       appTitle,
+      packageId,
       apkDownloadUrl,
+      localApkPath,
+      fileName,
+      size,
+      sha256,
       category,
       platform,
       version,
@@ -117,47 +209,106 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       developerEmail,
       paymentMethod,
       tier = 'Standard',
-      amountPaidUsd = 25.00,
-      paymentDetails = {}
-    } = req.body;
+      amountPaidUsd = 25.0,
+      paymentDetails = {},
+    } = req.body || {};
 
-    if (!appTitle || !apkDownloadUrl || !developerEmail) {
+    const cleanTitle = String(appTitle || '').trim();
+    const cleanEmail = String(developerEmail || '').trim();
+    const cleanLocalPath = String(localApkPath || '').trim();
+    const cleanUrl = String(apkDownloadUrl || '').trim();
+    const txHash = String(paymentDetails?.cryptoTxHash || '').trim();
+
+    if (!cleanTitle) {
+      return res.status(400).json({ success: false, message: 'Application name is required.' });
+    }
+    if (!cleanLocalPath && !cleanUrl) {
       return res.status(400).json({
         success: false,
-        message: 'App Title, APK Download Link, and Developer Email are required.'
+        message: 'Upload an .apk file or enter a direct APK download URL.',
+      });
+    }
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid developer contact email address is required.',
+      });
+    }
+    if (paymentMethod !== 'USDT (BEP-20)' && paymentMethod !== 'Binance Pay') {
+      return res.status(400).json({
+        success: false,
+        message: 'Select either USDT (BEP-20) or Binance Pay.',
+      });
+    }
+    if (txHash.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter your valid USDT BEP-20 TxHash or Binance Pay Order ID (minimum 6 characters).',
       });
     }
 
-    const submission = AppDatabase.createSubmission({
-      appTitle: String(appTitle).trim(),
-      apkDownloadUrl: String(apkDownloadUrl).trim(),
-      category: category || 'Entertainment',
-      platform: platform || 'Smart TV & Android Mobile',
+    const publishedApp = AppDatabase.publishApp({
+      appTitle: cleanTitle,
+      fileName: fileName ? String(fileName).trim() : undefined,
+      packageId: packageId ? String(packageId).trim() : undefined,
+      category: category ? String(category).trim() : 'Entertainment',
+      platform: platform ? String(platform).trim() : 'Smart TV & Android Mobile',
       version: version ? String(version).trim() : '1.0.0',
-      description: description ? String(description).trim() : 'Verified application package',
-      developerName: developerName ? String(developerName).trim() : 'Verified Developer',
-      developerEmail: String(developerEmail).trim(),
-      targetAdminEmail: 'mr216873@gmail.com',
-      tier: tier as any,
-      amountPaidUsd: Number(amountPaidUsd) || 25.00,
-      paymentMethod: paymentMethod || 'Credit / Debit Card (USD)',
-      paymentDetails: typeof paymentDetails === 'object' ? paymentDetails : {}
+      description: description ? String(description).trim() : `${cleanTitle} Android application package.`,
+      developerName: developerName ? String(developerName).trim() : cleanTitle,
+      developerEmail: cleanEmail,
+      apkDownloadUrl: cleanUrl || cleanLocalPath,
+      localApkPath: cleanLocalPath || undefined,
+      size: size ? String(size).trim() : undefined,
+      sha256: sha256 ? String(sha256).trim() : undefined,
     });
 
-    console.log(`[Developer Submission] New app "${submission.appTitle}" paid $${submission.amountPaidUsd.toFixed(2)} USD via ${submission.paymentMethod}. Transaction ${submission.transactionId}. Notification dispatched to mr216873@gmail.com`);
+    const submission = AppDatabase.createSubmission(
+      {
+        appTitle: publishedApp.title,
+        packageId: publishedApp.packageId,
+        apkDownloadUrl: publishedApp.directDownloadUrl,
+        size: publishedApp.size,
+        sha256: publishedApp.sha256,
+        publishedAppId: publishedApp.id,
+        category: publishedApp.category,
+        platform: publishedApp.platform,
+        version: publishedApp.version,
+        description: publishedApp.description,
+        developerName: publishedApp.developer,
+        developerEmail: publishedApp.developerEmail,
+        targetAdminEmail: 'mr216873@gmail.com',
+        tier: tier as any,
+        amountPaidUsd: Number(amountPaidUsd) || 25.0,
+        paymentMethod,
+        paymentDetails: {
+          cryptoTxHash: txHash,
+          cryptoNetwork:
+            paymentMethod === 'USDT (BEP-20)'
+              ? 'BNB Smart Chain (BEP20)'
+              : 'Binance Pay (mrxshahin)',
+        },
+      },
+      'Live'
+    );
+
+    const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
+      `[App Published] ${submission.appTitle} (${submission.transactionId})`
+    )}&body=${encodeURIComponent(
+      `Dear MRS App Store Owner (mr216873@gmail.com),\n\nA new application has been submitted and published via the inbuilt MRS App Store Publishing System.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nFee: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Method: ${submission.paymentMethod}\nNetwork: ${submission.paymentDetails.cryptoNetwork || ''}\nTxHash / Order ID: ${txHash}\n\nApp Name: ${publishedApp.title}\nPackage ID: ${publishedApp.packageId}\nVersion: ${publishedApp.version}\nSize: ${publishedApp.size}\nSHA-256: ${publishedApp.sha256}\nDownload URL: ${publishedApp.directDownloadUrl}\nDeveloper: ${publishedApp.developer} (${publishedApp.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+    )}`;
 
     return res.status(201).json({
       success: true,
-      message: `App publication payment of $${submission.amountPaidUsd.toFixed(2)} USD successfully processed. Review dispatch prepared for mr216873@gmail.com!`,
+      message: `${publishedApp.title} is now published in MRS App Store!`,
       submission,
-      mailtoUrl: `mailto:mr216873@gmail.com?subject=${encodeURIComponent(`[PAID $${submission.amountPaidUsd.toFixed(2)} USD] New App Publication: ${submission.appTitle} (${submission.transactionId})`)}&body=${encodeURIComponent(
-        `Dear MRS App Store Review Team (mr216873@gmail.com),\n\nA new application has been submitted with confirmed developer publishing fee payment.\n\n=========================================\nOFFICIAL PAYMENT & SUBMISSION RECEIPT\n=========================================\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nPaid Amount: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Status: COMPLETED & VERIFIED\nPayment Gateway / Method: ${submission.paymentMethod}\nPayment Timestamp: ${submission.submittedAt}\n\n=========================================\nAPPLICATION MANIFEST\n=========================================\nApp Name: ${submission.appTitle}\nTarget File / Package: ${submission.appTitle}.apk\nVersion: ${submission.version}\nCategory: ${submission.category}\nTarget Platform: ${submission.platform}\nDirect APK Download Link: ${submission.apkDownloadUrl}\n\nDeveloper Name: ${submission.developerName}\nDeveloper Email: ${submission.developerEmail}\nApp Description:\n${submission.description}\n\nPlease review the package integrity and publish this application to the MRS App Store catalog.`
-      )}`
+      app: publishedApp,
+      mailtoUrl,
     });
   } catch (err: any) {
     return res.status(500).json({
       success: false,
-      message: err.message || 'Failed to process publication'
+      message: err?.message || 'Failed to process publication.',
     });
   }
 });

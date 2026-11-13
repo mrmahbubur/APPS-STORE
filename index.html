@@ -5,21 +5,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <title>MRS App Store - Official IPTV Network</title>
-    <meta name="description" content="Download official M R S IPTV and M_R_S_IPTV applications for Smart TV and Mobile with direct high-speed package delivery." />
+    <meta name="description" content="Download official M R S IPTV Android, M R S IPTV TV, and Camellia Ai APK packages directly from MRS App Store." />
     <meta property="og:title" content="MRS App Store - Official IPTV Network" />
-    <meta property="og:description" content="Download official M R S IPTV and M_R_S_IPTV applications for Smart TV and Mobile with direct high-speed package delivery." />
+    <meta property="og:description" content="Download official M R S IPTV Android, M R S IPTV TV, and Camellia Ai APK packages directly from MRS App Store." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="monetag" content="43bce6afdc53e6d304c43c5ea69a3c25" />
     <link rel="icon" type="image/jpeg" href="./assets/site-logo-icon.jpg" />
     <link rel="apple-touch-icon" href="./assets/site-logo.jpg" />
     <meta property="og:image" content="./assets/site-logo.jpg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-black text-zinc-100 antialiased selection:bg-blue-600 selection:text-white">
-    <div id="root"></div>
+  <body style="background:#000;color:#f4f4f5;margin:0;" class="bg-black text-zinc-100 antialiased selection:bg-blue-600 selection:text-white">
+    <div id="root">
+      <div id="mrs-boot-fallback" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;text-align:center;">
+        <div style="max-width:460px;width:100%;background:#111115;border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:28px;">
+          <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px;">MRS App Store</div>
+          <div id="mrs-boot-status" style="font-size:13px;color:#a1a1aa;line-height:1.6;">Loading store catalog...</div>
+          <noscript>
+            <div style="margin-top:12px;font-size:13px;color:#fca5a5;">JavaScript is required to run MRS App Store.</div>
+          </noscript>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var bootErrors = [];
+        window.addEventListener('error', function (ev) {
+          if (ev && ev.message) bootErrors.push(ev.message);
+        });
+        setTimeout(function () {
+          if (window.__MRS_APP_MOUNTED__) return;
+          var statusEl = document.getElementById('mrs-boot-status');
+          if (!statusEl) return;
+          var isGh = /github\.io$/i.test(window.location.hostname || '');
+          var msg = isGh
+            ? 'The application bundle did not load on GitHub Pages. In your GitHub repository, open Settings → Pages → Build and deployment → Source and select "GitHub Actions" so the built dist/ bundle is deployed.'
+            : 'Unable to initialize the frontend script bundle. Please rebuild the application or reload this page.';
+          if (bootErrors.length > 0) {
+            msg += ' (' + bootErrors[0] + ')';
+          }
+          statusEl.textContent = msg;
+          statusEl.style.color = '#fca5a5';
+        }, 3500);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

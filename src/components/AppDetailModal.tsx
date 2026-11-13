@@ -62,7 +62,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   // Real Reviews State
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStats>({
-    averageRating: 4.9,
+    averageRating: 0,
     totalReviews: 0,
     breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   });
@@ -112,11 +112,21 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   if (!app) return null;
 
-  const basePath = window.location.pathname.endsWith('/')
-    ? window.location.pathname
-    : window.location.pathname.replace(/\/[^/]*$/, '/');
+  const pathname = window.location.pathname || '/';
+  const basePath = pathname.endsWith('/')
+    ? pathname
+    : pathname.split('/').pop()?.includes('.')
+    ? pathname.replace(/\/[^/]*$/, '/')
+    : `${pathname}/`;
+  const isExternalDirectUrl =
+    app.directDownloadUrl &&
+    (app.directDownloadUrl.startsWith('http://') || app.directDownloadUrl.startsWith('https://'));
   const directDownloadUrl = hasBackend
     ? `${window.location.origin}${basePath}api/download/${app.id}`
+    : isExternalDirectUrl
+    ? app.directDownloadUrl
+    : app.localApkPath && app.localApkPath.startsWith('./apks/')
+    ? `${window.location.origin}${basePath}${app.localApkPath.replace(/^\.\//, '')}`
     : `${window.location.origin}${basePath}apks/${getAppLocalApkFile(app.id)}`;
   const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
 

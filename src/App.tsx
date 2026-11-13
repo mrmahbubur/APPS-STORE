@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { HeroFeatured } from './components/HeroFeatured';
 import { AppCard } from './components/AppCard';
 import { AppDetailModal } from './components/AppDetailModal';
-import { PublishAppModal } from './components/PublishAppModal';
+import { PublishAppModal, getLocalPublishedApps } from './components/PublishAppModal';
 import { LegalPoliciesModal } from './components/LegalPoliciesModal';
 import { ThemeExportModal } from './components/ThemeExportModal';
 import { Footer } from './components/Footer';
@@ -95,13 +95,19 @@ export default function App() {
         }
       } else {
         setHasBackend(false);
-        setApps(DEFAULT_APPS);
+        const localPublished = getLocalPublishedApps().map((app) => ({
+          ...app,
+          icon: normalizeAssetPath(app.icon),
+          banner: normalizeAssetPath(app.banner),
+          screenshots: (app.screenshots || []).map(normalizeAssetPath),
+        }));
+        setApps([...DEFAULT_APPS, ...localPublished]);
         setSiteMeta(getDefaultSiteMeta());
       }
     } catch (err) {
       console.warn('Falling back to static catalog:', err);
       setHasBackend(false);
-      setApps(DEFAULT_APPS);
+      setApps([...DEFAULT_APPS, ...getLocalPublishedApps()]);
       setSiteMeta(getDefaultSiteMeta());
     } finally {
       setLoading(false);
@@ -183,6 +189,12 @@ export default function App() {
     return apps.find((a) => a.featured) || apps[0];
   }, [apps]);
 
+  const categories = useMemo(() => {
+    const dynamicCats = Array.from(new Set(apps.map((a) => a.category).filter(Boolean)));
+    if (dynamicCats.length === 0) return CATEGORIES;
+    return ['All', ...dynamicCats];
+  }, [apps]);
+
   const handleDirectDownload = (app: AppItem) => {
     setApps((prev) =>
       prev.map((item) =>
@@ -193,10 +205,16 @@ export default function App() {
     setActiveDownloadNotification(`Downloading ${app.fileName} directly from MRS App Store...`);
     setTimeout(() => setActiveDownloadNotification(null), 4000);
 
+    const staticUrl =
+      app.directDownloadUrl &&
+      (app.directDownloadUrl.startsWith('http://') || app.directDownloadUrl.startsWith('https://'))
+        ? app.directDownloadUrl
+        : app.localApkPath && app.localApkPath.startsWith('./apks/')
+        ? app.localApkPath
+        : `./apks/${getAppLocalApkFile(app.id)}`;
+
     const link = document.createElement('a');
-    link.href = hasBackend
-      ? `./api/download/${app.id}`
-      : `./apks/${getAppLocalApkFile(app.id)}`;
+    link.href = hasBackend ? `./api/download/${app.id}` : staticUrl;
     link.setAttribute('download', app.fileName);
     document.body.appendChild(link);
     link.click();
@@ -349,7 +367,7 @@ export default function App() {
 
           <div className="flex items-center justify-between gap-4 overflow-x-auto pb-2 border-b border-white/[0.08]">
             <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border border-white/[0.08] rounded-full">
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -509,6 +527,17 @@ export default function App() {
       <PublishAppModal
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
+        hasBackend={hasBackend}
+        onAppPublished={(newApp) => {
+          const normalized: AppItem = {
+            ...newApp,
+            icon: normalizeAssetPath(newApp.icon),
+            banner: normalizeAssetPath(newApp.banner),
+            screenshots: (newApp.screenshots || []).map(normalizeAssetPath),
+          };
+          setApps((prev) => [normalized, ...prev.filter((a) => a.id !== normalized.id)]);
+        }}
+        onSelectApp={handleSelectApp}
       />
 
       <LegalPoliciesModal

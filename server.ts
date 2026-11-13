@@ -3,6 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { AppDatabase } from './server/db.ts';
+import {
+  fetchGravatarProfileByHandle,
+  inspectApkArchive,
+  issuePaymentVerificationToken,
+  verifyBscUsdtPayment,
+  verifyPaymentVerificationToken,
+} from './server/publish-service.ts';
 
 const app = express();
 const rawPort =
@@ -63,6 +70,9 @@ app.use('/apks', express.static(path.resolve(process.cwd(), 'public/apks'), {
   }
 }));
 
+// Static route for dynamically uploaded app icons in both dev and production
+app.use('/assets/uploads', express.static(path.resolve(process.cwd(), 'public/assets/uploads')));
+
 // 2. Direct download handling - streams APK directly from server storage
 app.get('/api/download/:id', (req: Request, res: Response) => {
   const appItem = AppDatabase.getAppById(req.params.id);
@@ -116,12 +126,213 @@ app.get('/download/:filename', (req: Request, res: Response) => {
   return res.status(404).send('APK file not found.');
 });
 
-// 3a. Inbuilt Binary APK Upload Endpoint (computes real size + SHA-256)
+// 3. Real Inbuilt App Publishing Pipeline: Details -> Payment Verification -> APK Upload -> Publish Live
+
+// 3a-0. Lookup optional Gravatar profile for app owner
+app.get('/api/publish/gravatar/:handle', async (req: Request, res: Response) => {
+  const result = await fetchGravatarProfileByHandle(req.params.handle || '');
+  if (!result.success) {
+    return res.status(404).json({ success: false, message: result.message });
+  }
+  return res.json({ success: true, profile: result.profile });
+});
+
+// 3a-1. Real Payment Verification Gate ($25 USD USDT BEP-20 On-Chain or Binance Pay Order Record)
+app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
+  try {
+    const { paymentMethod, txHash, appDetails } = req.body || {};
+    const cleanTx = String(txHash || '').trim();
+
+    if (paymentMethod !== 'USDT (BEP-20)' && paymentMethod !== 'Binance Pay') {
+      return res.status(400).json({
+        success: false,
+        message: 'Select either USDT (BEP-20) or Binance Pay.',
+      });
+    }
+
+    if (!cleanTx) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter your transaction hash or Binance Pay Order ID to verify payment.',
+      });
+    }
+
+    if (AppDatabase.isPaymentProofUsed(cleanTx)) {
+      return res.status(409).json({
+        success: false,
+        message: 'This transaction hash / order ID has already been redeemed for a prior submission.',
+      });
+    }
+
+    if (paymentMethod === 'USDT (BEP-20)') {
+      const check = await verifyBscUsdtPayment(cleanTx);
+      if (!check.verified) {
+        return res.status(400).json({
+          success: false,
+          verified: false,
+          message: check.message,
+        });
+      }
+
+      const token = issuePaymentVerificationToken({
+        txHash: cleanTx,
+        paymentMethod,
+        amountPaidUsd: check.amountPaidUsd || 25.0,
+        fromAddress: check.fromAddress,
+        blockNumber: check.blockNumber,
+        confirmations: check.confirmations,
+        explorerUrl: check.explorerUrl,
+        issuedAt: Date.now(),
+      });
+
+      return res.json({
+        success: true,
+        verified: true,
+        verificationToken: token,
+        verification: check,
+        message: check.message,
+      });
+    }
+
+    // Binance Pay Order ID check (no unauthenticated public Binance Pay API without private merchant credentials)
+    if (!/^[a-zA-Z0-9_-]{8,64}$/.test(cleanTx)) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        message: 'Enter a valid Binance Pay Order ID (8–64 alphanumeric characters).',
+      });
+    }
+
+    const appTitle = String(appDetails?.appTitle || '').trim();
+    const developerName = String(appDetails?.developerName || appTitle).trim();
+    const developerEmail = String(appDetails?.developerEmail || '').trim();
+
+    if (!appTitle || !developerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(developerEmail)) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        message: 'Complete Step 1 (App Name and Owner Email) before submitting a Binance Pay Order ID.',
+      });
+    }
+
+    const submission = AppDatabase.createSubmission(
+      {
+        appTitle,
+        packageId: appDetails?.packageId ? String(appDetails.packageId).trim() : undefined,
+        apkDownloadUrl: 'Awaiting owner payment confirmation before APK upload',
+        category: appDetails?.category ? String(appDetails.category).trim() : 'Entertainment',
+        platform: appDetails?.platform ? String(appDetails.platform).trim() : 'Smart TV & Android Mobile',
+        version: appDetails?.version ? String(appDetails.version).trim() : '1.0.0',
+        description: appDetails?.description ? String(appDetails.description).trim() : `${appTitle} Android package.`,
+        developerName: developerName || appTitle,
+        developerEmail,
+        targetAdminEmail: 'mr216873@gmail.com',
+        tier: 'Standard',
+        amountPaidUsd: 25.0,
+        paymentMethod: 'Binance Pay',
+        paymentDetails: {
+          cryptoTxHash: cleanTx,
+          cryptoNetwork: 'Binance Pay (mrxshahin)',
+        },
+      },
+      'Under Review'
+    );
+
+    const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
+      `[Binance Pay Verification] ${submission.appTitle} (${submission.invoiceNumber})`
+    )}&body=${encodeURIComponent(
+      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nBinance Pay ID: mrxshahin\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+    )}`;
+
+    return res.json({
+      success: true,
+      verified: false,
+      pendingOwnerReview: true,
+      submission,
+      mailtoUrl,
+      message:
+        'Binance Pay Order ID recorded under review. Personal Binance Pay orders require manual confirmation by M R S (mr216873@gmail.com); for instant automated on-chain verification and immediate APK upload, pay with USDT (BEP-20).',
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: err?.message || 'Payment verification failed.',
+    });
+  }
+});
+
+// 3a-2. Upload App Icon Image (PNG / JPEG / WebP up to 3 MB)
+app.post(
+  '/api/publish/upload-icon',
+  express.raw({ type: 'application/octet-stream', limit: '4mb' }),
+  (req: Request, res: Response) => {
+    try {
+      const buf = req.body as Buffer;
+      if (!Buffer.isBuffer(buf) || buf.length < 32) {
+        return res.status(400).json({ success: false, message: 'Invalid image file.' });
+      }
+
+      let ext = '';
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+        ext = 'png';
+      } else if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+        ext = 'jpg';
+      } else if (
+        buf.toString('ascii', 0, 4) === 'RIFF' &&
+        buf.toString('ascii', 8, 12) === 'WEBP'
+      ) {
+        ext = 'webp';
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Unsupported icon format. Upload a PNG, JPG, or WebP image.',
+        });
+      }
+
+      const iconDir = path.resolve(process.cwd(), 'public/assets/uploads');
+      if (!fs.existsSync(iconDir)) {
+        fs.mkdirSync(iconDir, { recursive: true });
+      }
+      const storedName = `app-icon-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.${ext}`;
+      fs.writeFileSync(path.join(iconDir, storedName), buf);
+
+      return res.status(201).json({
+        success: true,
+        iconUrl: `/assets/uploads/${storedName}`,
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        message: err?.message || 'Failed to upload app icon.',
+      });
+    }
+  }
+);
+
+// 3b. Inbuilt Binary APK Upload Endpoint (payment-token gated + real ZIP/AndroidManifest inspection + SHA-256)
 app.post(
   '/api/publish/upload-apk',
   express.raw({ type: 'application/octet-stream', limit: '150mb' }),
   (req: Request, res: Response) => {
     try {
+      const token = String(req.headers['x-payment-token'] || '');
+      const txHash = String(req.headers['x-tx-hash'] || '');
+      const paymentMethod = String(req.headers['x-payment-method'] || 'USDT (BEP-20)');
+
+      const tokenCheck = verifyPaymentVerificationToken(token, txHash, paymentMethod);
+      if (!tokenCheck.valid) {
+        return res.status(403).json({
+          success: false,
+          message: tokenCheck.message || 'Complete payment verification in Step 2 before uploading your APK.',
+        });
+      }
+      if (AppDatabase.isPaymentProofUsed(txHash)) {
+        return res.status(409).json({
+          success: false,
+          message: 'Payment transaction hash has already been redeemed.',
+        });
+      }
+
       const buf = req.body as Buffer;
       if (!Buffer.isBuffer(buf) || buf.length < 128) {
         return res.status(400).json({
@@ -130,11 +341,17 @@ app.post(
         });
       }
 
-      // Every Android .apk archive is a ZIP binary starting with PK\x03\x04 (0x50 0x4B)
-      if (buf[0] !== 0x50 || buf[1] !== 0x4b) {
+      const inspection = inspectApkArchive(buf);
+      if (!inspection.isValidZip) {
         return res.status(400).json({
           success: false,
           message: 'Invalid APK binary signature. Expected a valid Android .apk archive.',
+        });
+      }
+      if (!inspection.hasAndroidManifest) {
+        return res.status(400).json({
+          success: false,
+          message: 'Archive does not contain AndroidManifest.xml. Please upload a valid Android .apk.',
         });
       }
 
@@ -159,7 +376,6 @@ app.post(
       const size = `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
       const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
       const updatedAt = new Date().toISOString().split('T')[0];
-      const hasManifest = buf.includes(Buffer.from('AndroidManifest.xml'));
 
       return res.status(201).json({
         success: true,
@@ -169,7 +385,11 @@ app.post(
         size,
         bytes,
         sha256,
-        hasManifest,
+        hasManifest: inspection.hasAndroidManifest,
+        hasClassesDex: inspection.hasClassesDex,
+        hasResources: inspection.hasResources,
+        architectures: inspection.architectures,
+        entryCount: inspection.totalEntries,
         updatedAt,
       });
     } catch (err: any) {
@@ -181,7 +401,7 @@ app.post(
   }
 );
 
-// 3b. List real developer submissions & receipts
+// 3c. List real developer submissions & receipts
 app.get('/api/publish/submissions', (_req: Request, res: Response) => {
   return res.json({
     success: true,
@@ -189,7 +409,7 @@ app.get('/api/publish/submissions', (_req: Request, res: Response) => {
   });
 });
 
-// 3c. Inbuilt App Publishing Pipeline (USDT BEP-20 & Binance Pay $25 USD)
+// 3d. Finalize App Publishing (enforces verified HMAC payment token + replay check)
 app.post('/api/publish/submit', (req: Request, res: Response) => {
   try {
     const {
@@ -198,18 +418,21 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       apkDownloadUrl,
       localApkPath,
       fileName,
+      iconUrl,
       size,
       sha256,
+      architectures,
       category,
       platform,
       version,
       description,
       developerName,
       ownerName,
+      ownerProfile,
       developerEmail,
       paymentMethod,
+      verificationToken,
       tier = 'Standard',
-      amountPaidUsd = 25.0,
       paymentDetails = {},
     } = req.body || {};
 
@@ -225,25 +448,34 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
     if (!cleanLocalPath && !cleanUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Upload an .apk file or enter a direct APK download URL.',
+        message: 'Upload your .apk file in Step 3 or provide a valid direct APK download URL.',
       });
     }
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return res.status(400).json({
         success: false,
-        message: 'A valid developer contact email address is required.',
+        message: 'A valid owner contact email address is required.',
       });
     }
-    if (paymentMethod !== 'USDT (BEP-20)' && paymentMethod !== 'Binance Pay') {
-      return res.status(400).json({
+
+    if (AppDatabase.isPaymentProofUsed(txHash)) {
+      return res.status(409).json({
         success: false,
-        message: 'Select either USDT (BEP-20) or Binance Pay.',
+        message: 'This transaction hash / order ID has already been redeemed.',
       });
     }
-    if (txHash.length < 6) {
-      return res.status(400).json({
+
+    const tokenCheck = verifyPaymentVerificationToken(
+      String(verificationToken || ''),
+      txHash,
+      String(paymentMethod || '')
+    );
+    if (!tokenCheck.valid || !tokenCheck.payload) {
+      return res.status(403).json({
         success: false,
-        message: 'Enter your valid USDT BEP-20 TxHash or Binance Pay Order ID (minimum 6 characters).',
+        message:
+          tokenCheck.message ||
+          'Payment must be verified on BNB Smart Chain (Step 2) before publishing to the store.',
       });
     }
 
@@ -256,12 +488,19 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       version: version ? String(version).trim() : '1.0.0',
       description: description ? String(description).trim() : `${cleanTitle} Android application package.`,
       developerName: developerName ? String(developerName).trim() : cleanTitle,
-      ownerName: ownerName ? String(ownerName).trim() : (developerName ? String(developerName).trim() : cleanTitle),
+      ownerName: ownerName
+        ? String(ownerName).trim()
+        : developerName
+        ? String(developerName).trim()
+        : cleanTitle,
+      ownerProfile: ownerProfile && typeof ownerProfile === 'object' ? ownerProfile : undefined,
       developerEmail: cleanEmail,
+      iconUrl: iconUrl ? String(iconUrl).trim() : undefined,
       apkDownloadUrl: cleanUrl || cleanLocalPath,
       localApkPath: cleanLocalPath || undefined,
       size: size ? String(size).trim() : undefined,
       sha256: sha256 ? String(sha256).trim() : undefined,
+      architectures: Array.isArray(architectures) ? architectures.map(String) : undefined,
     });
 
     const submission = AppDatabase.createSubmission(
@@ -280,14 +519,11 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
         developerEmail: publishedApp.developerEmail,
         targetAdminEmail: 'mr216873@gmail.com',
         tier: tier as any,
-        amountPaidUsd: Number(amountPaidUsd) || 25.0,
-        paymentMethod,
+        amountPaidUsd: Number(tokenCheck.payload.amountPaidUsd) || 25.0,
+        paymentMethod: String(paymentMethod),
         paymentDetails: {
           cryptoTxHash: txHash,
-          cryptoNetwork:
-            paymentMethod === 'USDT (BEP-20)'
-              ? 'BNB Smart Chain (BEP20)'
-              : 'Binance Pay (mrxshahin)',
+          cryptoNetwork: `BNB Smart Chain (BEP20 · Block #${tokenCheck.payload.blockNumber || 'Verified'})`,
         },
       },
       'Live'
@@ -296,14 +532,15 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[App Published] ${submission.appTitle} (${submission.transactionId})`
     )}&body=${encodeURIComponent(
-      `Dear MRS App Store Owner (mr216873@gmail.com),\n\nA new application has been submitted and published via the inbuilt MRS App Store Publishing System.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nFee: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Method: ${submission.paymentMethod}\nNetwork: ${submission.paymentDetails.cryptoNetwork || ''}\nTxHash / Order ID: ${txHash}\n\nApp Name: ${publishedApp.title}\nPackage ID: ${publishedApp.packageId}\nVersion: ${publishedApp.version}\nSize: ${publishedApp.size}\nSHA-256: ${publishedApp.sha256}\nDownload URL: ${publishedApp.directDownloadUrl}\nDeveloper: ${publishedApp.developer} (${publishedApp.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear MRS App Store Owner (mr216873@gmail.com),\n\nA new application has been verified on-chain, uploaded, and published via MRS App Store.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nFee Verified: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Method: ${submission.paymentMethod}\nNetwork: ${submission.paymentDetails.cryptoNetwork || ''}\nTxHash: ${txHash}\nExplorer: ${tokenCheck.payload.explorerUrl || ''}\n\nApp Name: ${publishedApp.title}\nPackage ID: ${publishedApp.packageId}\nVersion: ${publishedApp.version}\nSize: ${publishedApp.size}\nSHA-256: ${publishedApp.sha256}\nDownload URL: ${publishedApp.directDownloadUrl}\nOwner: ${publishedApp.ownerName} (${publishedApp.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.status(201).json({
       success: true,
-      message: `${publishedApp.title} is now published in MRS App Store!`,
+      message: `${publishedApp.title} verified, uploaded, and published live!`,
       submission,
       app: publishedApp,
+      explorerUrl: tokenCheck.payload.explorerUrl,
       mailtoUrl,
     });
   } catch (err: any) {

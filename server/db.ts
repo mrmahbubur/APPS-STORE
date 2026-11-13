@@ -674,11 +674,14 @@ export const AppDatabase = {
     description: string;
     developerName: string;
     ownerName?: string;
+    ownerProfile?: AppOwnerProfile;
     developerEmail: string;
+    iconUrl?: string;
     apkDownloadUrl: string;
     localApkPath?: string;
     size?: string;
     sha256?: string;
+    architectures?: string[];
   }): AppItem {
     const slugBase = input.appTitle
       .toLowerCase()
@@ -705,7 +708,12 @@ export const AppDatabase = {
     const resolvedPkg =
       input.packageId?.trim() || `com.mrs.${slugBase.replace(/-/g, '')}`;
 
-    const resolvedOwner = (input.ownerName || input.developerName).trim();
+    const resolvedOwner = (input.ownerName || input.ownerProfile?.displayName || input.developerName).trim();
+    const resolvedIcon = input.iconUrl?.trim() || '/assets/site-logo-icon.jpg';
+    const abiNote =
+      input.architectures && input.architectures.length > 0
+        ? `Supported ABIs: ${input.architectures.join(', ')}`
+        : `Target platform: ${input.platform.trim() || 'Smart TV & Android Mobile'}`;
 
     const newApp: AppItem = {
       id: uniqueId,
@@ -724,11 +732,12 @@ export const AppDatabase = {
       ageRating: 'Everyone',
       languages: 'Android System Locale',
       chartRank: `v${input.version.trim() || '1.0.0'}`,
-      icon: '/assets/site-logo-icon.jpg',
-      banner: '/assets/site-logo-icon.jpg',
+      icon: resolvedIcon,
+      banner: resolvedIcon,
       developer: input.developerName.trim(),
       developerEmail: input.developerEmail.trim(),
       ownerName: resolvedOwner,
+      ownerProfile: input.ownerProfile,
       packageId: resolvedPkg,
       sha256: diskFacts.sha256,
       directDownloadUrl: cleanLocalPath ? `/api/download/${uniqueId}` : input.apkDownloadUrl.trim(),
@@ -742,11 +751,11 @@ export const AppDatabase = {
       ],
       features: [
         `Direct download link (${cleanLocalPath ? 'Self-hosted on MRS App Store' : 'Developer-hosted APK URL'})`,
-        `Target platform: ${input.platform.trim() || 'Smart TV & Android Mobile'}`,
-        `Developer contact: ${input.developerEmail.trim()}`,
+        abiNote,
+        `Owner contact: ${input.developerEmail.trim()}`,
       ],
       permissions: ['android.permission.INTERNET'],
-      screenshots: ['/assets/site-logo-icon.jpg'],
+      screenshots: [resolvedIcon],
       featured: false,
       editorChoice: false,
     };
@@ -789,6 +798,14 @@ export const AppDatabase = {
 
   getAllSubmissions(): DeveloperSubmission[] {
     return submissionsStore;
+  },
+
+  isPaymentProofUsed(txHashOrOrderId: string): boolean {
+    const clean = txHashOrOrderId.trim().toLowerCase();
+    if (!clean) return false;
+    return submissionsStore.some(
+      (s) => (s.paymentDetails?.cryptoTxHash || '').trim().toLowerCase() === clean
+    );
   },
 
   incrementDownload(id: string): number {

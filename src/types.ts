@@ -29,6 +29,26 @@ export interface ReviewStats {
   breakdown: ReviewBreakdown;
 }
 
+export interface AppOwnerAccount {
+  name: string;
+  username: string;
+  url: string;
+  verified?: boolean;
+}
+
+export interface AppOwnerProfile {
+  displayName: string;
+  username: string;
+  profileUrl: string;
+  avatarUrl: string;
+  email: string;
+  phone?: string;
+  headline?: string;
+  bio?: string;
+  calendarUrl?: string;
+  accounts?: AppOwnerAccount[];
+}
+
 export interface OwnerInfo {
   ownerName: string;
   organization: string;
@@ -62,6 +82,7 @@ export interface AppItem {
   developer: string;
   developerEmail: string;
   ownerName?: string;
+  ownerProfile?: AppOwnerProfile;
   packageId: string;
   sha256: string;
   directDownloadUrl: string;

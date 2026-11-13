@@ -43,22 +43,32 @@ export const AppCard: React.FC<AppCardProps> = ({
     }
   };
 
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelectApp(app);
+    }
+  };
+
   return (
     <article
+      tabIndex={0}
+      role="button"
       onClick={() => onSelectApp(app)}
-      className="group relative bg-zinc-900/80 hover:bg-zinc-900 border border-white/[0.08] hover:border-white/[0.18] rounded-[1.75rem] p-6 flex flex-col justify-between gap-5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+      onKeyDown={handleCardKeyDown}
+      className="group relative bg-zinc-900/80 hover:bg-zinc-900 border border-white/[0.08] hover:border-white/[0.18] rounded-[1.5rem] sm:rounded-[1.75rem] p-4 sm:p-6 flex flex-col justify-between gap-4 sm:gap-5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 text-left"
     >
       {/* Top Header: Squircle Icon + Unboxed Metadata */}
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3.5 sm:gap-4">
         <img
           src={app.icon}
           alt={app.title}
-          className="w-20 h-20 rounded-[22%] object-cover ring-1 ring-white/15 shrink-0"
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-[22%] object-cover ring-1 ring-white/15 shrink-0"
           referrerPolicy="no-referrer"
         />
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+          <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">
             {app.title}
           </h2>
 
@@ -66,8 +76,8 @@ export const AppCard: React.FC<AppCardProps> = ({
             {app.developer} · <span className="font-mono">{app.fileName}</span>
           </p>
 
-          <div className="flex items-center gap-2 text-xs text-zinc-400 mt-2 tabular-nums">
-            <span className="text-blue-400 font-semibold truncate">{app.category}</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-400 mt-2 tabular-nums">
+            <span className="text-blue-400 font-semibold truncate max-w-[140px] sm:max-w-none">{app.category}</span>
             <span aria-hidden="true" className="text-zinc-600">·</span>
             {app.reviewsCount > 0 ? (
               <span className="flex items-center gap-1 text-amber-400 font-bold shrink-0">
@@ -89,21 +99,30 @@ export const AppCard: React.FC<AppCardProps> = ({
       </p>
 
       {/* Per-App Owner Information */}
-      <div className="px-3.5 py-2.5 rounded-2xl bg-black/50 border border-white/[0.06] flex items-center justify-between gap-2 text-[11px]">
+      <div className="px-3.5 py-2.5 rounded-2xl bg-black/50 border border-white/[0.06] flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
         <div className="flex items-center gap-2 min-w-0">
-          <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          {app.ownerProfile?.avatarUrl ? (
+            <img
+              src={app.ownerProfile.avatarUrl}
+              alt={appOwner}
+              className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          )}
           <span className="text-zinc-300 font-semibold truncate">
             Owner: <span className="text-white">{appOwner}</span>
           </span>
         </div>
-        <span className="text-zinc-400 font-mono truncate max-w-[155px] shrink-0">
-          {app.developerEmail}
+        <span className="text-zinc-400 font-mono truncate max-w-full sm:max-w-[165px]">
+          {app.ownerProfile?.email || app.developerEmail}
         </span>
       </div>
 
       {/* Footer Strip: Compatibility & GET + Share Controls */}
-      <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-2">
-        <span className="text-xs text-zinc-400 font-medium truncate">
+      <div className="pt-3.5 sm:pt-4 border-t border-white/[0.08] flex items-center justify-between gap-2">
+        <span className="text-[11px] sm:text-xs text-zinc-400 font-medium truncate">
           {app.platform} · {app.reviewsCount > 0 ? `${app.reviewsCount} ${app.reviewsCount === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}
         </span>
 

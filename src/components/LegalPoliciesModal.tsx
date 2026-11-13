@@ -18,10 +18,14 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>(initialTab);
 
   useEffect(() => {
-    if (isOpen) {
-      setActiveTab(initialTab);
-    }
-  }, [isOpen, initialTab]);
+    if (!isOpen) return;
+    setActiveTab(initialTab);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, initialTab, onClose]);
 
   if (!isOpen) return null;
 
@@ -63,7 +67,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-2 py-4 border-b border-white/[0.08] shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-2 py-4 border-b border-white/[0.08] shrink-0 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('privacy')}

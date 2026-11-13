@@ -81,7 +81,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             <button
               type="button"
               onClick={() => onDirectDownload(app)}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black hover:bg-zinc-200 active:scale-95 font-bold text-xs sm:text-sm rounded-full transition-all shadow-xl shadow-white/10 min-h-[46px] whitespace-nowrap"
+              className="w-full sm:w-auto sm:flex-initial inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black hover:bg-zinc-200 active:scale-95 font-bold text-xs sm:text-sm rounded-full transition-all shadow-xl shadow-white/10 min-h-[46px] whitespace-nowrap"
             >
               <Download className="w-4 h-4 shrink-0" />
               <span>GET APK ({app.size})</span>
@@ -108,11 +108,35 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-zinc-400 pt-1 max-w-full">
-            <span className="inline-flex items-center gap-1.5 text-zinc-200 font-semibold">
-              <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="inline-flex flex-wrap items-center gap-1.5 text-zinc-200 font-semibold">
+              {app.ownerProfile?.avatarUrl ? (
+                <img
+                  src={app.ownerProfile.avatarUrl}
+                  alt={app.ownerName || app.developer}
+                  className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20 shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              )}
               <span>Owner: {app.ownerName || app.developer}</span>
               <span aria-hidden="true" className="text-zinc-600">·</span>
-              <span className="font-mono text-blue-400">{app.developerEmail}</span>
+              <span className="font-mono text-blue-400 break-all">
+                {app.ownerProfile?.email || app.developerEmail}
+              </span>
+              {app.ownerProfile?.profileUrl && (
+                <>
+                  <span aria-hidden="true" className="text-zinc-600">·</span>
+                  <a
+                    href={app.ownerProfile.profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-zinc-300 hover:text-white underline underline-offset-2"
+                  >
+                    gravatar.com/{app.ownerProfile.username}
+                  </a>
+                </>
+              )}
             </span>
             <span aria-hidden="true" className="text-zinc-700 hidden sm:inline">·</span>
             <span className="text-emerald-400 font-semibold">Self-Hosted Direct CDN</span>
@@ -125,14 +149,23 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
 
         {/* Right Column: Squircle App Icon Showcase */}
         <div
-          className="lg:col-span-5 flex justify-start sm:justify-center lg:justify-end cursor-pointer group order-1 lg:order-2"
+          tabIndex={0}
+          role="button"
+          aria-label={`View ${app.title} details`}
+          className="lg:col-span-5 flex justify-start sm:justify-center lg:justify-end cursor-pointer group order-1 lg:order-2 rounded-[22%]"
           onClick={() => onSelectApp(app)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelectApp(app);
+            }
+          }}
         >
           <div className="relative">
             <img
               src={app.icon || './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'}
               alt={app.title}
-              className="w-28 h-28 sm:w-52 sm:h-52 lg:w-72 lg:h-72 xl:w-80 xl:h-80 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl group-hover:scale-[1.02] transition-transform duration-300"
+              className="w-24 h-24 sm:w-52 sm:h-52 lg:w-72 lg:h-72 xl:w-80 xl:h-80 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl group-hover:scale-[1.02] transition-transform duration-300"
               referrerPolicy="no-referrer"
             />
           </div>

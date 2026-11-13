@@ -100,7 +100,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     if (activeTab === 'receipts') {
       loadSubmissions();
     }
-  }, [isOpen, activeTab]);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, activeTab, onClose]);
 
   const loadSubmissions = async () => {
     setLoadingSubmissions(true);
@@ -461,11 +466,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           </p>
 
           {/* Navigation Switcher */}
-          <div className="mt-4 inline-flex p-1 bg-black border border-white/[0.08] rounded-full">
+          <div className="mt-4 grid grid-cols-2 sm:inline-flex w-full sm:w-auto p-1 bg-black border border-white/[0.08] rounded-2xl sm:rounded-full gap-1">
             <button
               type="button"
               onClick={() => setActiveTab('submit')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+              className={`px-3 sm:px-4 py-2 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all text-center ${
                 activeTab === 'submit' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -474,11 +479,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('receipts')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-2 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 ${
                 activeTab === 'receipts' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Receipt className="w-3.5 h-3.5" />
+              <Receipt className="w-3.5 h-3.5 shrink-0" />
               <span>Submitted Receipts</span>
             </button>
           </div>
@@ -628,11 +633,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   </p>
                 </div>
 
-                <div className="flex p-1 bg-black rounded-xl border border-white/[0.08]">
+                <div className="grid grid-cols-2 sm:flex p-1 bg-black rounded-xl border border-white/[0.08] w-full sm:w-auto gap-1">
                   <button
                     type="button"
                     onClick={() => setPaymentOption('USDT_BEP20')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                       paymentOption === 'USDT_BEP20'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-zinc-400 hover:text-white'
@@ -643,7 +648,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setPaymentOption('BINANCE_PAY')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
                       paymentOption === 'BINANCE_PAY'
                         ? 'bg-amber-500 text-black font-extrabold shadow-sm'
                         : 'text-zinc-400 hover:text-white'
@@ -716,30 +721,30 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   <p className="text-sm font-bold text-white">Provide Your Android APK</p>
                 </div>
 
-                <div className="flex p-1 bg-black rounded-xl border border-white/[0.08]">
+                <div className="grid grid-cols-2 sm:flex p-1 bg-black rounded-xl border border-white/[0.08] w-full sm:w-auto gap-1">
                   <button
                     type="button"
                     onClick={() => setApkSourceMode('upload')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 transition-all ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1 transition-all ${
                       apkSourceMode === 'upload'
                         ? 'bg-blue-600 text-white'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Inspect / Upload .apk</span>
+                    <UploadCloud className="w-3.5 h-3.5 shrink-0" />
+                    <span>Upload .apk</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setApkSourceMode('url')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 transition-all ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1 transition-all ${
                       apkSourceMode === 'url'
                         ? 'bg-blue-600 text-white'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    <Link2 className="w-3.5 h-3.5" />
-                    <span>Direct APK URL</span>
+                    <Link2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>APK URL</span>
                   </button>
                 </div>
               </div>

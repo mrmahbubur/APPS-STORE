@@ -22,6 +22,9 @@ import {
   Send,
   Globe,
   Tablet,
+  Phone,
+  Calendar,
+  ExternalLink,
 } from 'lucide-react';
 import { AppItem, ReviewItem, ReviewStats } from '../types';
 import {
@@ -109,6 +112,15 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     loadReviews();
   }, [app, hasBackend]);
 
+  useEffect(() => {
+    if (!app) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [app, onClose]);
+
   if (!app) return null;
 
   const pathname = window.location.pathname || '/';
@@ -141,10 +153,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     setTimeout(() => setCopiedShareLink(false), 2000);
   };
 
-  const appOwnerName = app.ownerName || app.developer;
+  const appOwnerName = app.ownerProfile?.displayName
+    ? `${app.ownerProfile.displayName} (@${app.ownerProfile.username})`
+    : app.ownerName || app.developer;
 
   const handleCopyOwnerEmail = () => {
-    navigator.clipboard.writeText(app.developerEmail);
+    navigator.clipboard.writeText(app.ownerProfile?.email || app.developerEmail);
     setCopiedOwnerEmail(true);
     setTimeout(() => setCopiedOwnerEmail(false), 2000);
   };
@@ -316,7 +330,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <button
                 type="button"
                 onClick={triggerDownload}
-                className={`inline-flex items-center justify-center gap-2 px-7 py-2.5 rounded-full font-extrabold text-xs tracking-wider transition-all min-h-[42px] shadow-lg ${
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-2.5 rounded-full font-extrabold text-xs tracking-wider transition-all min-h-[44px] shadow-lg ${
                   downloadStarted
                     ? 'bg-emerald-500 text-white'
                     : 'bg-[#0071e3] hover:bg-[#0077ed] text-white active:scale-95'
@@ -339,7 +353,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSharePanel(!showSharePanel)}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-colors min-h-[42px] ${
+                className={`flex-1 sm:flex-initial justify-center inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-colors min-h-[44px] ${
                   showSharePanel
                     ? 'bg-white text-black'
                     : 'bg-white/10 hover:bg-white/20 text-white'
@@ -354,7 +368,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 type="button"
                 onClick={() => setShowQrCode(!showQrCode)}
                 title="Scan QR Code to Download"
-                className={`p-2.5 rounded-full transition-colors min-h-[42px] min-w-[42px] flex items-center justify-center ${
+                className={`p-2.5 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
                   showQrCode
                     ? 'bg-blue-600 text-white'
                     : 'bg-white/10 hover:bg-white/20 text-zinc-200'
@@ -368,12 +382,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         </div>
 
         {/* 2. Apple 5-Column Metrics Ribbon */}
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 py-5 border-b border-white/[0.08] text-center">
-          <div className="border-r border-white/[0.08] pr-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-3 py-5 border-b border-white/[0.08] text-center">
+          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
             <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
               {displayReviewsCount} {displayReviewsCount === 1 ? 'Rating' : 'Ratings'}
             </p>
-            <p className="text-xl font-extrabold text-white mt-1 tabular-nums flex items-center justify-center gap-1">
+            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums flex items-center justify-center gap-1">
               <span>{displayReviewsCount > 0 ? displayRating.toFixed(1) : '—'}</span>
               <Star className={`w-4 h-4 ${displayReviewsCount > 0 ? 'fill-amber-400 text-amber-400' : 'text-zinc-600'}`} />
             </p>
@@ -382,27 +396,27 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </p>
           </div>
 
-          <div className="border-r border-white/[0.08] pr-2">
+          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
             <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Min OS</p>
-            <p className="text-xl font-extrabold text-white mt-1 tabular-nums">8.0+</p>
+            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">8.0+</p>
             <p className="text-[11px] text-zinc-500 mt-0.5">Android API 26</p>
           </div>
 
-          <div className="sm:border-r border-white/[0.08] pr-2">
+          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
             <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Version</p>
-            <p className="text-xl font-extrabold text-white mt-1 tabular-nums">v{app.version}</p>
+            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">v{app.version}</p>
             <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{app.category}</p>
           </div>
 
-          <div className="border-r border-white/[0.08] pr-2 hidden sm:block">
+          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
             <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Owner</p>
-            <p className="text-sm font-bold text-white mt-2 truncate">{appOwnerName}</p>
-            <p className="text-[11px] text-zinc-500 mt-1 truncate">{app.developer}</p>
+            <p className="text-sm font-bold text-white mt-1.5 sm:mt-2 truncate">{appOwnerName}</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5 sm:mt-1 truncate">{app.developer}</p>
           </div>
 
-          <div className="hidden sm:block">
+          <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent">
             <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Size</p>
-            <p className="text-xl font-extrabold text-white mt-1 tabular-nums">{app.size}</p>
+            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">{app.size}</p>
             <p className="text-[11px] text-emerald-400 mt-0.5">Direct APK</p>
           </div>
         </div>
@@ -525,8 +539,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         {/* 4. Preview Gallery */}
         <section className="my-7 pt-6 border-t border-white/[0.08]">
           <h3 className="text-lg font-bold text-white mb-4">Preview</h3>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            <div className="w-64 sm:w-72 h-64 sm:h-72 shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-black">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
+            <div className="w-56 sm:w-72 h-56 sm:h-72 shrink-0 snap-start rounded-2xl overflow-hidden border border-white/10 bg-black">
               <img
                 src={app.icon}
                 alt={`${app.title} Preview`}
@@ -534,14 +548,14 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 referrerPolicy="no-referrer"
               />
             </div>
-            <div className="w-72 sm:w-80 h-64 sm:h-72 shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-6 flex flex-col justify-between">
+            <div className="w-64 sm:w-80 h-56 sm:h-72 shrink-0 snap-start rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-5 sm:p-6 flex flex-col justify-between">
               <div>
                 <p className="text-xs font-bold text-blue-400">{app.platform}</p>
-                <h4 className="text-lg font-bold text-white mt-2">{app.title}</h4>
-                <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{app.tagline}</p>
+                <h4 className="text-base sm:text-lg font-bold text-white mt-2">{app.title}</h4>
+                <p className="text-xs text-zinc-400 mt-2 leading-relaxed line-clamp-3">{app.tagline}</p>
               </div>
               <div className="text-xs text-emerald-400 font-semibold flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4 shrink-0" />
                 <span>Verified Clean Binary · {app.size}</span>
               </div>
             </div>
@@ -902,33 +916,65 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
         {/* 9. App Owner & Developer Information Section */}
         <section id="owner-info-section" className="my-7 pt-6 border-t border-white/[0.08] space-y-4">
-          <h3 className="text-lg font-bold text-white">App Owner &amp; Developer Information</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-bold text-white">App Owner &amp; Developer Information</h3>
+            {app.ownerProfile?.profileUrl && (
+              <a
+                href={app.ownerProfile.profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:underline"
+              >
+                <span>Verified Profile: gravatar.com/{app.ownerProfile.username}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+
           <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/[0.08] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                  <UserCheck className="w-6 h-6" />
-                </div>
+              <div className="flex items-center gap-3.5 min-w-0">
+                {app.ownerProfile?.avatarUrl ? (
+                  <img
+                    src={app.ownerProfile.avatarUrl}
+                    alt={appOwnerName}
+                    className="w-14 h-14 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                    <UserCheck className="w-6 h-6" />
+                  </div>
+                )}
                 <div className="min-w-0">
-                  <p className="text-base font-bold text-white truncate">{appOwnerName}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-bold text-white truncate">
+                      {app.ownerProfile?.displayName || appOwnerName}
+                    </p>
+                    {app.ownerProfile?.username && (
+                      <span className="text-xs font-mono text-zinc-400">
+                        @{app.ownerProfile.username}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                    App Owner &amp; Publisher · {app.title}
+                  <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">
+                    {app.ownerProfile?.headline || `App Owner & Publisher · ${app.title}`}
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleCopyOwnerEmail}
                   className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white inline-flex items-center gap-1.5"
                 >
                   {copiedOwnerEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedOwnerEmail ? 'Email Copied' : app.developerEmail}</span>
+                  <span>{copiedOwnerEmail ? 'Email Copied' : (app.ownerProfile?.email || app.developerEmail)}</span>
                 </button>
                 <a
-                  href={`mailto:${app.developerEmail}?subject=${encodeURIComponent(`Support Inquiry: ${app.title}`)}`}
+                  href={`mailto:${app.ownerProfile?.email || app.developerEmail}?subject=${encodeURIComponent(`Support Inquiry: ${app.title}`)}`}
                   className="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   <Mail className="w-3.5 h-3.5" />
@@ -937,8 +983,51 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Verified publisher for {app.title} ({app.fileName} · {app.packageId}). All direct APK distribution and support inquiries for this application are handled by {appOwnerName} ({app.developerEmail}).
+            {app.ownerProfile?.bio && (
+              <p className="text-xs text-zinc-300 leading-relaxed bg-black/40 p-3.5 rounded-xl border border-white/[0.06]">
+                {app.ownerProfile.bio}
+              </p>
+            )}
+
+            {(app.ownerProfile?.phone || app.ownerProfile?.calendarUrl || (app.ownerProfile?.accounts && app.ownerProfile.accounts.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {app.ownerProfile.phone && (
+                  <a
+                    href={`tel:${app.ownerProfile.phone}`}
+                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-mono inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <Phone className="w-3 h-3 text-emerald-400" />
+                    <span>{app.ownerProfile.phone}</span>
+                  </a>
+                )}
+                {app.ownerProfile.calendarUrl && (
+                  <a
+                    href={app.ownerProfile.calendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <Calendar className="w-3 h-3 text-blue-400" />
+                    <span>Calendly ({app.ownerProfile.username})</span>
+                  </a>
+                )}
+                {app.ownerProfile.accounts?.map((acc) => (
+                  <a
+                    key={acc.url}
+                    href={acc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>{acc.name}: {acc.username}</span>
+                    <ExternalLink className="w-3 h-3 text-zinc-400" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Verified publisher for {app.title} ({app.fileName} · {app.packageId}). All direct APK distribution and support inquiries for this application are handled by {appOwnerName} ({app.ownerProfile?.email || app.developerEmail}).
             </p>
           </div>
         </section>
@@ -953,8 +1042,29 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </div>
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Owner Contact Email</dt>
-              <dd className="text-blue-400 font-mono sm:text-right break-all">{app.developerEmail}</dd>
+              <dd className="text-blue-400 font-mono sm:text-right break-all">{app.ownerProfile?.email || app.developerEmail}</dd>
             </div>
+            {app.ownerProfile?.phone && (
+              <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                <dt className="text-zinc-400">Owner Phone</dt>
+                <dd className="text-zinc-200 font-mono sm:text-right">{app.ownerProfile.phone}</dd>
+              </div>
+            )}
+            {app.ownerProfile?.profileUrl && (
+              <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+                <dt className="text-zinc-400">Gravatar Profile</dt>
+                <dd className="sm:text-right">
+                  <a
+                    href={app.ownerProfile.profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 font-mono hover:underline break-all"
+                  >
+                    {app.ownerProfile.profileUrl}
+                  </a>
+                </dd>
+              </div>
+            )}
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Package Identifier</dt>
               <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.packageId}</dd>

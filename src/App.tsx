@@ -233,10 +233,10 @@ export default function App() {
       />
 
       {activeDownloadNotification && (
-        <div className="fixed top-20 right-4 sm:right-8 z-50">
-          <div className="p-4 rounded-2xl bg-zinc-900 text-white shadow-2xl flex items-center gap-3 border border-white/15 text-xs font-semibold">
-            <Download className="w-4 h-4 text-blue-400" />
-            <span>{activeDownloadNotification}</span>
+        <div className="fixed top-20 left-3 right-3 sm:left-auto sm:right-8 z-50 pointer-events-none">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900 text-white shadow-2xl flex items-center gap-3 border border-white/15 text-xs font-semibold max-w-md sm:ml-auto">
+            <Download className="w-4 h-4 text-blue-400 shrink-0" />
+            <span className="truncate">{activeDownloadNotification}</span>
           </div>
         </div>
       )}
@@ -306,7 +306,7 @@ export default function App() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full md:w-auto">
               <div className="relative flex-1 md:w-72">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input
@@ -314,13 +314,13 @@ export default function App() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search apps & APKs..."
-                  className="w-full bg-zinc-900 border border-white/[0.08] rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-zinc-900 border border-white/[0.08] rounded-full pl-10 pr-14 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors min-h-[42px]"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white min-h-[32px] px-1"
                   >
                     Clear
                   </button>
@@ -331,7 +331,7 @@ export default function App() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 aria-label="Sort apps"
-                className="bg-zinc-900 border border-white/[0.08] rounded-full px-3.5 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-blue-500"
+                className="w-full sm:w-auto bg-zinc-900 border border-white/[0.08] rounded-full px-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-blue-500 min-h-[42px]"
               >
                 <option value="popular">Top Charts</option>
                 <option value="rating">Top Rated</option>
@@ -340,7 +340,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 overflow-x-auto pb-2 border-b border-white/[0.08]">
+          <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-2 border-b border-white/[0.08]">
             <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border border-white/[0.08] rounded-full">
               {categories.map((cat) => (
                 <button

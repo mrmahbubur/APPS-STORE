@@ -2,6 +2,26 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+export interface AppOwnerAccount {
+  name: string;
+  username: string;
+  url: string;
+  verified?: boolean;
+}
+
+export interface AppOwnerProfile {
+  displayName: string;
+  username: string;
+  profileUrl: string;
+  avatarUrl: string;
+  email: string;
+  phone?: string;
+  headline?: string;
+  bio?: string;
+  calendarUrl?: string;
+  accounts?: AppOwnerAccount[];
+}
+
 export interface AppItem {
   id: string;
   title: string;
@@ -24,6 +44,7 @@ export interface AppItem {
   developer: string;
   developerEmail: string;
   ownerName?: string;
+  ownerProfile?: AppOwnerProfile;
   packageId: string;
   sha256: string;
   directDownloadUrl: string;
@@ -148,6 +169,31 @@ function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackS
   return { size: fallbackSize, sha256: fallbackSha256, updatedAt: '2026-11-12' };
 }
 
+const GRAVATAR_PROFILE_ENDPOINT = 'https://gravatar.com/mrxshahin.json';
+
+let currentOwnerProfile: AppOwnerProfile = {
+  displayName: 'M R S',
+  username: 'mrxshahin',
+  profileUrl: 'https://gravatar.com/mrxshahin',
+  avatarUrl:
+    'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
+  email: 'mr216873@gmail.com',
+  phone: '+8809611056361',
+  headline: 'Available for Remote IT Support, Virtual Assistance & Administrative Work',
+  bio: 'Available for Remote IT Support, Virtual Assistance & Administrative Work. Certified 360-hour computer systems coursework; writing technology guides and solutions since 2018 with focus on Android support, web solutions, technical documentation, and AI productivity tools.',
+  calendarUrl: 'https://calendly.com/mrxshahin',
+  accounts: [
+    { name: 'WordPress', username: 'mrxshahin.wordpress.com', url: 'https://mrxshahin.wordpress.com', verified: true },
+    { name: 'X', username: '@Mrshahinx', url: 'https://x.com/Mrshahinx', verified: true },
+    { name: 'LinkedIn', username: 'mrmahbubur', url: 'https://www.linkedin.com/in/mrmahbubur', verified: true },
+    { name: 'Bluesky', username: 'mrxshahin.bsky.social', url: 'https://bsky.app/profile/mrxshahin.bsky.social', verified: true },
+  ],
+};
+
+function formatOwnerLabel(profile: AppOwnerProfile): string {
+  return profile.username ? `${profile.displayName} (@${profile.username})` : profile.displayName;
+}
+
 function buildGenuineApps(): AppItem[] {
   const mrsMeta = readRealApkFileMeta(
     'apks/M_R_S_IPTV.apk',
@@ -164,6 +210,8 @@ function buildGenuineApps(): AppItem[] {
     '9.33 MB',
     '78d49e74f404c870714494d59634fa3c7ba1f30cb7e4a132b523e481925f56d4'
   );
+
+  const ownerLabel = formatOwnerLabel(currentOwnerProfile);
 
   return [
     {
@@ -186,8 +234,9 @@ function buildGenuineApps(): AppItem[] {
       icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       developer: 'MRS TV Network',
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: 'Shahin (mrxshahin)',
+      developerEmail: currentOwnerProfile.email,
+      ownerName: ownerLabel,
+      ownerProfile: currentOwnerProfile,
       packageId: 'co.median.android.rdalmaa',
       sha256: mrsMeta.sha256,
       directDownloadUrl: '/api/download/m-r-s-iptv',
@@ -238,8 +287,9 @@ function buildGenuineApps(): AppItem[] {
       icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       developer: 'MRS TV Network',
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: 'Shahin (mrxshahin)',
+      developerEmail: currentOwnerProfile.email,
+      ownerName: ownerLabel,
+      ownerProfile: currentOwnerProfile,
       packageId: 'com.wMRSIPTV_20119768',
       sha256: mrsTvMeta.sha256,
       directDownloadUrl: '/api/download/m-r-s-iptv-pro',
@@ -307,8 +357,9 @@ function buildGenuineApps(): AppItem[] {
       icon: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
       banner: '/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
       developer: 'Camellia Studio',
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: 'Shahin (mrxshahin)',
+      developerEmail: currentOwnerProfile.email,
+      ownerName: ownerLabel,
+      ownerProfile: currentOwnerProfile,
       packageId: 'co.median.android.rdalmaa',
       sha256: camelliaMeta.sha256,
       directDownloadUrl: '/api/download/camellia-ai',
@@ -456,6 +507,88 @@ function ensureDatabase() {
 }
 
 ensureDatabase();
+
+async function syncGravatarOwnerProfile() {
+  try {
+    const res = await fetch(GRAVATAR_PROFILE_ENDPOINT, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return;
+    const json: any = await res.json();
+    const entry = json?.entry?.[0];
+    if (!entry) return;
+
+    const cleanBioText = String(entry.aboutMe || '')
+      .split(/\r?\n/)
+      .map((line: string) => line.replace(/[#*`>_]/g, '').trim())
+      .filter(Boolean);
+    const headlineLine = cleanBioText[0]
+      ?.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F]/gu, '')
+      .trim();
+
+    const accounts: AppOwnerAccount[] = Array.isArray(entry.accounts)
+      ? entry.accounts
+          .filter((acc: any) => acc?.url && !String(acc.url).toLowerCase().includes('blogspot'))
+          .map((acc: any) => ({
+            name: String(acc.name || acc.domain || 'Link'),
+            username: String(acc.username || acc.display || ''),
+            url: String(acc.url),
+            verified: Boolean(acc.verified),
+          }))
+      : currentOwnerProfile.accounts || [];
+
+    const calContact = Array.isArray(entry.contactInfo)
+      ? entry.contactInfo.find(
+          (c: any) => c?.type === 'calendar' && c?.value && !String(c.value).toLowerCase().includes('blogspot')
+        )
+      : null;
+
+    const primaryEmail =
+      Array.isArray(entry.emails) && entry.emails[0]?.value
+        ? String(entry.emails[0].value)
+        : currentOwnerProfile.email;
+
+    const phone =
+      Array.isArray(entry.phoneNumbers) && entry.phoneNumbers[0]?.value
+        ? String(entry.phoneNumbers[0].value)
+        : currentOwnerProfile.phone;
+
+    const rawAvatar = entry.thumbnailUrl
+      ? `${String(entry.thumbnailUrl)}?s=256`
+      : currentOwnerProfile.avatarUrl;
+
+    currentOwnerProfile = {
+      displayName: String(entry.displayName || currentOwnerProfile.displayName),
+      username: String(entry.preferredUsername || currentOwnerProfile.username),
+      profileUrl: String(entry.profileUrl || currentOwnerProfile.profileUrl),
+      avatarUrl: rawAvatar,
+      email: primaryEmail,
+      phone,
+      headline: headlineLine || currentOwnerProfile.headline,
+      bio: currentOwnerProfile.bio,
+      calendarUrl: calContact ? String(calContact.value) : currentOwnerProfile.calendarUrl,
+      accounts: accounts.length > 0 ? accounts : currentOwnerProfile.accounts,
+    };
+
+    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai']);
+    const ownerLabel = formatOwnerLabel(currentOwnerProfile);
+    memoryStore = memoryStore.map((app) =>
+      builtInIds.has(app.id)
+        ? {
+            ...app,
+            developerEmail: currentOwnerProfile.email,
+            ownerName: ownerLabel,
+            ownerProfile: currentOwnerProfile,
+          }
+        : app
+    );
+    fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Using verified cached Gravatar owner profile:', err instanceof Error ? err.message : err);
+  }
+}
+
+void syncGravatarOwnerProfile();
 
 export const AppDatabase = {
   getAllApps(): AppItem[] {

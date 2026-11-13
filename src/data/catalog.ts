@@ -1,4 +1,4 @@
-import { AppItem, ReviewItem, ReviewStats, SiteMeta } from '../types';
+import { AppItem, AppOwnerProfile, ReviewItem, ReviewStats, SiteMeta } from '../types';
 
 export function normalizeAssetPath(url: string | undefined): string {
   if (!url) return '';
@@ -19,6 +19,26 @@ export function getAppLocalApkFile(appId: string): string {
   };
   return apkMap[appId] || `${appId}.apk`;
 }
+
+// Official owner profile verified from https://gravatar.com/mrxshahin.json
+export const MRS_GRAVATAR_OWNER_PROFILE: AppOwnerProfile = {
+  displayName: 'M R S',
+  username: 'mrxshahin',
+  profileUrl: 'https://gravatar.com/mrxshahin',
+  avatarUrl:
+    'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
+  email: 'mr216873@gmail.com',
+  phone: '+8809611056361',
+  headline: 'Available for Remote IT Support, Virtual Assistance & Administrative Work',
+  bio: 'Available for Remote IT Support, Virtual Assistance & Administrative Work. Certified 360-hour computer systems coursework; writing technology guides and solutions since 2018 with focus on Android support, web solutions, technical documentation, and AI productivity tools.',
+  calendarUrl: 'https://calendly.com/mrxshahin',
+  accounts: [
+    { name: 'WordPress', username: 'mrxshahin.wordpress.com', url: 'https://mrxshahin.wordpress.com', verified: true },
+    { name: 'X', username: '@Mrshahinx', url: 'https://x.com/Mrshahinx', verified: true },
+    { name: 'LinkedIn', username: 'mrmahbubur', url: 'https://www.linkedin.com/in/mrmahbubur', verified: true },
+    { name: 'Bluesky', username: 'mrxshahin.bsky.social', url: 'https://bsky.app/profile/mrxshahin.bsky.social', verified: true },
+  ],
+};
 
 export const DEFAULT_APPS: AppItem[] = [
   {
@@ -42,7 +62,8 @@ export const DEFAULT_APPS: AppItem[] = [
     banner: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
     developer: 'MRS TV Network',
     developerEmail: 'mr216873@gmail.com',
-    ownerName: 'Shahin (mrxshahin)',
+    ownerName: 'M R S (@mrxshahin)',
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     packageId: 'co.median.android.rdalmaa',
     sha256: 'd8358fae651e182a9dae7e098962b94afd9ddb8eb228923c76184250d7ccf28c',
     directDownloadUrl: './apks/M_R_S_IPTV.apk',
@@ -94,7 +115,8 @@ export const DEFAULT_APPS: AppItem[] = [
     banner: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
     developer: 'MRS TV Network',
     developerEmail: 'mr216873@gmail.com',
-    ownerName: 'Shahin (mrxshahin)',
+    ownerName: 'M R S (@mrxshahin)',
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     packageId: 'com.wMRSIPTV_20119768',
     sha256: 'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92',
     directDownloadUrl: './apks/M_R_S_IPTV_Pro.apk',
@@ -163,7 +185,8 @@ export const DEFAULT_APPS: AppItem[] = [
     banner: './assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
     developer: 'Camellia Studio',
     developerEmail: 'mr216873@gmail.com',
-    ownerName: 'Shahin (mrxshahin)',
+    ownerName: 'M R S (@mrxshahin)',
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     packageId: 'co.median.android.rdalmaa',
     sha256: '78d49e74f404c870714494d59634fa3c7ba1f30cb7e4a132b523e481925f56d4',
     directDownloadUrl: './apks/Camellia_Ai.apk',

@@ -15,7 +15,6 @@ export function getAppLocalApkFile(appId: string): string {
   const apkMap: Record<string, string> = {
     'm-r-s-iptv': 'M_R_S_IPTV.apk',
     'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
-    'camellia-ai': 'Camellia_Ai.apk',
   };
   return apkMap[appId] || `${appId}.apk`;
 }
@@ -164,59 +163,6 @@ export const DEFAULT_APPS: AppItem[] = [
     featured: false,
     editorChoice: false,
   },
-  {
-    id: 'camellia-ai',
-    title: 'Camellia Ai',
-    fileName: 'Camellia Ai.apk',
-    tagline: 'Official Camellia Ai Android APK hosted directly on MRS App Store.',
-    category: 'AI & Virtual Assistant',
-    platform: 'Android Mobile',
-    version: '1.0.0',
-    updatedAt: '2026-11-12',
-    size: '9.33 MB',
-    rating: 0,
-    reviewsCount: 0,
-    downloads: 0,
-    minAndroid: 'Android 8.0+ (API 26)',
-    ageRating: 'Everyone',
-    languages: 'Android System Locale',
-    chartRank: 'v1.0.0',
-    icon: './assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
-    banner: './assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg',
-    developer: 'Camellia Studio',
-    developerEmail: 'mr216873@gmail.com',
-    ownerName: 'M R S (@mrxshahin)',
-    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
-    packageId: 'co.median.android.rdalmaa',
-    sha256: '78d49e74f404c870714494d59634fa3c7ba1f30cb7e4a132b523e481925f56d4',
-    directDownloadUrl: './apks/Camellia_Ai.apk',
-    downloadUrl: './apks/Camellia_Ai.apk',
-    shareUrl: './?app=camellia-ai',
-    localApkPath: './apks/Camellia_Ai.apk',
-    description:
-      'Camellia Ai is an Android AI assistant package (Camellia Ai.apk) hosted directly on MRS App Store for Android 8.0+ smartphones and tablets.',
-    whatsNew: [
-      'Direct in-house APK hosting from MRS App Store (9.33 MB)',
-      'Build 3 (Version 1.0.0) compiled for Android API 26+',
-      'Verified SHA-256 binary checksum published on product page',
-    ],
-    features: [
-      'Direct APK download from MRS App Store',
-      'Supports Android 8.0 (API 26) and above',
-      'Verified SHA-256 integrity hash',
-      'Shareable app page link and direct APK download URL',
-    ],
-    permissions: [
-      'android.permission.INTERNET',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.READ_PHONE_STATE',
-      'android.permission.VIBRATE',
-      'android.permission.DUMP',
-    ],
-    screenshots: ['./assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg'],
-    featured: false,
-    editorChoice: false,
-  },
 ];
 
 // No fabricated seeded reviews — starts empty and populates strictly from real user submissions
@@ -256,12 +202,34 @@ export function getLocalPublishedApps(): AppItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map((app: AppItem) => ({
-      ...app,
-      icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
-      banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
-      screenshots: (app.screenshots || ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
-    }));
+    return parsed
+      .filter((app: any) => app && typeof app === 'object' && app.id && app.id !== 'camellia-ai')
+      .map((app: AppItem) => ({
+        ...app,
+        title: app.title || 'Untitled App',
+        fileName: app.fileName || 'app.apk',
+        tagline: app.tagline || '',
+        category: app.category || 'Entertainment',
+        platform: app.platform || 'Android Mobile',
+        version: app.version || '1.0.0',
+        size: app.size || 'APK',
+        rating: typeof app.rating === 'number' ? app.rating : 0,
+        reviewsCount: typeof app.reviewsCount === 'number' ? app.reviewsCount : 0,
+        downloads: typeof app.downloads === 'number' ? app.downloads : 0,
+        minAndroid: app.minAndroid || 'Android 8.0+ (API 26)',
+        developer: app.developer || 'Developer',
+        developerEmail: app.developerEmail || '',
+        packageId: app.packageId || 'com.mrs.app',
+        sha256: app.sha256 || '',
+        directDownloadUrl: app.directDownloadUrl || '',
+        description: app.description || '',
+        whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
+        features: Array.isArray(app.features) ? app.features : [],
+        permissions: Array.isArray(app.permissions) ? app.permissions : [],
+        icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
+        banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
+        screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
+      }));
   } catch {
     return [];
   }
@@ -299,29 +267,35 @@ export function saveLocalSubmission(
 }
 
 export function mergeCatalogApps(primaryApps: AppItem[], localApps: AppItem[]): AppItem[] {
-  const seen = new Set<string>();
+  const seen = new Set<string>(['camellia-ai']);
   const merged: AppItem[] = [];
 
   for (const app of primaryApps) {
-    if (!seen.has(app.id)) {
+    if (app && app.id && !seen.has(app.id)) {
       seen.add(app.id);
       merged.push({
         ...app,
+        whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
+        features: Array.isArray(app.features) ? app.features : [],
+        permissions: Array.isArray(app.permissions) ? app.permissions : [],
         icon: normalizeAssetPath(app.icon),
         banner: normalizeAssetPath(app.banner),
-        screenshots: (app.screenshots || []).map(normalizeAssetPath),
+        screenshots: (Array.isArray(app.screenshots) ? app.screenshots : []).map(normalizeAssetPath),
       });
     }
   }
 
   for (const app of localApps) {
-    if (!seen.has(app.id)) {
+    if (app && app.id && !seen.has(app.id)) {
       seen.add(app.id);
       merged.push({
         ...app,
+        whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
+        features: Array.isArray(app.features) ? app.features : [],
+        permissions: Array.isArray(app.permissions) ? app.permissions : [],
         icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
         banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
-        screenshots: (app.screenshots || ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
+        screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
       });
     }
   }

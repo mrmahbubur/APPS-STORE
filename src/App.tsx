@@ -30,7 +30,6 @@ const CATEGORIES = [
   'All',
   'IPTV & Streaming',
   'Smart TV & Video',
-  'AI & Virtual Assistant',
 ];
 
 export default function App() {
@@ -67,7 +66,7 @@ export default function App() {
         fetch('./api/meta').catch(() => null),
       ]);
 
-      const localPublished = getLocalPublishedApps();
+      const localPublished = getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai');
       const appsContentType = appsRes?.headers.get('content-type') || '';
       if (appsRes && appsRes.ok && appsContentType.includes('application/json')) {
         const appsData = await appsRes.json();
@@ -89,7 +88,7 @@ export default function App() {
     } catch (err) {
       console.warn('Falling back to static catalog:', err);
       setHasBackend(false);
-      setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps()));
+      setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai')));
       setSiteMeta(getDefaultSiteMeta());
     } finally {
       setLoading(false);
@@ -391,7 +390,7 @@ export default function App() {
               <Tv className="w-8 h-8 text-zinc-600 mx-auto" />
               <h3 className="text-base font-bold text-white">No applications match your filter</h3>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                Reset filters to view all official M R S IPTV and Camellia Ai applications.
+                Reset filters to view all official M R S IPTV applications.
               </p>
               <button
                 type="button"

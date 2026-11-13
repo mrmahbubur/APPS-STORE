@@ -1,6 +1,6 @@
 {
   "name": "MRS App Store",
-  "description": "Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing.",
+  "description": "Download verified M R S IPTV Android and M R S IPTV TV APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

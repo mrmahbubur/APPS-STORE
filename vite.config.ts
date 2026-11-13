@@ -7,6 +7,11 @@ export default defineConfig(() => {
   return {
     base: './',
     plugins: [react(), tailwindcss()],
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      target: 'es2020',
+    },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),

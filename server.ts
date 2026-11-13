@@ -86,7 +86,6 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
   const apkMap: Record<string, string> = {
     'm-r-s-iptv': 'M_R_S_IPTV.apk',
     'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
-    'camellia-ai': 'Camellia_Ai.apk',
   };
 
   if (apkMap[appItem.id]) {

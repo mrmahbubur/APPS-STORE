@@ -373,6 +373,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           setGravatarMessage('No public Gravatar entry found.');
           return;
         }
+        const cleanLines = String(entry.aboutMe || '')
+          .split(/\r?\n/)
+          .map((l: string) => l.replace(/[#*`>_]/g, '').trim())
+          .filter(Boolean);
+        const calEntry = Array.isArray(entry.contactInfo)
+          ? entry.contactInfo.find(
+              (c: any) =>
+                c?.type === 'calendar' &&
+                c?.value &&
+                !String(c.value).toLowerCase().includes('blogspot')
+            )
+          : null;
         profile = {
           displayName: String(entry.displayName || slug),
           username: String(entry.preferredUsername || slug),
@@ -380,7 +392,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           avatarUrl: entry.thumbnailUrl ? `${String(entry.thumbnailUrl)}?s=256` : '',
           email: entry.emails?.[0]?.value ? String(entry.emails[0].value) : '',
           phone: entry.phoneNumbers?.[0]?.value ? String(entry.phoneNumbers[0].value) : undefined,
-          headline: String(entry.aboutMe || '').split(/\r?\n/)[0]?.trim() || undefined,
+          headline: cleanLines[0] || undefined,
+          bio: cleanLines.slice(0, 3).join(' ').slice(0, 320) || undefined,
+          calendarUrl: calEntry ? String(calEntry.value) : undefined,
           accounts: Array.isArray(entry.accounts)
             ? entry.accounts
                 .filter((acc: any) => acc?.url && !String(acc.url).toLowerCase().includes('blogspot'))
@@ -731,8 +745,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
             packageId: packageId.trim() || undefined,
             fileName: uploadedApk?.fileName || `${appTitle.trim().replace(/\s+/g, '_')}.apk`,
             iconUrl: iconUrl || undefined,
-            apkDownloadUrl: cleanUrl || uploadedApk?.localApkPath,
-            localApkPath: uploadedApk?.localApkPath || undefined,
+            apkDownloadUrl: apkSourceMode === 'url' ? cleanUrl : (uploadedApk?.localApkPath || cleanUrl),
+            localApkPath: apkSourceMode === 'upload' ? uploadedApk?.localApkPath || undefined : undefined,
             size: uploadedApk?.size || undefined,
             sha256: uploadedApk?.sha256 || undefined,
             architectures: uploadedApk?.architectures || undefined,
@@ -1120,14 +1134,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
                 <button
                   type="button"
-                  onClick={() =>
-                    copyText(
-                      'apk',
-                      hasBackend
-                        ? `${window.location.origin}/api/download/${receiptResult.app.id}`
-                        : receiptResult.app.directDownloadUrl
-                    )
-                  }
+                  onClick={() => {
+                    const pathname = window.location.pathname || '/';
+                    const basePath = pathname.endsWith('/')
+                      ? pathname
+                      : pathname.split('/').pop()?.includes('.')
+                      ? pathname.replace(/\/[^/]*$/, '/')
+                      : `${pathname}/`;
+                    const directUrl = hasBackend
+                      ? `${window.location.origin}${basePath}api/download/${receiptResult.app.id}`
+                      : receiptResult.app.directDownloadUrl;
+                    copyText('apk', directUrl);
+                  }}
                   className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   {copiedKey === 'apk' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1815,7 +1833,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                             : 'Choose .apk file from your device'}
                         </span>
                         <span className="text-[11px] text-zinc-400">
-                          Validates ZIP signature, inspects AndroidManifest.xml, computes SHA-256, and hosts APK on store server.
+                          {hasBackend
+                            ? 'Validates ZIP signature, inspects AndroidManifest.xml, computes SHA-256, and hosts APK on store server.'
+                            : 'Computes exact MB size & SHA-256 locally in-browser (enter your direct HTTPS APK URL below).'}
                         </span>
                         <input
                           type="file"

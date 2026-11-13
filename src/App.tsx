@@ -5,13 +5,11 @@ import { AppCard } from './components/AppCard';
 import { AppDetailModal } from './components/AppDetailModal';
 import { PublishAppModal } from './components/PublishAppModal';
 import { LegalPoliciesModal } from './components/LegalPoliciesModal';
-import { ThemeExportModal } from './components/ThemeExportModal';
 import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { AppItem, SiteMeta } from './types';
 import {
   DEFAULT_APPS,
-  STORE_OWNER_INFO,
   getDefaultSiteMeta,
   normalizeAssetPath,
   getAppLocalApkFile,
@@ -24,13 +22,8 @@ import {
   Download,
   AlertCircle,
   DollarSign,
-  Mail,
   Zap,
-  UserCheck,
   ShieldCheck,
-  Code2,
-  Copy,
-  Check,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -57,14 +50,12 @@ export default function App() {
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>('privacy');
-  const [isThemeExportOpen, setIsThemeExportOpen] = useState(false);
 
   // Mobile navigation
   const [mobileTab, setMobileTab] = useState<'discover' | 'categories' | 'publish' | 'legal'>('discover');
 
-  // Toast & Owner email copy
+  // Toast
   const [activeDownloadNotification, setActiveDownloadNotification] = useState<string | null>(null);
-  const [copiedOwnerEmail, setCopiedOwnerEmail] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -232,18 +223,11 @@ export default function App() {
     }
   };
 
-  const handleCopyOwner = () => {
-    navigator.clipboard.writeText(STORE_OWNER_INFO.email);
-    setCopiedOwnerEmail(true);
-    setTimeout(() => setCopiedOwnerEmail(false), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white pb-20 md:pb-0">
       <Header
         onOpenPublish={() => setIsPublishModalOpen(true)}
         onOpenLegal={handleOpenLegal}
-        onOpenThemeExport={() => setIsThemeExportOpen(true)}
         onSelectCategory={(cat) => setSelectedCategory(cat)}
         activeCategory={selectedCategory}
       />
@@ -257,7 +241,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4">
         {featuredApp && !searchQuery && selectedCategory === 'All' && (
           <HeroFeatured
             app={featuredApp}
@@ -268,7 +252,7 @@ export default function App() {
         )}
 
         {/* Store Highlights Strip */}
-        <section className="my-6 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <section className="my-5 sm:my-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
               <Tv className="w-5 h-5" />
@@ -301,11 +285,11 @@ export default function App() {
 
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 shrink-0">
-              <Mail className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-white text-sm truncate">{STORE_OWNER_INFO.email}</p>
-              <p className="text-zinc-400 text-[11px]">Store Owner Support</p>
+              <p className="font-bold text-white text-sm truncate">SHA-256 Verified</p>
+              <p className="text-zinc-400 text-[11px]">Inspectable APK Checksums</p>
             </div>
           </div>
         </section>
@@ -421,7 +405,7 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredApps.map((app) => (
                 <AppCard
                   key={app.id}
@@ -433,71 +417,11 @@ export default function App() {
             </div>
           )}
         </section>
-
-        {/* Owner Information & Store About Section */}
-        <section id="owner-section" className="mt-16 pt-10 border-t border-white/[0.08]">
-          <div className="rounded-[2rem] bg-zinc-950 border border-white/[0.08] p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-7 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
-                <UserCheck className="w-4 h-4" />
-                <span>Store Owner &amp; About</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {STORE_OWNER_INFO.organization} · {STORE_OWNER_INFO.ownerName}
-              </h2>
-              <p className="text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                {STORE_OWNER_INFO.verificationNote}
-              </p>
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <a
-                  href={`mailto:${STORE_OWNER_INFO.email}`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition-colors min-h-[40px]"
-                >
-                  <Mail className="w-4 h-4" />
-                  <span>Email Owner ({STORE_OWNER_INFO.email})</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={handleCopyOwner}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors min-h-[40px]"
-                >
-                  {copiedOwnerEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedOwnerEmail ? 'Email Copied' : 'Copy Contact Email'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsThemeExportOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 text-xs font-semibold transition-colors min-h-[40px]"
-                >
-                  <Code2 className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Export Store XML Theme</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 text-xs">
-              <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.07]">
-                <p className="text-zinc-400 font-semibold">Official Administrator</p>
-                <p className="text-sm font-bold text-white mt-1">{STORE_OWNER_INFO.ownerName}</p>
-                <p className="text-zinc-400 font-mono mt-0.5">{STORE_OWNER_INFO.email}</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.07]">
-                <p className="text-zinc-400 font-semibold flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Support &amp; Developer Review</span>
-                </p>
-                <p className="text-sm font-bold text-white mt-1">{STORE_OWNER_INFO.supportResponseTime}</p>
-                <p className="text-zinc-400 mt-0.5">Publishing Fee: $25.00 USD (Binance / USDT)</p>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer
         siteMeta={siteMeta}
         onOpenLegal={handleOpenLegal}
-        onOpenThemeExport={() => setIsThemeExportOpen(true)}
         onOpenPublish={() => setIsPublishModalOpen(true)}
       />
 
@@ -536,11 +460,6 @@ export default function App() {
         onClose={() => setIsLegalModalOpen(false)}
         siteMeta={siteMeta}
         initialTab={legalTab}
-      />
-
-      <ThemeExportModal
-        isOpen={isThemeExportOpen}
-        onClose={() => setIsThemeExportOpen(false)}
       />
     </div>
   );

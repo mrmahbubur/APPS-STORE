@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Star, Check, Share2 } from 'lucide-react';
+import { Download, Star, Check, Share2, UserCheck } from 'lucide-react';
 import { AppItem } from '../types';
 
 interface AppCardProps {
@@ -17,6 +17,8 @@ export const AppCard: React.FC<AppCardProps> = ({
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+
+  const appOwner = app.ownerName || app.developer;
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,6 +87,19 @@ export const AppCard: React.FC<AppCardProps> = ({
       <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
         {app.tagline}
       </p>
+
+      {/* Per-App Owner Information */}
+      <div className="px-3.5 py-2.5 rounded-2xl bg-black/50 border border-white/[0.06] flex items-center justify-between gap-2 text-[11px]">
+        <div className="flex items-center gap-2 min-w-0">
+          <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <span className="text-zinc-300 font-semibold truncate">
+            Owner: <span className="text-white">{appOwner}</span>
+          </span>
+        </div>
+        <span className="text-zinc-400 font-mono truncate max-w-[155px] shrink-0">
+          {app.developerEmail}
+        </span>
+      </div>
 
       {/* Footer Strip: Compatibility & GET + Share Controls */}
       <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-2">

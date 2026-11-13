@@ -1,4 +1,4 @@
-import { AppItem, OwnerInfo, ReviewItem, ReviewStats, SiteMeta } from '../types';
+import { AppItem, ReviewItem, ReviewStats, SiteMeta } from '../types';
 
 export function normalizeAssetPath(url: string | undefined): string {
   if (!url) return '';
@@ -19,18 +19,6 @@ export function getAppLocalApkFile(appId: string): string {
   };
   return apkMap[appId] || `${appId}.apk`;
 }
-
-export const STORE_OWNER_INFO: OwnerInfo = {
-  ownerName: 'Shahin (mrxshahin)',
-  organization: 'MRS TV Network',
-  email: 'mr216873@gmail.com',
-  role: 'Store Owner & App Publisher',
-  location: 'MRS App Store',
-  supportResponseTime: 'Direct Email Support',
-  publishingFeeUsd: 25.0,
-  verificationNote:
-    'Every APK file hosted on MRS App Store is served directly from local server storage with its real SHA-256 cryptographic checksum.',
-};
 
 export const DEFAULT_APPS: AppItem[] = [
   {
@@ -359,7 +347,6 @@ export function getDefaultSiteMeta(): SiteMeta {
     currentYear,
     copyrightNotice: `© ${currentYear} MRS TV Network. All rights reserved.`,
     adminEmail: 'mr216873@gmail.com',
-    ownerInfo: STORE_OWNER_INFO,
     submissionFeeUsd: 25.0,
     lastUpdated: new Date().toISOString(),
     policies: {

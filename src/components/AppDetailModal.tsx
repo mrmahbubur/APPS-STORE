@@ -26,7 +26,6 @@ import {
 import { AppItem, ReviewItem, ReviewStats } from '../types';
 import {
   getAppLocalApkFile,
-  STORE_OWNER_INFO,
   computeReviewStats,
   getLocalReviews,
   saveLocalReview,
@@ -142,8 +141,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     setTimeout(() => setCopiedShareLink(false), 2000);
   };
 
+  const appOwnerName = app.ownerName || app.developer;
+
   const handleCopyOwnerEmail = () => {
-    navigator.clipboard.writeText(STORE_OWNER_INFO.email);
+    navigator.clipboard.writeText(app.developerEmail);
     setCopiedOwnerEmail(true);
     setTimeout(() => setCopiedOwnerEmail(false), 2000);
   };
@@ -270,7 +271,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl bg-[#0c0c0f] border border-white/[0.1] rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-4xl bg-[#0c0c0f] border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-4 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -394,9 +395,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           </div>
 
           <div className="border-r border-white/[0.08] pr-2 hidden sm:block">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Developer</p>
-            <p className="text-sm font-bold text-white mt-2 truncate">{app.developer}</p>
-            <p className="text-[11px] text-zinc-500 mt-1">Owner: Shahin</p>
+            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Owner</p>
+            <p className="text-sm font-bold text-white mt-2 truncate">{appOwnerName}</p>
+            <p className="text-[11px] text-zinc-500 mt-1 truncate">{app.developer}</p>
           </div>
 
           <div className="hidden sm:block">
@@ -478,12 +479,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Direct APK Binary Link */}
-            <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.08] flex items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0">
                   <HardDrive className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-white">Direct APK Download Link</p>
                   <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">{directDownloadUrl}</p>
                 </div>
@@ -491,7 +492,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyDownloadLink}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs shrink-0 inline-flex items-center gap-1.5"
+                className="w-full sm:w-auto justify-center px-3.5 py-2 min-h-[38px] rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs shrink-0 inline-flex items-center gap-1.5"
               >
                 {copiedDownloadLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedDownloadLink ? 'Copied' : 'Copy'}</span>
@@ -499,12 +500,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </div>
 
             {/* Specific App Share URL */}
-            <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.08] flex items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center shrink-0">
                   <Link2 className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-white">App Sharing Page Link</p>
                   <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">{shareUrl}</p>
                 </div>
@@ -512,7 +513,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyShareLink}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs shrink-0 inline-flex items-center gap-1.5"
+                className="w-full sm:w-auto justify-center px-3.5 py-2 min-h-[38px] rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs shrink-0 inline-flex items-center gap-1.5"
               >
                 {copiedShareLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedShareLink ? 'Copied' : 'Copy'}</span>
@@ -899,19 +900,21 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           </div>
         </section>
 
-        {/* 9. Owner & Developer Information Section */}
+        {/* 9. App Owner & Developer Information Section */}
         <section id="owner-info-section" className="my-7 pt-6 border-t border-white/[0.08] space-y-4">
-          <h3 className="text-lg font-bold text-white">Owner &amp; Developer Information</h3>
+          <h3 className="text-lg font-bold text-white">App Owner &amp; Developer Information</h3>
           <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/[0.08] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                   <UserCheck className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="text-base font-bold text-white">{STORE_OWNER_INFO.ownerName}</p>
-                  <p className="text-xs text-blue-400 font-semibold">{STORE_OWNER_INFO.organization}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">{STORE_OWNER_INFO.role}</p>
+                <div className="min-w-0">
+                  <p className="text-base font-bold text-white truncate">{appOwnerName}</p>
+                  <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                    App Owner &amp; Publisher · {app.title}
+                  </p>
                 </div>
               </div>
 
@@ -922,20 +925,20 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white inline-flex items-center gap-1.5"
                 >
                   {copiedOwnerEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedOwnerEmail ? 'Email Copied' : STORE_OWNER_INFO.email}</span>
+                  <span>{copiedOwnerEmail ? 'Email Copied' : app.developerEmail}</span>
                 </button>
                 <a
-                  href={`mailto:${STORE_OWNER_INFO.email}?subject=${encodeURIComponent(`Support Inquiry: ${app.title}`)}`}
+                  href={`mailto:${app.developerEmail}?subject=${encodeURIComponent(`Support Inquiry: ${app.title}`)}`}
                   className="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Contact Owner</span>
+                  <span>Contact App Owner</span>
                 </a>
               </div>
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              {STORE_OWNER_INFO.verificationNote}
+              Verified publisher for {app.title} ({app.fileName} · {app.packageId}). All direct APK distribution and support inquiries for this application are handled by {appOwnerName} ({app.developerEmail}).
             </p>
           </div>
         </section>
@@ -944,21 +947,21 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         <section className="pt-6 border-t border-white/[0.08]">
           <h3 className="text-lg font-bold text-white mb-3">Information</h3>
           <dl className="divide-y divide-white/[0.06] text-xs">
-            <div className="py-3 flex justify-between gap-4">
-              <dt className="text-zinc-400">Provider / Owner</dt>
-              <dd className="text-zinc-200 font-medium text-right">{app.developer} · {STORE_OWNER_INFO.ownerName}</dd>
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
+              <dt className="text-zinc-400">App Owner / Developer</dt>
+              <dd className="text-zinc-200 font-medium sm:text-right">{appOwnerName} · {app.developer}</dd>
             </div>
-            <div className="py-3 flex justify-between gap-4">
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Owner Contact Email</dt>
-              <dd className="text-blue-400 font-mono text-right">{app.developerEmail}</dd>
+              <dd className="text-blue-400 font-mono sm:text-right break-all">{app.developerEmail}</dd>
             </div>
-            <div className="py-3 flex justify-between gap-4">
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Package Identifier</dt>
-              <dd className="text-zinc-200 font-mono text-right">{app.packageId}</dd>
+              <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.packageId}</dd>
             </div>
-            <div className="py-3 flex justify-between gap-4">
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">APK File Name</dt>
-              <dd className="text-zinc-200 font-mono text-right">{app.fileName}</dd>
+              <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.fileName}</dd>
             </div>
             <div className="py-3 flex justify-between gap-4">
               <dt className="text-zinc-400">Size</dt>
@@ -968,21 +971,21 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <dt className="text-zinc-400">Category</dt>
               <dd className="text-zinc-200 text-right">{app.category}</dd>
             </div>
-            <div className="py-3 flex justify-between gap-4">
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Compatibility</dt>
-              <dd className="text-zinc-200 text-right">{app.minAndroid}</dd>
+              <dd className="text-zinc-200 sm:text-right">{app.minAndroid}</dd>
             </div>
             <div className="py-3 flex justify-between gap-4">
               <dt className="text-zinc-400">Languages</dt>
               <dd className="text-zinc-200 text-right flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-zinc-500" />
+                <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                 <span>{app.languages || 'Android System Locale'}</span>
               </dd>
             </div>
-            <div className="py-3 flex justify-between items-center gap-4">
-              <dt className="text-zinc-400">SHA-256 Checksum</dt>
-              <dd className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-zinc-400 truncate max-w-[180px] sm:max-w-xs">{app.sha256}</span>
+            <div className="py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 sm:gap-4">
+              <dt className="text-zinc-400 shrink-0">SHA-256 Checksum</dt>
+              <dd className="flex items-center justify-between sm:justify-end gap-2 min-w-0">
+                <span className="font-mono text-zinc-400 truncate max-w-[220px] sm:max-w-xs">{app.sha256}</span>
                 <button
                   type="button"
                   onClick={handleCopySha}

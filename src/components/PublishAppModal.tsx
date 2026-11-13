@@ -74,6 +74,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const [packageId, setPackageId] = useState('');
   const [category, setCategory] = useState('IPTV & Streaming');
   const [platform, setPlatform] = useState('Smart TV & Android Mobile');
+  const [ownerName, setOwnerName] = useState('');
   const [developerName, setDeveloperName] = useState('');
   const [developerEmail, setDeveloperEmail] = useState('');
   const [description, setDescription] = useState('');
@@ -272,6 +273,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         version: version.trim() || '1.0.0',
         description: cleanDesc || `${cleanTitle} Android application published via MRS App Store.`,
         developerName: cleanDevName,
+        ownerName: ownerName.trim() || cleanDevName,
         developerEmail: cleanEmail,
         paymentMethod: activeMethod.title,
         tier: 'Standard',
@@ -341,7 +343,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         banner: './assets/site-logo-icon.jpg',
         developer: cleanDevName,
         developerEmail: cleanEmail,
-        ownerName: cleanDevName,
+        ownerName: ownerName.trim() || cleanDevName,
         packageId: pkg,
         sha256: computedSha256 || 'Provided by Developer URL',
         directDownloadUrl: cleanUrl,
@@ -432,7 +434,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#0c0c0f] border border-white/[0.1] rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 shadow-2xl my-auto text-zinc-100 max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-2xl bg-[#0c0c0f] border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -823,6 +825,19 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                    App Owner Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={ownerName}
+                    onChange={(e) => setOwnerName(e.target.value)}
+                    placeholder="Owner Full Name or Handle"
+                    className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
                     Developer / Studio Name *
                   </label>
                   <input
@@ -830,20 +845,20 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     required
                     value={developerName}
                     onChange={(e) => setDeveloperName(e.target.value)}
-                    placeholder="Your Studio or Name"
+                    placeholder="Your Studio or Organization"
                     className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                    Developer Contact Email *
+                    App Owner Contact Email *
                   </label>
                   <input
                     type="email"
                     required
                     value={developerEmail}
                     onChange={(e) => setDeveloperEmail(e.target.value)}
-                    placeholder="you@domain.com"
+                    placeholder="owner@domain.com"
                     className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>

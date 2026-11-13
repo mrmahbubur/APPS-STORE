@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Star, ArrowRight, Share2, Check } from 'lucide-react';
+import { Download, Star, ArrowRight, Share2, Check, UserCheck } from 'lucide-react';
 import { AppItem } from '../types';
 import { getAppLocalApkFile } from '../data/catalog';
 
@@ -34,12 +34,12 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
   };
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-b from-zinc-900 via-zinc-950 to-black border border-white/[0.08] shadow-2xl p-6 sm:p-10 lg:p-12 my-6">
+    <section className="relative overflow-hidden rounded-[1.75rem] sm:rounded-[2.5rem] bg-gradient-to-b from-zinc-900 via-zinc-950 to-black border border-white/[0.08] shadow-2xl p-5 sm:p-10 lg:p-12 my-4 sm:my-6">
       <div className="absolute top-0 right-1/4 -mr-20 -mt-20 w-[28rem] h-[28rem] bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center">
         {/* Left Column: Editorial Details */}
-        <div className="lg:col-span-7 flex flex-col items-start gap-4">
+        <div className="lg:col-span-7 flex flex-col items-start gap-3.5 sm:gap-4 order-2 lg:order-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-blue-400">
             <span>Today’s Pick</span>
             <span aria-hidden="true" className="text-zinc-600">·</span>
@@ -48,15 +48,15 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             <span className="text-zinc-300 font-mono">v{app.version}</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight text-balance">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white tracking-tight leading-tight text-balance">
             {app.title}
           </h1>
 
-          <p className="text-base sm:text-lg text-zinc-300 max-w-xl font-normal leading-relaxed">
+          <p className="text-sm sm:text-base lg:text-lg text-zinc-300 max-w-xl font-normal leading-relaxed">
             {app.tagline}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2.5 text-xs text-zinc-400 pt-1 tabular-nums">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 pt-1 tabular-nums">
             {app.reviewsCount > 0 ? (
               <>
                 <span className="flex items-center gap-1 text-amber-400 font-bold">
@@ -74,32 +74,32 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             <span aria-hidden="true" className="text-zinc-700">·</span>
             <span className="font-mono text-zinc-400">{app.size}</span>
             <span aria-hidden="true" className="text-zinc-700">·</span>
-            <span className="font-mono text-zinc-400">{app.fileName}</span>
+            <span className="font-mono text-zinc-400 break-all">{app.fileName}</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-4">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-3 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => onDirectDownload(app)}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-black hover:bg-zinc-200 active:scale-95 font-bold text-sm rounded-full transition-all shadow-xl shadow-white/10 min-h-[48px]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 bg-white text-black hover:bg-zinc-200 active:scale-95 font-bold text-xs sm:text-sm rounded-full transition-all shadow-xl shadow-white/10 min-h-[46px] whitespace-nowrap"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 shrink-0" />
               <span>GET APK ({app.size})</span>
             </button>
 
             <button
               type="button"
               onClick={() => onSelectApp(app)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/[0.08] hover:bg-white/[0.14] text-white text-sm font-semibold rounded-full border border-white/[0.1] transition-all min-h-[48px]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-semibold rounded-full border border-white/[0.1] transition-all min-h-[46px] whitespace-nowrap"
             >
-              <span>Details, Reviews &amp; Owner</span>
-              <ArrowRight className="w-4 h-4 text-zinc-400" />
+              <span>Details &amp; Reviews</span>
+              <ArrowRight className="w-4 h-4 text-zinc-400 shrink-0" />
             </button>
 
             <button
               type="button"
               onClick={handleShareHero}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-white/[0.08] hover:bg-white/[0.14] text-white text-sm font-semibold rounded-full border border-white/[0.1] transition-all min-h-[48px]"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs sm:text-sm font-semibold rounded-full border border-white/[0.1] transition-all min-h-[46px]"
               aria-label={`Share ${app.title}`}
             >
               {shared ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
@@ -107,10 +107,17 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 pt-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-zinc-400 pt-1 max-w-full">
+            <span className="inline-flex items-center gap-1.5 text-zinc-200 font-semibold">
+              <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span>Owner: {app.ownerName || app.developer}</span>
+              <span aria-hidden="true" className="text-zinc-600">·</span>
+              <span className="font-mono text-blue-400">{app.developerEmail}</span>
+            </span>
+            <span aria-hidden="true" className="text-zinc-700 hidden sm:inline">·</span>
             <span className="text-emerald-400 font-semibold">Self-Hosted Direct CDN</span>
             <span aria-hidden="true" className="text-zinc-700">·</span>
-            <span className="font-mono text-zinc-400">
+            <span className="font-mono text-zinc-400 truncate max-w-full">
               {hasBackend ? `./api/download/${app.id}` : `./apks/${getAppLocalApkFile(app.id)}`}
             </span>
           </div>
@@ -118,14 +125,14 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
 
         {/* Right Column: Squircle App Icon Showcase */}
         <div
-          className="lg:col-span-5 flex justify-center lg:justify-end cursor-pointer group"
+          className="lg:col-span-5 flex justify-start sm:justify-center lg:justify-end cursor-pointer group order-1 lg:order-2"
           onClick={() => onSelectApp(app)}
         >
           <div className="relative">
             <img
               src={app.icon || './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'}
               alt={app.title}
-              className="w-60 h-60 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl group-hover:scale-[1.02] transition-transform duration-300"
+              className="w-28 h-28 sm:w-52 sm:h-52 lg:w-72 lg:h-72 xl:w-80 xl:h-80 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl group-hover:scale-[1.02] transition-transform duration-300"
               referrerPolicy="no-referrer"
             />
           </div>

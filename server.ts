@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { AppDatabase } from './server/db.ts';
-import { generateBloggerThemeXml } from './server/theme-xml.ts';
 
 const app = express();
 const rawPort =
@@ -206,6 +205,7 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       version,
       description,
       developerName,
+      ownerName,
       developerEmail,
       paymentMethod,
       tier = 'Standard',
@@ -256,6 +256,7 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       version: version ? String(version).trim() : '1.0.0',
       description: description ? String(description).trim() : `${cleanTitle} Android application package.`,
       developerName: developerName ? String(developerName).trim() : cleanTitle,
+      ownerName: ownerName ? String(ownerName).trim() : (developerName ? String(developerName).trim() : cleanTitle),
       developerEmail: cleanEmail,
       apkDownloadUrl: cleanUrl || cleanLocalPath,
       localApkPath: cleanLocalPath || undefined,
@@ -366,20 +367,6 @@ app.get('/sw.js', (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   res.setHeader('Service-Worker-Allowed', '/');
   res.sendFile(path.resolve(process.cwd(), 'public/sw.js'));
-});
-
-// 6. Direct XML Theme Download Route
-app.get('/mrs-theme.xml', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.sendFile(path.resolve(process.cwd(), 'public/mrs-theme.xml'));
-});
-
-// 7. Theme XML Export API
-app.get('/api/theme/xml', (_req: Request, res: Response) => {
-  const xmlContent = generateBloggerThemeXml();
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="mrs-appstore-theme.xml"');
-  res.send(xmlContent);
 });
 
 // Start dev or production server

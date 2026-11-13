@@ -540,6 +540,7 @@ export const AppDatabase = {
     version: string;
     description: string;
     developerName: string;
+    ownerName?: string;
     developerEmail: string;
     apkDownloadUrl: string;
     localApkPath?: string;
@@ -571,11 +572,13 @@ export const AppDatabase = {
     const resolvedPkg =
       input.packageId?.trim() || `com.mrs.${slugBase.replace(/-/g, '')}`;
 
+    const resolvedOwner = (input.ownerName || input.developerName).trim();
+
     const newApp: AppItem = {
       id: uniqueId,
       title: input.appTitle.trim(),
       fileName: resolvedFileName,
-      tagline: `Published by ${input.developerName.trim()} on MRS App Store.`,
+      tagline: `Published by ${resolvedOwner} on MRS App Store.`,
       category: input.category.trim() || 'Entertainment',
       platform: input.platform.trim() || 'Smart TV & Android Mobile',
       version: input.version.trim() || '1.0.0',
@@ -592,7 +595,7 @@ export const AppDatabase = {
       banner: '/assets/site-logo-icon.jpg',
       developer: input.developerName.trim(),
       developerEmail: input.developerEmail.trim(),
-      ownerName: input.developerName.trim(),
+      ownerName: resolvedOwner,
       packageId: resolvedPkg,
       sha256: diskFacts.sha256,
       directDownloadUrl: cleanLocalPath ? `/api/download/${uniqueId}` : input.apkDownloadUrl.trim(),

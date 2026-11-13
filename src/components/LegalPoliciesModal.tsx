@@ -34,7 +34,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl bg-zinc-950 border border-white/[0.1] rounded-[2.5rem] p-6 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-3xl bg-zinc-950 border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}

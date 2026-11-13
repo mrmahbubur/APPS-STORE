@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { HeroFeatured } from './components/HeroFeatured';
 import { AppCard } from './components/AppCard';
 import { AppDetailModal } from './components/AppDetailModal';
-import { PublishAppModal, getLocalPublishedApps } from './components/PublishAppModal';
+import { PublishAppModal } from './components/PublishAppModal';
 import { LegalPoliciesModal } from './components/LegalPoliciesModal';
 import { ThemeExportModal } from './components/ThemeExportModal';
 import { Footer } from './components/Footer';
@@ -15,6 +15,8 @@ import {
   getDefaultSiteMeta,
   normalizeAssetPath,
   getAppLocalApkFile,
+  getLocalPublishedApps,
+  mergeCatalogApps,
 } from './data/catalog';
 import {
   Search,
@@ -74,16 +76,11 @@ export default function App() {
         fetch('./api/meta').catch(() => null),
       ]);
 
+      const localPublished = getLocalPublishedApps();
       const appsContentType = appsRes?.headers.get('content-type') || '';
       if (appsRes && appsRes.ok && appsContentType.includes('application/json')) {
         const appsData = await appsRes.json();
-        const normalizedApps = (appsData.apps || []).map((app: AppItem) => ({
-          ...app,
-          icon: normalizeAssetPath(app.icon),
-          banner: normalizeAssetPath(app.banner),
-          screenshots: (app.screenshots || []).map(normalizeAssetPath),
-        }));
-        setApps(normalizedApps);
+        setApps(mergeCatalogApps(appsData.apps || [], localPublished));
         setHasBackend(true);
 
         const metaContentType = metaRes?.headers.get('content-type') || '';
@@ -95,19 +92,13 @@ export default function App() {
         }
       } else {
         setHasBackend(false);
-        const localPublished = getLocalPublishedApps().map((app) => ({
-          ...app,
-          icon: normalizeAssetPath(app.icon),
-          banner: normalizeAssetPath(app.banner),
-          screenshots: (app.screenshots || []).map(normalizeAssetPath),
-        }));
-        setApps([...DEFAULT_APPS, ...localPublished]);
+        setApps(mergeCatalogApps(DEFAULT_APPS, localPublished));
         setSiteMeta(getDefaultSiteMeta());
       }
     } catch (err) {
       console.warn('Falling back to static catalog:', err);
       setHasBackend(false);
-      setApps([...DEFAULT_APPS, ...getLocalPublishedApps()]);
+      setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps()));
       setSiteMeta(getDefaultSiteMeta());
     } finally {
       setLoading(false);

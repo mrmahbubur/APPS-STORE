@@ -83,6 +83,7 @@ export function generateBloggerThemeXml(): string {
 
   <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
   <meta content='width=device-width, initial-scale=1.0, maximum-scale=5.0' name='viewport'/>
+  <meta content='Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing.' name='description'/>
   <!-- Monetag Verification Meta Tag -->
   <meta content='43bce6afdc53e6d304c43c5ea69a3c25' name='monetag'/>
   <title><data:view.title.escaped/></title>
@@ -1818,6 +1819,72 @@ export function generateBloggerThemeXml(): string {
       if (modal) modal.classList.remove('active');
     }
 
+    function getLocalPublishedXmlApps() {
+      try {
+        var raw = localStorage.getItem('mrs_xml_published_apps');
+        if (!raw) return [];
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLocalPublishedXmlApp(appObj) {
+      var list = getLocalPublishedXmlApps().filter(function(item) { return item.id !== appObj.id; });
+      list.unshift(appObj);
+      try {
+        localStorage.setItem('mrs_xml_published_apps', JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    function mountDynamicXmlAppCard(appObj) {
+      if (!appObj || !appObj.id) return;
+      appData[appObj.id] = appObj;
+      var grid = document.getElementById('appsGrid');
+      if (!grid) return;
+      var existing = document.querySelector('.app-card[data-id="' + appObj.id + '"]');
+      if (existing) existing.parentNode.removeChild(existing);
+
+      var article = document.createElement('article');
+      article.className = 'app-card';
+      article.setAttribute('data-category', 'all');
+      article.setAttribute('data-id', appObj.id);
+      article.setAttribute('data-order', '0');
+      article.setAttribute('data-rating', '0');
+      article.setAttribute('data-reviews', '0');
+      article.setAttribute('data-title', (appObj.title + ' ' + appObj.developer + ' ' + appObj.category).toLowerCase());
+
+      var safeTitle = escapeHtml(appObj.title);
+      var safeDev = escapeHtml(appObj.developer);
+      var safeFile = escapeHtml(appObj.file);
+      var safeVer = escapeHtml(appObj.version);
+      var safeId = escapeHtml(appObj.id);
+      var safeDesc = escapeHtml(appObj.desc);
+      var safeLink = escapeHtml(appObj.link);
+
+      article.innerHTML =
+        '<div class="app-card-header" onclick="openAppDetail(\\'' + safeId + '\\')">' +
+          '<div class="app-icon" style="background:linear-gradient(135deg, #0071e3, #4f46e5);">' + safeTitle.charAt(0).toUpperCase() + '</div>' +
+          '<div class="app-meta">' +
+            '<div class="app-title-row"><h2 class="app-title">' + safeTitle + '</h2><span class="verified-badge">&#10004;</span></div>' +
+            '<div class="app-developer-line">' + safeDev + ' · ' + safeFile + '</div>' +
+            '<div class="app-subinfo tabular-nums"><span>User Published</span><span>·</span><span id="cardRating-' + safeId + '">v' + safeVer + '</span><span>·</span><span>Direct URL</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="app-description">' + safeDesc + '</div>' +
+        '<div class="app-actions">' +
+          '<button class="details-btn" onclick="openAppDetail(\\'' + safeId + '\\')" type="button">Specs &amp; Reviews</button>' +
+          '<div class="app-actions-right">' +
+            '<button aria-label="Share ' + safeTitle + '" class="icon-share-btn" onclick="quickShareApp(\\'' + safeId + '\\', this)" title="Share App Link" type="button">&#10150;</button>' +
+            '<a class="card-get-btn" download="' + safeFile + '" href="' + safeLink + '">GET</a>' +
+          '</div>' +
+        '</div>';
+
+      grid.insertBefore(article, grid.firstChild);
+      filterApps();
+    }
+
     function submitXmlAppPublish(e) {
       e.preventDefault();
       var title = (document.getElementById('pubAppTitle').value || '').trim();
@@ -1830,9 +1897,40 @@ export function generateBloggerThemeXml(): string {
       var desc = (document.getElementById('pubDesc').value || '').trim();
       if (!title || !dev || !email || !tx || !apkUrl) return;
 
-      var txnId = 'TXN-MRS-' + Date.now();
+      var now = Date.now();
+      var txnId = 'TXN-MRS-' + now;
+      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'custom-app';
+      var appId = slug + '-' + String(now).slice(-4);
+      var dateStr = new Date().toISOString().split('T')[0];
+
+      var publishedObj = {
+        id: appId,
+        title: title,
+        file: title.replace(/\\s+/g, '_') + '.apk',
+        developer: dev,
+        owner: dev + ' · ' + email,
+        packageId: 'com.mrs.' + slug.replace(/-/g, ''),
+        version: ver,
+        updatedAt: dateStr,
+        ageRating: '8.0+',
+        chartRank: 'v' + ver,
+        languages: 'Android System Locale',
+        minAndroid: 'Android 8.0+ (API 26)',
+        sha256: 'Submitted by Developer URL (' + tx + ')',
+        desc: desc || (title + ' Android application published on MRS App Store.'),
+        size: 'Direct URL',
+        category: 'User Published',
+        icon: '${siteLogoBase64 || iptvLogoBase64}',
+        link: apkUrl,
+        share: '/?app=' + appId,
+        whatsNew: ['Published on ' + dateStr + ' via ' + pay],
+        features: ['Direct APK URL hosted by developer', 'Contact: ' + email],
+        permissions: ['android.permission.INTERNET']
+      };
+
       var record = {
         id: txnId,
+        publishedAppId: appId,
         title: title,
         version: ver,
         developer: dev,
@@ -1849,10 +1947,13 @@ export function generateBloggerThemeXml(): string {
         localStorage.setItem('mrs_xml_submissions', JSON.stringify(existing));
       } catch (err) {}
 
+      saveLocalPublishedXmlApp(publishedObj);
+      mountDynamicXmlAppCard(publishedObj);
+
       var box = document.getElementById('pubReceiptBox');
       if (box) {
         box.style.display = 'block';
-        box.innerHTML = '<strong>Submission Receipt Recorded: ' + escapeHtml(txnId) + '</strong><br/>' + escapeHtml(title) + ' (v' + escapeHtml(ver) + ') via ' + escapeHtml(pay) + '.<br/>Proof: ' + escapeHtml(tx);
+        box.innerHTML = '<strong>Published &amp; Recorded: ' + escapeHtml(txnId) + '</strong><br/>' + escapeHtml(title) + ' (v' + escapeHtml(ver) + ') is now added to the catalog.<br/>Proof: ' + escapeHtml(tx);
       }
 
       var mailBtn = document.getElementById('pubMailtoBtn');
@@ -1952,6 +2053,11 @@ export function generateBloggerThemeXml(): string {
         var yr = new Date().getFullYear();
         var el = document.getElementById('theme-year');
         if (el) el.textContent = yr;
+
+        var savedXmlApps = getLocalPublishedXmlApps();
+        savedXmlApps.forEach(function(customApp) {
+          mountDynamicXmlAppCard(customApp);
+        });
 
         Object.keys(appData).forEach(function(id) {
           var stats = computeStats(id);

@@ -236,6 +236,88 @@ export function computeReviewStats(reviews: ReviewItem[]): ReviewStats {
   };
 }
 
+export const LOCAL_PUBLISHED_APPS_KEY = 'mrs_published_apps';
+export const LOCAL_SUBMISSIONS_KEY = 'mrs_developer_submissions';
+
+export function getLocalPublishedApps(): AppItem[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_PUBLISHED_APPS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((app: AppItem) => ({
+      ...app,
+      icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
+      banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
+      screenshots: (app.screenshots || ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalPublishedApp(app: AppItem): AppItem[] {
+  const existing = getLocalPublishedApps().filter((item) => item.id !== app.id);
+  const updated = [app, ...existing];
+  try {
+    localStorage.setItem(LOCAL_PUBLISHED_APPS_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+export function getLocalSubmissions(): import('../types').DeveloperSubmission[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_SUBMISSIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalSubmission(
+  submission: import('../types').DeveloperSubmission
+): import('../types').DeveloperSubmission[] {
+  const existing = getLocalSubmissions().filter((item) => item.id !== submission.id);
+  const updated = [submission, ...existing];
+  try {
+    localStorage.setItem(LOCAL_SUBMISSIONS_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+export function mergeCatalogApps(primaryApps: AppItem[], localApps: AppItem[]): AppItem[] {
+  const seen = new Set<string>();
+  const merged: AppItem[] = [];
+
+  for (const app of primaryApps) {
+    if (!seen.has(app.id)) {
+      seen.add(app.id);
+      merged.push({
+        ...app,
+        icon: normalizeAssetPath(app.icon),
+        banner: normalizeAssetPath(app.banner),
+        screenshots: (app.screenshots || []).map(normalizeAssetPath),
+      });
+    }
+  }
+
+  for (const app of localApps) {
+    if (!seen.has(app.id)) {
+      seen.add(app.id);
+      merged.push({
+        ...app,
+        icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
+        banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
+        screenshots: (app.screenshots || ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
+      });
+    }
+  }
+
+  return merged;
+}
+
 export function getLocalReviews(appId: string): ReviewItem[] {
   try {
     const raw = localStorage.getItem(`mrs_reviews_${appId}`);

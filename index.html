@@ -5,11 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <title>MRS App Store - Official IPTV Network</title>
-    <meta name="description" content="Download official M R S IPTV Android, M R S IPTV TV, and Camellia Ai APK packages directly from MRS App Store." />
+    <meta name="description" content="Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing." />
     <meta property="og:title" content="MRS App Store - Official IPTV Network" />
-    <meta property="og:description" content="Download official M R S IPTV Android, M R S IPTV TV, and Camellia Ai APK packages directly from MRS App Store." />
+    <meta property="og:description" content="Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MRS App Store - Official IPTV Network" />
+    <meta name="twitter:description" content="Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing." />
     <meta name="monetag" content="43bce6afdc53e6d304c43c5ea69a3c25" />
     <link rel="icon" type="image/jpeg" href="./assets/site-logo-icon.jpg" />
     <link rel="apple-touch-icon" href="./assets/site-logo.jpg" />
@@ -35,6 +37,9 @@
         var bootErrors = [];
         window.addEventListener('error', function (ev) {
           if (ev && ev.message) bootErrors.push(ev.message);
+        });
+        window.addEventListener('unhandledrejection', function (ev) {
+          if (ev && ev.reason) bootErrors.push(ev.reason.message || String(ev.reason));
         });
         setTimeout(function () {
           if (window.__MRS_APP_MOUNTED__) return;

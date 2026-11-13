@@ -7,6 +7,7 @@
 
   <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
   <meta content='width=device-width, initial-scale=1.0, maximum-scale=5.0' name='viewport'/>
+  <meta content='Download verified M R S IPTV Android, M R S IPTV TV, and Camellia Ai APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing.' name='description'/>
   <!-- Monetag Verification Meta Tag -->
   <meta content='43bce6afdc53e6d304c43c5ea69a3c25' name='monetag'/>
   <title><data:view.title.escaped/></title>
@@ -1734,6 +1735,72 @@
       if (modal) modal.classList.remove('active');
     }
 
+    function getLocalPublishedXmlApps() {
+      try {
+        var raw = localStorage.getItem('mrs_xml_published_apps');
+        if (!raw) return [];
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLocalPublishedXmlApp(appObj) {
+      var list = getLocalPublishedXmlApps().filter(function(item) { return item.id !== appObj.id; });
+      list.unshift(appObj);
+      try {
+        localStorage.setItem('mrs_xml_published_apps', JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    function mountDynamicXmlAppCard(appObj) {
+      if (!appObj || !appObj.id) return;
+      appData[appObj.id] = appObj;
+      var grid = document.getElementById('appsGrid');
+      if (!grid) return;
+      var existing = document.querySelector('.app-card[data-id="' + appObj.id + '"]');
+      if (existing) existing.parentNode.removeChild(existing);
+
+      var article = document.createElement('article');
+      article.className = 'app-card';
+      article.setAttribute('data-category', 'all');
+      article.setAttribute('data-id', appObj.id);
+      article.setAttribute('data-order', '0');
+      article.setAttribute('data-rating', '0');
+      article.setAttribute('data-reviews', '0');
+      article.setAttribute('data-title', (appObj.title + ' ' + appObj.developer + ' ' + appObj.category).toLowerCase());
+
+      var safeTitle = escapeHtml(appObj.title);
+      var safeDev = escapeHtml(appObj.developer);
+      var safeFile = escapeHtml(appObj.file);
+      var safeVer = escapeHtml(appObj.version);
+      var safeId = escapeHtml(appObj.id);
+      var safeDesc = escapeHtml(appObj.desc);
+      var safeLink = escapeHtml(appObj.link);
+
+      article.innerHTML =
+        '<div class="app-card-header" onclick="openAppDetail(\'' + safeId + '\')">' +
+          '<div class="app-icon" style="background:linear-gradient(135deg, #0071e3, #4f46e5);">' + safeTitle.charAt(0).toUpperCase() + '</div>' +
+          '<div class="app-meta">' +
+            '<div class="app-title-row"><h2 class="app-title">' + safeTitle + '</h2><span class="verified-badge">&#10004;</span></div>' +
+            '<div class="app-developer-line">' + safeDev + ' · ' + safeFile + '</div>' +
+            '<div class="app-subinfo tabular-nums"><span>User Published</span><span>·</span><span id="cardRating-' + safeId + '">v' + safeVer + '</span><span>·</span><span>Direct URL</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="app-description">' + safeDesc + '</div>' +
+        '<div class="app-actions">' +
+          '<button class="details-btn" onclick="openAppDetail(\'' + safeId + '\')" type="button">Specs &amp; Reviews</button>' +
+          '<div class="app-actions-right">' +
+            '<button aria-label="Share ' + safeTitle + '" class="icon-share-btn" onclick="quickShareApp(\'' + safeId + '\', this)" title="Share App Link" type="button">&#10150;</button>' +
+            '<a class="card-get-btn" download="' + safeFile + '" href="' + safeLink + '">GET</a>' +
+          '</div>' +
+        '</div>';
+
+      grid.insertBefore(article, grid.firstChild);
+      filterApps();
+    }
+
     function submitXmlAppPublish(e) {
       e.preventDefault();
       var title = (document.getElementById('pubAppTitle').value || '').trim();
@@ -1746,9 +1813,40 @@
       var desc = (document.getElementById('pubDesc').value || '').trim();
       if (!title || !dev || !email || !tx || !apkUrl) return;
 
-      var txnId = 'TXN-MRS-' + Date.now();
+      var now = Date.now();
+      var txnId = 'TXN-MRS-' + now;
+      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'custom-app';
+      var appId = slug + '-' + String(now).slice(-4);
+      var dateStr = new Date().toISOString().split('T')[0];
+
+      var publishedObj = {
+        id: appId,
+        title: title,
+        file: title.replace(/\s+/g, '_') + '.apk',
+        developer: dev,
+        owner: dev + ' · ' + email,
+        packageId: 'com.mrs.' + slug.replace(/-/g, ''),
+        version: ver,
+        updatedAt: dateStr,
+        ageRating: '8.0+',
+        chartRank: 'v' + ver,
+        languages: 'Android System Locale',
+        minAndroid: 'Android 8.0+ (API 26)',
+        sha256: 'Submitted by Developer URL (' + tx + ')',
+        desc: desc || (title + ' Android application published on MRS App Store.'),
+        size: 'Direct URL',
+        category: 'User Published',
+        icon: 'data:image/jpeg;base64,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3i3hE12YaXNpZ25hdHVyZXgZc2VsZiNqdW1iZj1jMnBhLnNpZ25hdHVyZWNhbGdmc2hhMjU2AAACgWp1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALRqdW1iAAAAQGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaGFzaC5kYXRhAAAAABhjMnNoJtOjyjeuVoWRKTNOrmuzFAAAAGxjYm9ypGpleGNsdXNpb25zgaJlc3RhcnQUZmxlbmd0aBkXu2NhbGdmc2hhMjU2ZGhhc2hYIOUpHYi/iKo/TcIh5tTCfHUq/6swh1c07deEk/UZLMJnY3BhZE4AAAAAAAAAAAAAAAAAAAAAAZxqdW1iAAAAQWp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuYWN0aW9ucy52MgAAAAAYYzJzaOIY+nhcZ91LKy6Lf+vVr00AAAFTY2JvcqFnYWN0aW9uc4KjZmFjdGlvbmxjMnBhLmNyZWF0ZWRrZGVzY3JpcHRpb254IENyZWF0ZWQgYnkgR29vZ2xlIEdlbmVyYXRpdmUgQUkucWRpZ2l0YWxTb3VyY2VUeXBleEZodHRwOi8vY3YuaXB0Yy5vcmcvbmV3c2NvZGVzL2RpZ2l0YWxzb3VyY2V0eXBlL3RyYWluZWRBbGdvcml0aG1pY01lZGlho2ZhY3Rpb25rYzJwYS5lZGl0ZWRrZGVzY3JpcHRpb254KEFwcGxpZWQgaW1wZXJjZXB0aWJsZSBTeW50aElEIHdhdGVybWFyay5xZGlnaXRhbFNvdXJjZVR5cGV4Rmh0dHA6Ly9jdi5pcHRjLm9yZy9uZXdzY29kZXMvZGlnaXRhbHNvdXJjZXR5cGUvdHJhaW5lZEFsZ29yaXRobWljTWVkaWH/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACAAIADASIAAhEBAxEB/8QAHAAAAQQDAQAAAAAAAAAAAAAAAgABBgcDBAUI/8QARxAAAQMDAQQFBwUNCQEA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',
+        link: apkUrl,
+        share: '/?app=' + appId,
+        whatsNew: ['Published on ' + dateStr + ' via ' + pay],
+        features: ['Direct APK URL hosted by developer', 'Contact: ' + email],
+        permissions: ['android.permission.INTERNET']
+      };
+
       var record = {
         id: txnId,
+        publishedAppId: appId,
         title: title,
         version: ver,
         developer: dev,
@@ -1765,10 +1863,13 @@
         localStorage.setItem('mrs_xml_submissions', JSON.stringify(existing));
       } catch (err) {}
 
+      saveLocalPublishedXmlApp(publishedObj);
+      mountDynamicXmlAppCard(publishedObj);
+
       var box = document.getElementById('pubReceiptBox');
       if (box) {
         box.style.display = 'block';
-        box.innerHTML = '<strong>Submission Receipt Recorded: ' + escapeHtml(txnId) + '</strong><br/>' + escapeHtml(title) + ' (v' + escapeHtml(ver) + ') via ' + escapeHtml(pay) + '.<br/>Proof: ' + escapeHtml(tx);
+        box.innerHTML = '<strong>Published &amp; Recorded: ' + escapeHtml(txnId) + '</strong><br/>' + escapeHtml(title) + ' (v' + escapeHtml(ver) + ') is now added to the catalog.<br/>Proof: ' + escapeHtml(tx);
       }
 
       var mailBtn = document.getElementById('pubMailtoBtn');
@@ -1868,6 +1969,11 @@
         var yr = new Date().getFullYear();
         var el = document.getElementById('theme-year');
         if (el) el.textContent = yr;
+
+        var savedXmlApps = getLocalPublishedXmlApps();
+        savedXmlApps.forEach(function(customApp) {
+          mountDynamicXmlAppCard(customApp);
+        });
 
         Object.keys(appData).forEach(function(id) {
           var stats = computeStats(id);

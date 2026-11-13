@@ -16,6 +16,14 @@ import {
   FileArchive,
 } from 'lucide-react';
 import { AppItem, DeveloperSubmission } from '../types';
+import {
+  getLocalPublishedApps,
+  saveLocalPublishedApp,
+  getLocalSubmissions,
+  saveLocalSubmission,
+} from '../data/catalog';
+
+export { getLocalPublishedApps, getLocalSubmissions };
 
 interface PublishAppModalProps {
   isOpen: boolean;
@@ -23,31 +31,6 @@ interface PublishAppModalProps {
   hasBackend?: boolean;
   onAppPublished?: (app: AppItem) => void;
   onSelectApp?: (app: AppItem) => void;
-}
-
-const LOCAL_SUBMISSIONS_KEY = 'mrs_developer_submissions';
-const LOCAL_PUBLISHED_APPS_KEY = 'mrs_published_apps';
-
-export function getLocalPublishedApps(): AppItem[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_PUBLISHED_APPS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-export function getLocalSubmissions(): DeveloperSubmission[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_SUBMISSIONS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 async function computeFileSha256Hex(buffer: ArrayBuffer): Promise<string> {
@@ -121,18 +104,21 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const loadSubmissions = async () => {
     setLoadingSubmissions(true);
     try {
+      const localSubs = getLocalSubmissions();
       if (hasBackend) {
         const res = await fetch('./api/publish/submissions');
         const ct = res.headers.get('content-type') || '';
         if (res.ok && ct.includes('application/json')) {
           const data = await res.json();
           if (Array.isArray(data.submissions)) {
-            setSubmissions(data.submissions);
+            const seen = new Set(data.submissions.map((s: DeveloperSubmission) => s.id));
+            const merged = [...data.submissions, ...localSubs.filter((s) => !seen.has(s.id))];
+            setSubmissions(merged);
             return;
           }
         }
       }
-      setSubmissions(getLocalSubmissions());
+      setSubmissions(localSubs);
     } catch {
       setSubmissions(getLocalSubmissions());
     } finally {
@@ -309,6 +295,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           return;
         }
 
+        if (data.app) saveLocalPublishedApp(data.app);
+        if (data.submission) saveLocalSubmission(data.submission);
+
         setReceiptResult({
           submission: data.submission,
           app: data.app,
@@ -402,12 +391,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         submittedAt: new Date().toISOString(),
       };
 
-      const updatedApps = [newApp, ...getLocalPublishedApps()];
-      const updatedSubs = [newSub, ...getLocalSubmissions()];
-      try {
-        localStorage.setItem(LOCAL_PUBLISHED_APPS_KEY, JSON.stringify(updatedApps));
-        localStorage.setItem(LOCAL_SUBMISSIONS_KEY, JSON.stringify(updatedSubs));
-      } catch {}
+      saveLocalPublishedApp(newApp);
+      saveLocalSubmission(newSub);
 
       const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(
         `[App Published] ${newSub.appTitle} (${newSub.transactionId})`

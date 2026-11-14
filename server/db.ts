@@ -229,17 +229,7 @@ let currentOwnerProfile: AppOwnerProfile = {
   profileUrl: 'https://gravatar.com/mrxshahin',
   avatarUrl:
     'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
-  email: 'mr216873@gmail.com',
-  phone: '+8809611056361',
-  headline: 'Available for Remote IT Support, Virtual Assistance & Administrative Work',
-  bio: 'Available for Remote IT Support, Virtual Assistance & Administrative Work. Certified 360-hour computer systems coursework; writing technology guides and solutions since 2018 with focus on Android support, web solutions, technical documentation, and AI productivity tools.',
-  calendarUrl: 'https://calendly.com/mrxshahin',
-  accounts: [
-    { name: 'WordPress', username: 'mrxshahin.wordpress.com', url: 'https://mrxshahin.wordpress.com', verified: true },
-    { name: 'X', username: '@Mrshahinx', url: 'https://x.com/Mrshahinx', verified: true },
-    { name: 'LinkedIn', username: 'mrmahbubur', url: 'https://www.linkedin.com/in/mrmahbubur', verified: true },
-    { name: 'Bluesky', username: 'mrxshahin.bsky.social', url: 'https://bsky.app/profile/mrxshahin.bsky.social', verified: true },
-  ],
+  email: '',
 };
 
 function formatOwnerLabel(profile: AppOwnerProfile): string {
@@ -281,7 +271,7 @@ function buildGenuineApps(): AppItem[] {
       icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       developer: currentOwnerProfile.displayName,
-      developerEmail: currentOwnerProfile.email,
+      developerEmail: 'mr216873@gmail.com',
       ownerName: ownerLabel,
       ownerProfile: currentOwnerProfile,
       packageId: 'co.median.android.rdalmaa',
@@ -334,7 +324,7 @@ function buildGenuineApps(): AppItem[] {
       icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
       developer: currentOwnerProfile.displayName,
-      developerEmail: currentOwnerProfile.email,
+      developerEmail: 'mr216873@gmail.com',
       ownerName: ownerLabel,
       ownerProfile: currentOwnerProfile,
       packageId: 'com.wMRSIPTV_20119768',
@@ -512,41 +502,6 @@ async function syncGravatarOwnerProfile() {
     const entry = json?.entry?.[0];
     if (!entry) return;
 
-    const cleanBioText = String(entry.aboutMe || '')
-      .split(/\r?\n/)
-      .map((line: string) => line.replace(/[#*`>_]/g, '').trim())
-      .filter(Boolean);
-    const headlineLine = cleanBioText[0]
-      ?.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F]/gu, '')
-      .trim();
-
-    const accounts: AppOwnerAccount[] = Array.isArray(entry.accounts)
-      ? entry.accounts
-          .filter((acc: any) => acc?.url && !String(acc.url).toLowerCase().includes('blogspot'))
-          .map((acc: any) => ({
-            name: String(acc.name || acc.domain || 'Link'),
-            username: String(acc.username || acc.display || ''),
-            url: String(acc.url),
-            verified: Boolean(acc.verified),
-          }))
-      : currentOwnerProfile.accounts || [];
-
-    const calContact = Array.isArray(entry.contactInfo)
-      ? entry.contactInfo.find(
-          (c: any) => c?.type === 'calendar' && c?.value && !String(c.value).toLowerCase().includes('blogspot')
-        )
-      : null;
-
-    const primaryEmail =
-      Array.isArray(entry.emails) && entry.emails[0]?.value
-        ? String(entry.emails[0].value)
-        : currentOwnerProfile.email;
-
-    const phone =
-      Array.isArray(entry.phoneNumbers) && entry.phoneNumbers[0]?.value
-        ? String(entry.phoneNumbers[0].value)
-        : currentOwnerProfile.phone;
-
     const rawAvatar = entry.thumbnailUrl
       ? `${String(entry.thumbnailUrl)}?s=256`
       : currentOwnerProfile.avatarUrl;
@@ -556,12 +511,7 @@ async function syncGravatarOwnerProfile() {
       username: String(entry.preferredUsername || currentOwnerProfile.username),
       profileUrl: String(entry.profileUrl || currentOwnerProfile.profileUrl),
       avatarUrl: rawAvatar,
-      email: primaryEmail,
-      phone,
-      headline: headlineLine || currentOwnerProfile.headline,
-      bio: currentOwnerProfile.bio,
-      calendarUrl: calContact ? String(calContact.value) : currentOwnerProfile.calendarUrl,
-      accounts: accounts.length > 0 ? accounts : currentOwnerProfile.accounts,
+      email: '',
     };
 
     const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro']);
@@ -571,7 +521,7 @@ async function syncGravatarOwnerProfile() {
         ? {
             ...app,
             developer: currentOwnerProfile.displayName,
-            developerEmail: currentOwnerProfile.email,
+            developerEmail: 'mr216873@gmail.com',
             ownerName: ownerLabel,
             ownerProfile: currentOwnerProfile,
           }
@@ -908,16 +858,16 @@ export const AppDatabase = {
       tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
       currentYear,
       copyrightNotice: `© ${currentYear} ${ownerLabel}. All rights reserved.`,
-      adminEmail: currentOwnerProfile.email,
+      adminEmail: 'mr216873@gmail.com',
       ownerInfo: {
         ownerName: ownerLabel,
         organization: ownerLabel,
-        email: currentOwnerProfile.email,
-        role: 'Store Owner & Lead Administrator',
-        location: 'Global Remote Operations',
-        supportResponseTime: 'Within 24 hours',
+        email: '',
+        role: 'Store Owner',
+        location: '',
+        supportResponseTime: '',
         publishingFeeUsd: 25.0,
-        verificationNote: 'Verified Store Owner Profile',
+        verificationNote: 'Store Owner',
       },
       ownerProfile: currentOwnerProfile,
       categories: dynamicCategories,

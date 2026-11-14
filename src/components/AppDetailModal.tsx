@@ -13,7 +13,6 @@ import {
   Link2,
   HardDrive,
   UserCheck,
-  Mail,
   ThumbsUp,
   MessageSquarePlus,
   Lock,
@@ -22,9 +21,6 @@ import {
   Send,
   Globe,
   Tablet,
-  Phone,
-  Calendar,
-  ExternalLink,
 } from 'lucide-react';
 import { AppItem, ReviewItem, ReviewStats } from '../types';
 import {
@@ -56,7 +52,6 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 }) => {
   const [copiedDownloadLink, setCopiedDownloadLink] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
-  const [copiedOwnerEmail, setCopiedOwnerEmail] = useState(false);
   const [copiedSha, setCopiedSha] = useState(false);
   const [downloadStarted, setDownloadStarted] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
@@ -156,12 +151,6 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   };
 
   const appOwnerName = app.ownerProfile?.displayName || app.ownerName || app.developer;
-
-  const handleCopyOwnerEmail = async () => {
-    await copyToClipboard(app.ownerProfile?.email || app.developerEmail);
-    setCopiedOwnerEmail(true);
-    setTimeout(() => setCopiedOwnerEmail(false), 2000);
-  };
 
   const handleCopySha = async () => {
     await copyToClipboard(app.sha256);
@@ -954,117 +943,32 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           </div>
         </section>
 
-        {/* 9. App Owner & Developer Information Section */}
+        {/* 9. App Owner Section */}
         <section id="owner-info-section" className="my-7 pt-6 border-t border-white/[0.08] space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-lg font-bold text-white">App Owner &amp; Developer Information</h3>
-            {app.ownerProfile?.profileUrl && (
-              <a
-                href={app.ownerProfile.profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:underline"
-              >
-                <span>Verified Gravatar Profile</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+          <h3 className="text-lg font-bold text-white">App Owner</h3>
+
+          <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/[0.08] flex items-center gap-3.5">
+            {app.ownerProfile?.avatarUrl && !avatarImgError ? (
+              <img
+                src={app.ownerProfile.avatarUrl}
+                alt={appOwnerName}
+                onError={() => setAvatarImgError(true)}
+                className="w-12 h-12 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                <UserCheck className="w-5 h-5" />
+              </div>
             )}
-          </div>
-
-          <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/[0.08] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                {app.ownerProfile?.avatarUrl && !avatarImgError ? (
-                  <img
-                    src={app.ownerProfile.avatarUrl}
-                    alt={appOwnerName}
-                    onError={() => setAvatarImgError(true)}
-                    className="w-14 h-14 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                    <UserCheck className="w-6 h-6" />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-base font-bold text-white truncate">
-                    {app.ownerProfile?.displayName || appOwnerName}
-                  </p>
-                  {app.developer && app.developer !== (app.ownerProfile?.displayName || appOwnerName) && (
-                    <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
-                  )}
-                  <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">
-                    {app.ownerProfile?.headline || `App Owner & Publisher · ${app.title}`}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCopyOwnerEmail}
-                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white inline-flex items-center gap-1.5"
-                >
-                  {copiedOwnerEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedOwnerEmail ? 'Email Copied' : (app.ownerProfile?.email || app.developerEmail)}</span>
-                </button>
-                <a
-                  href={`mailto:${app.ownerProfile?.email || app.developerEmail}?subject=${encodeURIComponent(`Support Inquiry: ${app.title}`)}`}
-                  className="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold inline-flex items-center gap-1.5"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Contact App Owner</span>
-                </a>
-              </div>
-            </div>
-
-            {app.ownerProfile?.bio && (
-              <p className="text-xs text-zinc-300 leading-relaxed bg-black/40 p-3.5 rounded-xl border border-white/[0.06]">
-                {app.ownerProfile.bio}
+            <div className="min-w-0">
+              <p className="text-base font-bold text-white truncate">
+                {app.ownerProfile?.displayName || appOwnerName}
               </p>
-            )}
-
-            {(app.ownerProfile?.phone || app.ownerProfile?.calendarUrl || (app.ownerProfile?.accounts && app.ownerProfile.accounts.length > 0)) && (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                {app.ownerProfile.phone && (
-                  <a
-                    href={`tel:${app.ownerProfile.phone}`}
-                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-mono inline-flex items-center gap-1.5 transition-colors"
-                  >
-                    <Phone className="w-3 h-3 text-emerald-400" />
-                    <span>{app.ownerProfile.phone}</span>
-                  </a>
-                )}
-                {app.ownerProfile.calendarUrl && (
-                  <a
-                    href={app.ownerProfile.calendarUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-                  >
-                    <Calendar className="w-3 h-3 text-blue-400" />
-                    <span>Calendly</span>
-                  </a>
-                )}
-                {app.ownerProfile.accounts?.map((acc) => (
-                  <a
-                    key={acc.url}
-                    href={acc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-                  >
-                    <span>{acc.name}</span>
-                    <ExternalLink className="w-3 h-3 text-zinc-400" />
-                  </a>
-                ))}
-              </div>
-            )}
-
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Verified publisher for {app.title} ({app.fileName} · {app.packageId}). All direct APK distribution and support inquiries for this application are handled by {appOwnerName} ({app.ownerProfile?.email || app.developerEmail}).
-            </p>
+              {app.developer && app.developer !== (app.ownerProfile?.displayName || appOwnerName) && (
+                <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
+              )}
+            </div>
           </div>
         </section>
 
@@ -1073,39 +977,13 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <h3 className="text-lg font-bold text-white mb-3">Information</h3>
           <dl className="divide-y divide-white/[0.06] text-xs">
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-              <dt className="text-zinc-400">App Owner / Developer</dt>
+              <dt className="text-zinc-400">App Owner</dt>
               <dd className="text-zinc-200 font-medium sm:text-right">
                 {app.developer && app.developer !== appOwnerName
                   ? `${appOwnerName} · ${app.developer}`
                   : appOwnerName}
               </dd>
             </div>
-            <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-              <dt className="text-zinc-400">Owner Contact Email</dt>
-              <dd className="text-blue-400 font-mono sm:text-right break-all">{app.ownerProfile?.email || app.developerEmail}</dd>
-            </div>
-            {app.ownerProfile?.phone && (
-              <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                <dt className="text-zinc-400">Owner Phone</dt>
-                <dd className="text-zinc-200 font-mono sm:text-right">{app.ownerProfile.phone}</dd>
-              </div>
-            )}
-            {app.ownerProfile?.profileUrl && (
-              <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                <dt className="text-zinc-400">Gravatar Profile</dt>
-                <dd className="sm:text-right">
-                  <a
-                    href={app.ownerProfile.profileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline inline-flex items-center gap-1"
-                  >
-                    <span>Verified Gravatar Profile</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </dd>
-              </div>
-            )}
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Package Identifier</dt>
               <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.packageId}</dd>

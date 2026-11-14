@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SiteMeta } from '../types';
-import { ShieldCheck, UploadCloud, AppWindow, ExternalLink } from 'lucide-react';
+import { ShieldCheck, UploadCloud, AppWindow } from 'lucide-react';
 import { MRS_GRAVATAR_OWNER_PROFILE, normalizeAssetPath } from '../data/catalog';
 
 interface FooterProps {
@@ -48,15 +48,6 @@ export const Footer: React.FC<FooterProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium">
-            <a
-              href={owner.profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-h-[36px] inline-flex items-center gap-1 hover:text-white transition-colors"
-            >
-              <span>Owner Profile</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
             <button
               type="button"
               onClick={() => onOpenLegal('privacy')}
@@ -93,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({
           <p className="text-zinc-400 font-medium">{copyright}</p>
           <div className="flex items-center gap-2 text-zinc-400 tabular-nums">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>{owner.email} · SHA-256 Direct APKs · {currentYear}</span>
+            <span>SHA-256 Verified Direct APKs · {currentYear}</span>
           </div>
         </div>
       </div>

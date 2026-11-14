@@ -364,41 +364,6 @@ export async function fetchGravatarProfileByHandle(
       return { success: false, message: `No public Gravatar entry found for "${cleanHandle}".` };
     }
 
-    const cleanBioLines = String(entry.aboutMe || '')
-      .split(/\r?\n/)
-      .map((line: string) => line.replace(/[#*`>_]/g, '').trim())
-      .filter(Boolean);
-    const headline = cleanBioLines[0]
-      ?.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F]/gu, '')
-      .trim();
-
-    const accounts: AppOwnerAccount[] = Array.isArray(entry.accounts)
-      ? entry.accounts
-          .filter((acc: any) => acc?.url && !String(acc.url).toLowerCase().includes('blogspot'))
-          .map((acc: any) => ({
-            name: String(acc.name || acc.domain || 'Link'),
-            username: String(acc.username || acc.display || ''),
-            url: String(acc.url),
-            verified: Boolean(acc.verified),
-          }))
-      : [];
-
-    const calContact = Array.isArray(entry.contactInfo)
-      ? entry.contactInfo.find(
-          (c: any) => c?.type === 'calendar' && c?.value && !String(c.value).toLowerCase().includes('blogspot')
-        )
-      : null;
-
-    const email =
-      Array.isArray(entry.emails) && entry.emails[0]?.value
-        ? String(entry.emails[0].value)
-        : '';
-
-    const phone =
-      Array.isArray(entry.phoneNumbers) && entry.phoneNumbers[0]?.value
-        ? String(entry.phoneNumbers[0].value)
-        : undefined;
-
     return {
       success: true,
       profile: {
@@ -406,12 +371,7 @@ export async function fetchGravatarProfileByHandle(
         username: String(entry.preferredUsername || cleanHandle),
         profileUrl: String(entry.profileUrl || `https://gravatar.com/${cleanHandle}`),
         avatarUrl: entry.thumbnailUrl ? `${String(entry.thumbnailUrl)}?s=256` : '',
-        email,
-        phone,
-        headline: headline || undefined,
-        bio: cleanBioLines.slice(0, 3).join(' ').slice(0, 320) || undefined,
-        calendarUrl: calContact ? String(calContact.value) : undefined,
-        accounts,
+        email: '',
       },
     };
   } catch (err: any) {

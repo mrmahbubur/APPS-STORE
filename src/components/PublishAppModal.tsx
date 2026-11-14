@@ -389,38 +389,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           setGravatarMessage('No public Gravatar entry found.');
           return;
         }
-        const cleanLines = String(entry.aboutMe || '')
-          .split(/\r?\n/)
-          .map((l: string) => l.replace(/[#*`>_]/g, '').trim())
-          .filter(Boolean);
-        const calEntry = Array.isArray(entry.contactInfo)
-          ? entry.contactInfo.find(
-              (c: any) =>
-                c?.type === 'calendar' &&
-                c?.value &&
-                !String(c.value).toLowerCase().includes('blogspot')
-            )
-          : null;
         profile = {
           displayName: String(entry.displayName || slug),
           username: String(entry.preferredUsername || slug),
           profileUrl: String(entry.profileUrl || `https://gravatar.com/${slug}`),
           avatarUrl: entry.thumbnailUrl ? `${String(entry.thumbnailUrl)}?s=256` : '',
-          email: entry.emails?.[0]?.value ? String(entry.emails[0].value) : '',
-          phone: entry.phoneNumbers?.[0]?.value ? String(entry.phoneNumbers[0].value) : undefined,
-          headline: cleanLines[0] || undefined,
-          bio: cleanLines.slice(0, 3).join(' ').slice(0, 320) || undefined,
-          calendarUrl: calEntry ? String(calEntry.value) : undefined,
-          accounts: Array.isArray(entry.accounts)
-            ? entry.accounts
-                .filter((acc: any) => acc?.url && !String(acc.url).toLowerCase().includes('blogspot'))
-                .map((acc: any) => ({
-                  name: String(acc.name || acc.domain || 'Link'),
-                  username: String(acc.username || acc.display || ''),
-                  url: String(acc.url),
-                  verified: Boolean(acc.verified),
-                }))
-            : [],
+          email: '',
         };
       }
 
@@ -1456,7 +1430,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                             {ownerProfile.displayName}
                           </p>
                           <p className="text-[11px] text-emerald-400 truncate">
-                            {ownerProfile.accounts?.length || 0} verified social links attached
+                            Gravatar owner name &amp; avatar attached
                           </p>
                         </div>
                       </div>

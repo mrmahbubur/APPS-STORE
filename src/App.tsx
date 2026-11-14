@@ -28,10 +28,6 @@ import {
   ShieldCheck,
   LayoutGrid,
   ListOrdered,
-  Mail,
-  Phone,
-  Calendar,
-  ExternalLink,
   UserCheck,
 } from 'lucide-react';
 
@@ -516,41 +512,27 @@ export default function App() {
                     <span>All {categories.length - 1} App Categories Open</span>
                   </div>
 
-                  {/* Real Verified Store Owner Row (No nested box) */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      {storeOwner.avatarUrl && !ownerAvatarError ? (
-                        <img
-                          src={storeOwner.avatarUrl}
-                          alt={storeOwner.displayName}
-                          onError={() => setOwnerAvatarError(true)}
-                          className="w-14 h-14 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/20 flex items-center justify-center text-[#0a84ff] shrink-0">
-                          <UserCheck className="w-6 h-6" />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                          {storeOwner.displayName}
-                        </h2>
-                        <p className="text-xs text-zinc-300 mt-0.5 line-clamp-2">
-                          {storeOwner.headline}
-                        </p>
+                  {/* Store Owner Identity (Name & Avatar Only) */}
+                  <div className="flex items-center gap-3.5 pb-4 border-b border-white/[0.08]">
+                    {storeOwner.avatarUrl && !ownerAvatarError ? (
+                      <img
+                        src={storeOwner.avatarUrl}
+                        alt={storeOwner.displayName}
+                        onError={() => setOwnerAvatarError(true)}
+                        className="w-14 h-14 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/20 flex items-center justify-center text-[#0a84ff] shrink-0">
+                        <UserCheck className="w-6 h-6" />
                       </div>
+                    )}
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-semibold text-zinc-400 block">Store Owner</span>
+                      <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
+                        {storeOwner.displayName}
+                      </h2>
                     </div>
-
-                    <a
-                      href={storeOwner.profileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline whitespace-nowrap shrink-0"
-                    >
-                      <span>Verified Gravatar Profile</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
                   </div>
 
                   <div className="space-y-3">
@@ -560,42 +542,6 @@ export default function App() {
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
                       Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, and publish live with direct downloads.
                     </p>
-
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-300 font-mono">
-                      <a href={`mailto:${storeOwner.email}`} className="inline-flex items-center gap-1.5 hover:text-white">
-                        <Mail className="w-3.5 h-3.5 text-[#0a84ff]" />
-                        <span>{storeOwner.email}</span>
-                      </a>
-                      {storeOwner.phone && (
-                        <a href={`tel:${storeOwner.phone}`} className="inline-flex items-center gap-1.5 hover:text-white">
-                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{storeOwner.phone}</span>
-                        </a>
-                      )}
-                      {storeOwner.calendarUrl && (
-                        <a
-                          href={storeOwner.calendarUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 font-sans text-zinc-300 hover:text-white"
-                        >
-                          <Calendar className="w-3.5 h-3.5 text-[#0a84ff]" />
-                          <span>Calendly</span>
-                        </a>
-                      )}
-                      {storeOwner.accounts?.map((acc) => (
-                        <a
-                          key={acc.url}
-                          href={acc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-sans text-zinc-400 hover:text-white"
-                        >
-                          <span>{acc.name}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 pt-1">

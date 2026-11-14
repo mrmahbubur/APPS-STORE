@@ -230,9 +230,6 @@ export const AppCard: React.FC<AppCardProps> = ({
           )}
           <div className="min-w-0">
             <p className="text-xs text-zinc-200 font-medium truncate">{appOwner}</p>
-            <p className="text-[11px] text-zinc-400 font-mono truncate">
-              {app.ownerProfile?.email || app.developerEmail}
-            </p>
           </div>
         </div>
 

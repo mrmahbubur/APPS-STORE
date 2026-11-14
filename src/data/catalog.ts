@@ -101,24 +101,14 @@ export const APP_STORE_CATEGORIES: string[] = [
   'Business',
 ];
 
-// Official owner profile verified from https://gravatar.com/mrxshahin.json
+// Official owner profile name & avatar from Gravatar
 export const MRS_GRAVATAR_OWNER_PROFILE: AppOwnerProfile = {
   displayName: 'M R S',
   username: 'mrxshahin',
   profileUrl: 'https://gravatar.com/mrxshahin',
   avatarUrl:
     'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
-  email: 'mr216873@gmail.com',
-  phone: '+8809611056361',
-  headline: 'Available for Remote IT Support, Virtual Assistance & Administrative Work',
-  bio: 'Available for Remote IT Support, Virtual Assistance & Administrative Work. Certified 360-hour computer systems coursework; writing technology guides and solutions since 2018 with focus on Android support, web solutions, technical documentation, and AI productivity tools.',
-  calendarUrl: 'https://calendly.com/mrxshahin',
-  accounts: [
-    { name: 'WordPress', username: 'mrxshahin.wordpress.com', url: 'https://mrxshahin.wordpress.com', verified: true },
-    { name: 'X', username: '@Mrshahinx', url: 'https://x.com/Mrshahinx', verified: true },
-    { name: 'LinkedIn', username: 'mrmahbubur', url: 'https://www.linkedin.com/in/mrmahbubur', verified: true },
-    { name: 'Bluesky', username: 'mrxshahin.bsky.social', url: 'https://bsky.app/profile/mrxshahin.bsky.social', verified: true },
-  ],
+  email: '',
 };
 
 export const DEFAULT_APPS: AppItem[] = [
@@ -426,16 +416,16 @@ export function getDefaultSiteMeta(): SiteMeta {
     tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
     currentYear,
     copyrightNotice: `© ${currentYear} ${ownerLabel}. All rights reserved.`,
-    adminEmail: MRS_GRAVATAR_OWNER_PROFILE.email,
+    adminEmail: 'mr216873@gmail.com',
     ownerInfo: {
       ownerName: ownerLabel,
       organization: ownerLabel,
-      email: MRS_GRAVATAR_OWNER_PROFILE.email,
-      role: 'Store Owner & Lead Administrator',
-      location: 'Global Remote Operations',
-      supportResponseTime: 'Within 24 hours',
+      email: '',
+      role: 'Store Owner',
+      location: '',
+      supportResponseTime: '',
       publishingFeeUsd: 25.0,
-      verificationNote: 'Verified Store Owner Profile',
+      verificationNote: 'Store Owner',
     },
     ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     categories: APP_STORE_CATEGORIES,

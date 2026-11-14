@@ -244,7 +244,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
         paymentMethod: 'Binance Pay',
         paymentDetails: {
           cryptoTxHash: cleanTx,
-          cryptoNetwork: 'Binance Pay (mrxshahin)',
+          cryptoNetwork: 'Binance Pay',
         },
       },
       'Under Review'
@@ -253,7 +253,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[Binance Pay Verification] ${submission.appTitle} (${submission.invoiceNumber})`
     )}&body=${encodeURIComponent(
-      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nBinance Pay ID: mrxshahin\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.json({

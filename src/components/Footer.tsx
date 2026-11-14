@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({
   const owner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
   const copyright =
     siteMeta?.copyrightNotice ||
-    `© ${currentYear} ${owner.displayName} (@${owner.username}) · MRS TV Network. All rights reserved.`;
+    `© ${currentYear} ${owner.displayName}. All rights reserved.`;
 
   return (
     <footer className="mt-16 border-t border-white/[0.08] bg-black text-zinc-400 pt-10 pb-24 md:pb-12 px-4 sm:px-6 lg:px-8 text-xs">
@@ -42,7 +42,7 @@ export const Footer: React.FC<FooterProps> = ({
             <div>
               <span className="font-bold text-white text-sm">MRS App Store</span>
               <p className="text-[11px] text-zinc-400">
-                Owned &amp; Operated by {owner.displayName} (@{owner.username})
+                Owned &amp; Operated by {owner.displayName}
               </p>
             </div>
           </div>

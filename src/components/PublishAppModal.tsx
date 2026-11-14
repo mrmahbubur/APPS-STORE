@@ -337,10 +337,10 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       title: 'Binance Pay' as const,
       displayName: 'Binance Pay',
       network: 'Binance App (Zero Fee)',
-      label: 'Binance Pay ID / Username',
-      value: 'mrxshahin',
+      label: 'Recipient Name',
+      value: 'M R S',
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__1__2b5c7e8c.png'),
-      notice: 'Send $25.00 USD via Binance Pay to ID mrxshahin, then enter your Order ID for store owner review.',
+      notice: 'Scan the Binance Pay QR code in your Binance App to send $25.00 USD to M R S, then enter your Order ID for store owner review.',
     },
   };
 
@@ -355,7 +355,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const handleLookupGravatar = async () => {
     const clean = gravatarHandle.trim();
     if (!clean) {
-      setGravatarMessage('Enter a Gravatar username (e.g. mrxshahin) or profile URL.');
+      setGravatarMessage('Enter a Gravatar profile URL or handle.');
       return;
     }
     setLookingUpGravatar(true);
@@ -427,9 +427,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       if (profile) {
         setOwnerProfile(profile);
         if (!ownerName.trim()) {
-          setOwnerName(
-            profile.username ? `${profile.displayName} (@${profile.username})` : profile.displayName
-          );
+          setOwnerName(profile.displayName);
         }
         if (!developerEmail.trim() && profile.email) {
           setDeveloperEmail(profile.email);
@@ -629,7 +627,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           paymentMethod: 'Binance Pay',
           paymentDetails: {
             cryptoTxHash: cleanTx,
-            cryptoNetwork: 'Binance Pay (mrxshahin)',
+            cryptoNetwork: 'Binance Pay',
           },
           invoiceNumber: `INV-MRS-${new Date().getFullYear()}-${suffix}`,
           transactionId: `TXN-MRS-${now}-${suffix}`,
@@ -1411,14 +1409,14 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   {/* Optional Gravatar Profile Fetch */}
                   <div className="bg-black p-3.5 rounded-xl border border-white/[0.06] space-y-2.5">
                     <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
-                      Gravatar Username or URL (Optional Auto-Fill)
+                      Gravatar Profile URL (Optional Auto-Fill)
                     </label>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
                         value={gravatarHandle}
                         onChange={(e) => setGravatarHandle(e.target.value)}
-                        placeholder="e.g. mrxshahin or https://gravatar.com/username"
+                        placeholder="e.g. https://gravatar.com/your-profile"
                         className="flex-1 bg-zinc-900 border border-white/[0.12] rounded-xl px-3.5 py-2 text-sm sm:text-xs text-white focus:outline-none focus:border-blue-500"
                       />
                       <button
@@ -1455,7 +1453,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         )}
                         <div className="min-w-0 text-xs">
                           <p className="font-bold text-white truncate">
-                            {ownerProfile.displayName} (@{ownerProfile.username})
+                            {ownerProfile.displayName}
                           </p>
                           <p className="text-[11px] text-emerald-400 truncate">
                             {ownerProfile.accounts?.length || 0} verified social links attached
@@ -1671,7 +1669,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       placeholder={
                         paymentOption === 'USDT_BEP20'
                           ? '0x... (66-character BEP-20 TxHash after sending $25 USDT)'
-                          : 'Paste your Binance Pay Order ID after paying mrxshahin'
+                          : 'Paste your Binance Pay Order ID after completing payment'
                       }
                       className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                     />

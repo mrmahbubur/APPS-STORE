@@ -522,7 +522,7 @@ export default function App() {
                       {storeOwner.avatarUrl && !ownerAvatarError ? (
                         <img
                           src={storeOwner.avatarUrl}
-                          alt={`${storeOwner.displayName} (@${storeOwner.username})`}
+                          alt={storeOwner.displayName}
                           onError={() => setOwnerAvatarError(true)}
                           className="w-14 h-14 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
                           referrerPolicy="no-referrer"
@@ -533,12 +533,9 @@ export default function App() {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                            {storeOwner.displayName}
-                          </h2>
-                          <span className="text-xs font-mono text-zinc-400">@{storeOwner.username}</span>
-                        </div>
+                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                          {storeOwner.displayName}
+                        </h2>
                         <p className="text-xs text-zinc-300 mt-0.5 line-clamp-2">
                           {storeOwner.headline}
                         </p>
@@ -551,7 +548,7 @@ export default function App() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline whitespace-nowrap shrink-0"
                     >
-                      <span>gravatar.com/{storeOwner.username}</span>
+                      <span>Verified Gravatar Profile</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
@@ -561,7 +558,7 @@ export default function App() {
                       Publish your Android &amp; Smart TV APK across any store category
                     </h3>
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                      Direct marketplace operated by {storeOwner.displayName} (@{storeOwner.username}). Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, and publish live with direct downloads.
+                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, and publish live with direct downloads.
                     </p>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-300 font-mono">

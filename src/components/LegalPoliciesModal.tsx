@@ -131,7 +131,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
                   {owner.avatarUrl && !ownerAvatarFailed ? (
                     <img
                       src={owner.avatarUrl}
-                      alt={`${owner.displayName} (@${owner.username})`}
+                      alt={owner.displayName}
                       className="w-12 h-12 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
                       referrerPolicy="no-referrer"
                       onError={() => setOwnerAvatarFailed(true)}
@@ -142,10 +142,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
                     </div>
                   )}
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-white">{owner.displayName}</span>
-                      <span className="text-xs font-mono text-zinc-400">@{owner.username}</span>
-                    </div>
+                    <span className="text-sm font-bold text-white block">{owner.displayName}</span>
                     <p className="text-[11px] text-zinc-400 truncate mt-0.5">{owner.headline}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-300 font-mono mt-1">
                       <a href={`mailto:${owner.email}`} className="inline-flex items-center gap-1 text-[#0a84ff] hover:underline">
@@ -228,7 +225,10 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
 
         {/* Footer Note */}
         <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-400 shrink-0">
-          <span>{siteMeta?.copyrightNotice || `© ${new Date().getFullYear()} MRS TV Network. All rights reserved.`}</span>
+          <span>
+            {siteMeta?.copyrightNotice ||
+              `© ${new Date().getFullYear()} ${(siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE).displayName}. All rights reserved.`}
+          </span>
           <button
             type="button"
             onClick={onClose}

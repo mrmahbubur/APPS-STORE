@@ -141,9 +141,9 @@ export const DEFAULT_APPS: AppItem[] = [
     chartRank: 'v1.0.0',
     icon: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
     banner: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    developer: 'MRS TV Network',
+    developer: 'M R S',
     developerEmail: 'mr216873@gmail.com',
-    ownerName: 'M R S (@mrxshahin)',
+    ownerName: 'M R S',
     ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     packageId: 'co.median.android.rdalmaa',
     sha256: 'd8358fae651e182a9dae7e098962b94afd9ddb8eb228923c76184250d7ccf28c',
@@ -152,7 +152,7 @@ export const DEFAULT_APPS: AppItem[] = [
     shareUrl: './?app=m-r-s-iptv',
     localApkPath: './apks/M_R_S_IPTV.apk',
     description:
-      'M R S IPTV Android is the official Android application published by MRS TV Network. The APK binary (M R S IPTV.apk) is hosted directly in MRS App Store for one-click download and installation on Android 8.0+ devices.',
+      'M R S IPTV Android is the official Android application published by M R S. The APK binary (M R S IPTV.apk) is hosted directly in MRS App Store for one-click download and installation on Android 8.0+ devices.',
     whatsNew: [
       'Direct in-house APK hosting from MRS App Store (9.33 MB)',
       'Build 3 (Version 1.0.0) compiled for Android API 26+',
@@ -161,7 +161,7 @@ export const DEFAULT_APPS: AppItem[] = [
     features: [
       'Direct APK download with no third-party redirects',
       'Supports Android 8.0 (API 26) and above',
-      'Published and maintained by MRS TV Network',
+      'Published and maintained by M R S',
       'Shareable app page link and direct APK download URL',
     ],
     permissions: [
@@ -194,9 +194,9 @@ export const DEFAULT_APPS: AppItem[] = [
     chartRank: 'v1.0',
     icon: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
     banner: './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-    developer: 'MRS TV Network',
+    developer: 'M R S',
     developerEmail: 'mr216873@gmail.com',
-    ownerName: 'M R S (@mrxshahin)',
+    ownerName: 'M R S',
     ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     packageId: 'com.wMRSIPTV_20119768',
     sha256: 'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92',
@@ -205,7 +205,7 @@ export const DEFAULT_APPS: AppItem[] = [
     shareUrl: './?app=m-r-s-iptv-pro',
     localApkPath: './apks/M_R_S_IPTV_Pro.apk',
     description:
-      'M R S IPTV TV (M_R_S_IPTV.apk) is the Smart TV and Android edition distributed directly by MRS TV Network. Hosted locally on MRS App Store for direct sideloading and mobile installation.',
+      'M R S IPTV TV (M_R_S_IPTV.apk) is the Smart TV and Android edition distributed directly by M R S. Hosted locally on MRS App Store for direct sideloading and mobile installation.',
     whatsNew: [
       'Direct in-house APK hosting from MRS App Store (31.93 MB)',
       'Package com.wMRSIPTV_20119768 (Version 1.0)',
@@ -214,7 +214,7 @@ export const DEFAULT_APPS: AppItem[] = [
     features: [
       'Direct APK download with no external hosting redirects',
       'Supports Android 8.0 (API 26) and above',
-      'Published and maintained by MRS TV Network',
+      'Published and maintained by M R S',
       'Shareable app link and direct binary URL',
     ],
     permissions: [
@@ -420,22 +420,22 @@ export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewI
 
 export function getDefaultSiteMeta(): SiteMeta {
   const currentYear = new Date().getFullYear();
-  const ownerLabel = `${MRS_GRAVATAR_OWNER_PROFILE.displayName} (@${MRS_GRAVATAR_OWNER_PROFILE.username})`;
+  const ownerLabel = MRS_GRAVATAR_OWNER_PROFILE.displayName;
   return {
     appName: 'MRS App Store',
     tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
     currentYear,
-    copyrightNotice: `© ${currentYear} ${ownerLabel} · MRS TV Network. All rights reserved.`,
+    copyrightNotice: `© ${currentYear} ${ownerLabel}. All rights reserved.`,
     adminEmail: MRS_GRAVATAR_OWNER_PROFILE.email,
     ownerInfo: {
       ownerName: ownerLabel,
-      organization: 'MRS TV Network',
+      organization: ownerLabel,
       email: MRS_GRAVATAR_OWNER_PROFILE.email,
       role: 'Store Owner & Lead Administrator',
       location: 'Global Remote Operations',
       supportResponseTime: 'Within 24 hours',
       publishingFeeUsd: 25.0,
-      verificationNote: `Verified identity on ${MRS_GRAVATAR_OWNER_PROFILE.profileUrl}`,
+      verificationNote: 'Verified Store Owner Profile',
     },
     ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
     categories: APP_STORE_CATEGORIES,
@@ -477,12 +477,12 @@ export function getDefaultSiteMeta(): SiteMeta {
         title: 'Developer Publishing & Review Agreement',
         lastRenewed: `January 1, ${currentYear}`,
         summary:
-          'Developers may submit applications for review at mr216873@gmail.com after completing the $25.00 USD publishing fee via Binance Pay (mrxshahin) or USDT BEP-20.',
+          'Developers may submit applications for review at mr216873@gmail.com after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
         sections: [
           {
             heading: '1. Submission Fee & Payment Options ($25 USD)',
             content:
-              'A one-time publishing fee of $25.00 USD is accepted via Binance Pay (ID: mrxshahin) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
+              'A one-time publishing fee of $25.00 USD is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
           },
           {
             heading: '2. Submission Dispatch',

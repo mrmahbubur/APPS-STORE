@@ -155,9 +155,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     setTimeout(() => setCopiedShareLink(false), 2000);
   };
 
-  const appOwnerName = app.ownerProfile?.displayName
-    ? `${app.ownerProfile.displayName} (@${app.ownerProfile.username})`
-    : app.ownerName || app.developer;
+  const appOwnerName = app.ownerProfile?.displayName || app.ownerName || app.developer;
 
   const handleCopyOwnerEmail = async () => {
     await copyToClipboard(app.ownerProfile?.email || app.developerEmail);
@@ -967,7 +965,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:underline"
               >
-                <span>Verified Profile: gravatar.com/{app.ownerProfile.username}</span>
+                <span>Verified Gravatar Profile</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
@@ -990,17 +988,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-bold text-white truncate">
-                      {app.ownerProfile?.displayName || appOwnerName}
-                    </p>
-                    {app.ownerProfile?.username && (
-                      <span className="text-xs font-mono text-zinc-400">
-                        @{app.ownerProfile.username}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
+                  <p className="text-base font-bold text-white truncate">
+                    {app.ownerProfile?.displayName || appOwnerName}
+                  </p>
+                  {app.developer && app.developer !== (app.ownerProfile?.displayName || appOwnerName) && (
+                    <p className="text-xs text-blue-400 font-semibold truncate">{app.developer}</p>
+                  )}
                   <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">
                     {app.ownerProfile?.headline || `App Owner & Publisher · ${app.title}`}
                   </p>
@@ -1051,7 +1044,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
                   >
                     <Calendar className="w-3 h-3 text-blue-400" />
-                    <span>Calendly ({app.ownerProfile.username})</span>
+                    <span>Calendly</span>
                   </a>
                 )}
                 {app.ownerProfile.accounts?.map((acc) => (
@@ -1062,7 +1055,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 text-[11px] font-semibold inline-flex items-center gap-1.5 transition-colors"
                   >
-                    <span>{acc.name}: {acc.username}</span>
+                    <span>{acc.name}</span>
                     <ExternalLink className="w-3 h-3 text-zinc-400" />
                   </a>
                 ))}
@@ -1081,7 +1074,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <dl className="divide-y divide-white/[0.06] text-xs">
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">App Owner / Developer</dt>
-              <dd className="text-zinc-200 font-medium sm:text-right">{appOwnerName} · {app.developer}</dd>
+              <dd className="text-zinc-200 font-medium sm:text-right">
+                {app.developer && app.developer !== appOwnerName
+                  ? `${appOwnerName} · ${app.developer}`
+                  : appOwnerName}
+              </dd>
             </div>
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
               <dt className="text-zinc-400">Owner Contact Email</dt>
@@ -1101,9 +1098,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     href={app.ownerProfile.profileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 font-mono hover:underline break-all"
+                    className="text-blue-400 hover:underline inline-flex items-center gap-1"
                   >
-                    {app.ownerProfile.profileUrl}
+                    <span>Verified Gravatar Profile</span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 </dd>
               </div>

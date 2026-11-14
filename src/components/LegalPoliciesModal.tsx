@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Scale, RefreshCw, DollarSign, Mail } from 'lucide-react';
+import { X, ShieldCheck, Scale, DollarSign, Mail } from 'lucide-react';
 import { SiteMeta } from '../types';
 
 interface LegalPoliciesModalProps {
@@ -34,24 +34,26 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl bg-zinc-950 border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] flex flex-col"
+        className="relative w-full max-w-3xl bg-[#1c1c1e] border-t sm:border border-white/[0.1] rounded-t-[28px] sm:rounded-[28px] px-4 pt-3 sm:p-8 shadow-2xl sm:my-auto text-zinc-100 max-h-[94dvh] sm:max-h-[90dvh] flex flex-col"
+        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2 sm:hidden shrink-0" aria-hidden="true" />
         {/* Top Header */}
-        <div className="flex items-center justify-between pb-5 border-b border-white/[0.08] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[22%] bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+        <div className="flex items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-white/[0.08] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-[22.5%] bg-[#0a84ff]/15 text-[#0a84ff] border border-[#0a84ff]/30 flex items-center justify-center shrink-0">
               <Scale className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Trust, Legal &amp; Developer Guidelines</h2>
-              <div className="flex items-center gap-2 text-xs text-emerald-400 mt-0.5">
-                <RefreshCw className="w-3 h-3 animate-spin duration-1000" />
-                <span>Backend Auto-Renewed for Year {siteMeta?.currentYear || new Date().getFullYear()}</span>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-bold text-white truncate">Trust, Legal &amp; Developer Guidelines</h2>
+              <div className="flex items-center gap-2 text-xs text-emerald-400 mt-0.5 truncate">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Policy Framework Active · {siteMeta?.currentYear || new Date().getFullYear()}</span>
               </div>
             </div>
           </div>
@@ -59,7 +61,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white transition-all"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white transition-all min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -67,11 +69,11 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-2 py-4 border-b border-white/[0.08] shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 py-3.5 sm:py-4 border-b border-white/[0.08] shrink-0 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('privacy')}
-            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap min-h-[40px] ${
               activeTab === 'privacy'
                 ? 'bg-white text-black'
                 : 'text-zinc-400 hover:text-white hover:bg-white/10'
@@ -82,7 +84,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('developer')}
-            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[40px] ${
               activeTab === 'developer'
                 ? 'bg-white text-black'
                 : 'text-zinc-400 hover:text-white hover:bg-white/10'
@@ -94,7 +96,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('terms')}
-            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap min-h-[40px] ${
               activeTab === 'terms'
                 ? 'bg-white text-black'
                 : 'text-zinc-400 hover:text-white hover:bg-white/10'
@@ -105,7 +107,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('dmca')}
-            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap ${
+            className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap min-h-[40px] ${
               activeTab === 'dmca'
                 ? 'bg-white text-black'
                 : 'text-zinc-400 hover:text-white hover:bg-white/10'
@@ -156,7 +158,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
         </div>
 
         {/* Footer Note */}
-        <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-400 shrink-0">
+        <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-400 shrink-0">
           <span>{siteMeta?.copyrightNotice || `© ${new Date().getFullYear()} MRS TV Network. All rights reserved.`}</span>
           <button
             type="button"

@@ -28,7 +28,9 @@ import {
 } from 'lucide-react';
 import { AppItem, ReviewItem, ReviewStats } from '../types';
 import {
+  copyToClipboard,
   getAppLocalApkUrl,
+  normalizeAssetPath,
   computeReviewStats,
   getLocalReviews,
   saveLocalReview,
@@ -60,6 +62,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   const [showQrCode, setShowQrCode] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
+  const [iconImgError, setIconImgError] = useState(false);
+  const [avatarImgError, setAvatarImgError] = useState(false);
 
   // Real Reviews State
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -86,6 +90,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     setShowPermissions(false);
     setShowReviewForm(false);
     setReviewSubmittedNotice(false);
+    setIconImgError(false);
+    setAvatarImgError(false);
 
     const loadReviews = async () => {
       if (hasBackend) {
@@ -137,14 +143,14 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     : `${window.location.origin}${basePath}${staticApkRel.replace(/^\.\//, '')}`;
   const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
 
-  const handleCopyDownloadLink = () => {
-    navigator.clipboard.writeText(directDownloadUrl);
+  const handleCopyDownloadLink = async () => {
+    await copyToClipboard(directDownloadUrl);
     setCopiedDownloadLink(true);
     setTimeout(() => setCopiedDownloadLink(false), 2000);
   };
 
-  const handleCopyShareLink = () => {
-    navigator.clipboard.writeText(shareUrl);
+  const handleCopyShareLink = async () => {
+    await copyToClipboard(shareUrl);
     setCopiedShareLink(true);
     setTimeout(() => setCopiedShareLink(false), 2000);
   };
@@ -153,14 +159,14 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     ? `${app.ownerProfile.displayName} (@${app.ownerProfile.username})`
     : app.ownerName || app.developer;
 
-  const handleCopyOwnerEmail = () => {
-    navigator.clipboard.writeText(app.ownerProfile?.email || app.developerEmail);
+  const handleCopyOwnerEmail = async () => {
+    await copyToClipboard(app.ownerProfile?.email || app.developerEmail);
     setCopiedOwnerEmail(true);
     setTimeout(() => setCopiedOwnerEmail(false), 2000);
   };
 
-  const handleCopySha = () => {
-    navigator.clipboard.writeText(app.sha256);
+  const handleCopySha = async () => {
+    await copyToClipboard(app.sha256);
     setCopiedSha(true);
     setTimeout(() => setCopiedSha(false), 2000);
   };
@@ -277,31 +283,71 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl bg-[#0c0c0f] border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-4 sm:p-10 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] overflow-y-auto"
+        className="relative w-full max-w-4xl bg-[#1c1c1e] border-t sm:border border-white/[0.1] rounded-t-[28px] sm:rounded-[28px] px-4 pt-0 sm:px-9 shadow-2xl sm:my-auto text-zinc-100 max-h-[94dvh] sm:max-h-[90dvh] overflow-y-auto"
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="sticky top-0 float-right p-2.5 rounded-full bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors z-20 min-h-[40px] min-w-[40px] flex items-center justify-center"
-          aria-label="Close app details"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Sticky Apple Sheet Top Bar */}
+        <div className="sticky top-0 z-20 -mx-4 sm:-mx-9 px-4 sm:px-9 pt-2 pb-3 sm:py-3 mb-5 bg-[#1c1c1e]/90 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.08]">
+          <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2 sm:hidden" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {!iconImgError ? (
+                <img
+                  src={normalizeAssetPath(app.icon)}
+                  alt=""
+                  aria-hidden="true"
+                  onError={() => setIconImgError(true)}
+                  className="w-7 h-7 rounded-[22.5%] object-cover ring-1 ring-white/15 shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
+                  <Smartphone className="w-3.5 h-3.5" />
+                </div>
+              )}
+              <span className="text-xs sm:text-sm font-bold text-white truncate">{app.title}</span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={triggerDownload}
+                className="px-4 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold whitespace-nowrap min-h-[38px] transition-colors"
+              >
+                {downloadStarted ? 'Downloading...' : 'GET'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-full bg-white/[0.1] hover:bg-white/[0.18] text-zinc-300 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close app details"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* 1. Apple App Store Product Header */}
         <div className="flex flex-col sm:flex-row items-start gap-6 pb-8 border-b border-white/[0.08]">
-          <img
-            src={app.icon}
-            alt={app.title}
-            className="w-24 h-24 sm:w-32 sm:h-32 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl shrink-0"
-            referrerPolicy="no-referrer"
-          />
+          {!iconImgError ? (
+            <img
+              src={normalizeAssetPath(app.icon)}
+              alt={app.title}
+              onError={() => setIconImgError(true)}
+              className="w-24 h-24 sm:w-32 sm:h-32 rounded-[22.5%] object-cover ring-1 ring-white/15 shadow-2xl shrink-0"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
+              <Smartphone className="w-10 h-10" />
+            </div>
+          )}
 
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -377,10 +423,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           </div>
         </div>
 
-        {/* 2. Apple 5-Column Metrics Ribbon */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-3 py-5 border-b border-white/[0.08] text-center">
-          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+        {/* 2. Apple 5-Column Horizontal Metrics Strip */}
+        <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto no-scrollbar divide-x divide-white/[0.08] py-4 border-b border-white/[0.08] text-center">
+          <div className="min-w-[116px] sm:min-w-0 px-3">
+            <p className="text-[11px] text-zinc-400 font-semibold">
               {displayReviewsCount} {displayReviewsCount === 1 ? 'Rating' : 'Ratings'}
             </p>
             <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums flex items-center justify-center gap-1">
@@ -392,26 +438,26 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </p>
           </div>
 
-          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Min OS</p>
+          <div className="min-w-[116px] sm:min-w-0 px-3">
+            <p className="text-[11px] text-zinc-400 font-semibold">Min OS</p>
             <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">8.0+</p>
             <p className="text-[11px] text-zinc-500 mt-0.5">Android API 26</p>
           </div>
 
-          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Version</p>
+          <div className="min-w-[126px] sm:min-w-0 px-3">
+            <p className="text-[11px] text-zinc-400 font-semibold">Version</p>
             <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">v{app.version}</p>
             <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{app.category}</p>
           </div>
 
-          <div className="p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent sm:border-r sm:border-white/[0.08] sm:pr-2">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Owner</p>
+          <div className="min-w-[136px] sm:min-w-0 px-3">
+            <p className="text-[11px] text-zinc-400 font-semibold">Owner</p>
             <p className="text-sm font-bold text-white mt-1.5 sm:mt-2 truncate">{appOwnerName}</p>
             <p className="text-[11px] text-zinc-500 mt-0.5 sm:mt-1 truncate">{app.developer}</p>
           </div>
 
-          <div className="col-span-2 sm:col-span-1 p-2.5 sm:p-0 rounded-xl sm:rounded-none bg-white/[0.03] sm:bg-transparent">
-            <p className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">Size</p>
+          <div className="min-w-[116px] sm:min-w-0 px-3">
+            <p className="text-[11px] text-zinc-400 font-semibold">Size</p>
             <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">{app.size}</p>
             <p className="text-[11px] text-emerald-400 mt-0.5">Direct APK</p>
           </div>
@@ -538,7 +584,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2">
             <div className="w-56 sm:w-72 h-56 sm:h-72 shrink-0 snap-start rounded-2xl overflow-hidden border border-white/10 bg-black">
               <img
-                src={app.icon}
+                src={normalizeAssetPath(app.icon)}
                 alt={`${app.title} Preview`}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -586,11 +632,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-3">Key Features</h4>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-zinc-300">
+            <h4 className="text-sm font-bold text-white mb-2">Key Features</h4>
+            <ul className="divide-y divide-white/[0.06] text-xs text-zinc-300">
               {app.features.map((feat, idx) => (
-                <li key={idx} className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                <li key={idx} className="flex items-center gap-2.5 py-2.5">
+                  <Check className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
                   <span>{feat}</span>
                 </li>
               ))}
@@ -930,10 +976,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/[0.08] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
-                {app.ownerProfile?.avatarUrl ? (
+                {app.ownerProfile?.avatarUrl && !avatarImgError ? (
                   <img
                     src={app.ownerProfile.avatarUrl}
                     alt={appOwnerName}
+                    onError={() => setAvatarImgError(true)}
                     className="w-14 h-14 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
                     referrerPolicy="no-referrer"
                   />

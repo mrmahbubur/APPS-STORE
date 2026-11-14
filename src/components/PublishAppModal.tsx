@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { AppItem, AppOwnerProfile, DeveloperSubmission } from '../types';
 import {
+  copyToClipboard,
+  getAppLocalApkUrl,
   getLocalPublishedApps,
   saveLocalPublishedApp,
   getLocalSubmissions,
@@ -330,8 +332,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
   const activeMethod = paymentDetails[paymentOption];
 
-  const copyText = (key: string, text: string) => {
-    navigator.clipboard.writeText(text);
+  const copyText = async (key: string, text: string) => {
+    await copyToClipboard(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
@@ -920,33 +922,43 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/85 backdrop-blur-2xl overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#0c0c0f] border border-white/[0.1] rounded-[1.75rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl my-auto text-zinc-100 max-h-[92dvh] overflow-y-auto"
+        className="relative w-full max-w-2xl bg-[#1c1c1e] border-t sm:border border-white/[0.1] rounded-t-[28px] sm:rounded-[28px] px-4 pt-0 sm:px-8 shadow-2xl sm:my-auto text-zinc-100 max-h-[94dvh] sm:max-h-[90dvh] overflow-y-auto"
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="sticky top-0 float-right p-2.5 rounded-full bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-all z-20 min-h-[40px] min-w-[40px] flex items-center justify-center"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Sticky Apple Sheet Top Bar */}
+        <div className="sticky top-0 z-20 -mx-4 sm:-mx-8 px-4 sm:px-8 pt-2 pb-3 sm:py-3.5 mb-5 bg-[#1c1c1e]/90 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.08]">
+          <div className="w-9 h-1 rounded-full bg-white/25 mx-auto mb-2 sm:hidden" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-[#0a84ff]">
+                <span>App Publishing</span>
+                <span aria-hidden="true" className="text-zinc-600">·</span>
+                <span className="text-emerald-400">$25.00 USD</span>
+              </div>
+              <h2 className="text-base sm:text-xl font-black text-white tracking-tight truncate">
+                Publish App on MRS App Store
+              </h2>
+            </div>
 
-        {/* Modal Header */}
-        <div className="pb-5 border-b border-white/[0.08] pr-10">
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider mb-1.5">
-            <span>Inbuilt App Publishing Pipeline</span>
-            <span className="text-zinc-600">·</span>
-            <span className="text-emerald-400">$25.00 USD Fee</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/[0.1] hover:bg-white/[0.18] text-zinc-300 hover:text-white transition-all min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Publish App on MRS App Store
-          </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+        </div>
+
+        {/* Subtitle & Switcher */}
+        <div className="pb-5 border-b border-white/[0.08]">
+          <p className="text-xs text-zinc-400">
             Enter app &amp; owner details, verify your $25.00 USD payment on-chain, then upload your APK to publish live.
           </p>
 
@@ -1141,9 +1153,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       : pathname.split('/').pop()?.includes('.')
                       ? pathname.replace(/\/[^/]*$/, '/')
                       : `${pathname}/`;
+                    const staticApkRel = getAppLocalApkUrl(receiptResult.app);
                     const directUrl = hasBackend
                       ? `${window.location.origin}${basePath}api/download/${receiptResult.app.id}`
-                      : receiptResult.app.directDownloadUrl;
+                      : staticApkRel.startsWith('http://') || staticApkRel.startsWith('https://')
+                      ? staticApkRel
+                      : `${window.location.origin}${basePath}${staticApkRel.replace(/^\.\//, '')}`;
                     copyText('apk', directUrl);
                   }}
                   className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold inline-flex items-center gap-1.5"
@@ -1187,11 +1202,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         ) : (
           <div className="mt-6 space-y-5">
             {/* 3-Step Visual Progress Stepper */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
-                { step: 1 as const, label: '1. App & Owner Details' },
-                { step: 2 as const, label: '2. Verify Payment ($25)' },
-                { step: 3 as const, label: '3. Upload & Publish' },
+                { step: 1 as const, shortLabel: '1. Details', label: '1. App & Owner Details' },
+                { step: 2 as const, shortLabel: '2. Pay ($25)', label: '2. Verify Payment ($25)' },
+                { step: 3 as const, shortLabel: '3. Upload', label: '3. Upload & Publish' },
               ].map((item) => {
                 const isActive = currentStep === item.step;
                 const isDone =
@@ -1218,7 +1233,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         setCurrentStep(3);
                       }
                     }}
-                    className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all text-[11px] font-bold flex items-center gap-2 ${
+                    className={`p-2 sm:p-3 rounded-xl border text-left transition-all text-[11px] font-bold flex items-center justify-center sm:justify-start gap-1.5 min-h-[44px] ${
                       isActive
                         ? 'bg-blue-600/20 border-blue-500 text-white'
                         : isDone
@@ -1233,7 +1248,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     ) : isDone && !isActive ? (
                       <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
                     ) : null}
-                    <span className="truncate">{item.label}</span>
+                    <span className="sm:hidden truncate">{item.shortLabel}</span>
+                    <span className="hidden sm:inline truncate">{item.label}</span>
                   </button>
                 );
               })}

@@ -21,9 +21,11 @@ import {
   Tv,
   Download,
   AlertCircle,
-  DollarSign,
-  Zap,
+  UploadCloud,
+  ArrowRight,
   ShieldCheck,
+  LayoutGrid,
+  ListOrdered,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -43,6 +45,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
+  const [viewMode, setViewMode] = useState<'cards' | 'charts'>('cards');
+  const [showcaseImgError, setShowcaseImgError] = useState(false);
 
   // Modals
   const [selectedApp, setSelectedApp] = useState<AppItem | null>(null);
@@ -98,6 +102,14 @@ export default function App() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const anyModalOpen = Boolean(selectedApp || isPublishModalOpen || isLegalModalOpen);
+    document.body.style.overflow = anyModalOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedApp, isPublishModalOpen, isLegalModalOpen]);
 
   // Sync sharing link from query parameter (?app=id)
   useEffect(() => {
@@ -221,7 +233,14 @@ export default function App() {
       <Header
         onOpenPublish={() => setIsPublishModalOpen(true)}
         onOpenLegal={handleOpenLegal}
-        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        onSelectCategory={(cat) => {
+          setSelectedCategory(cat);
+          setViewMode('cards');
+        }}
+        onOpenCharts={() => {
+          setSelectedCategory('All');
+          setViewMode('charts');
+        }}
         activeCategory={selectedCategory}
       />
 
@@ -234,7 +253,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4">
+      <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
         {featuredApp && !searchQuery && selectedCategory === 'All' && (
           <HeroFeatured
             app={featuredApp}
@@ -244,58 +263,15 @@ export default function App() {
           />
         )}
 
-        {/* Store Highlights Strip */}
-        <section className="my-5 sm:my-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
-              <Tv className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-sm">Smart TV &amp; Mobile</p>
-              <p className="text-zinc-400 text-[11px]">Firestick &amp; Android TV</p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-sm">Self-Hosted APKs</p>
-              <p className="text-zinc-400 text-[11px]">Instant Direct CDN</p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-sm">$25 USD Publish</p>
-              <p className="text-zinc-400 text-[11px]">Binance &amp; USDT BEP20</p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-zinc-950 border border-white/[0.08] flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-bold text-white text-sm truncate">SHA-256 Verified</p>
-              <p className="text-zinc-400 text-[11px]">Inspectable APK Checksums</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Catalog Section */}
-        <section id="catalog-section" className="mt-8 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Apple App Store Catalog Section */}
+        <section id="catalog-section" className="mt-6 sm:mt-8 space-y-5 sm:space-y-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {selectedCategory === 'All' ? 'Verified Applications' : selectedCategory}
+                {selectedCategory === 'All' ? 'Apps & Smart TV' : selectedCategory}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Tap any application to view full details, customer ratings, owner info, and sharing links.
+                Direct APK releases with SHA-256 checksums, real user reviews, and verified owner profiles.
               </p>
             </div>
 
@@ -306,14 +282,14 @@ export default function App() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search apps & APKs..."
-                  className="w-full bg-zinc-900 border border-white/[0.08] rounded-full pl-10 pr-14 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-colors min-h-[42px]"
+                  placeholder="Search App Store..."
+                  className="w-full bg-[#1c1c1e] border border-white/[0.08] rounded-xl pl-10 pr-14 py-2.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#0a84ff] transition-colors min-h-[42px]"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white min-h-[32px] px-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[#0a84ff] hover:text-white min-h-[32px] px-1 font-medium"
                   >
                     Clear
                   </button>
@@ -324,7 +300,7 @@ export default function App() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 aria-label="Sort apps"
-                className="w-full sm:w-auto bg-zinc-900 border border-white/[0.08] rounded-full px-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-blue-500 min-h-[42px]"
+                className="w-full sm:w-auto bg-[#1c1c1e] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-zinc-200 focus:outline-none focus:border-[#0a84ff] min-h-[42px]"
               >
                 <option value="popular">Top Charts</option>
                 <option value="rating">Top Rated</option>
@@ -333,31 +309,60 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-2 border-b border-white/[0.08]">
-            <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border border-white/[0.08] rounded-full">
-              {categories.map((cat) => (
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full min-w-0">
+              <div className="inline-flex items-center gap-1 p-1 bg-[#1c1c1e] border border-white/[0.08] rounded-xl shrink-0">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 min-h-[34px] ${
+                      selectedCategory === cat
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div
+                className="inline-flex items-center gap-1 p-1 bg-[#1c1c1e] border border-white/[0.08] rounded-xl shrink-0"
+                role="group"
+                aria-label="Catalog layout"
+              >
                 <button
-                  key={cat}
                   type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap min-h-[34px] ${
-                    selectedCategory === cat
-                      ? 'bg-white text-black shadow-md'
-                      : 'text-zinc-400 hover:text-white'
+                  onClick={() => setViewMode('cards')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap min-h-[34px] ${
+                    viewMode === 'cards' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  {cat}
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Featured</span>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setViewMode('charts')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap min-h-[34px] ${
+                    viewMode === 'charts' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
+                  <span>Top Charts</span>
+                </button>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setIsPublishModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 whitespace-nowrap"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline underline-offset-4 whitespace-nowrap shrink-0"
             >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>Submit New App ($25 USD) ›</span>
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Publish Your App ($25 USD) ›</span>
             </button>
           </div>
 
@@ -397,18 +402,90 @@ export default function App() {
                 Reset Filter
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
-              {filteredApps.map((app) => (
+          ) : viewMode === 'charts' ? (
+            <div className="bg-[#1c1c1e] border border-white/[0.08] rounded-[22px] divide-y divide-white/[0.08] overflow-hidden">
+              {filteredApps.map((app, idx) => (
                 <AppCard
                   key={app.id}
                   app={app}
+                  variant="row"
+                  rank={idx + 1}
+                  onSelectApp={handleSelectApp}
+                  onDirectDownload={handleDirectDownload}
+                />
+              ))}
+            </div>
+          ) : (
+            <div
+              className={`grid gap-5 ${
+                filteredApps.length === 1
+                  ? 'grid-cols-1 max-w-3xl'
+                  : filteredApps.length === 2 || filteredApps.length === 4
+                  ? 'grid-cols-1 md:grid-cols-2'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+              }`}
+            >
+              {filteredApps.map((app, idx) => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  variant="card"
+                  rank={sortBy === 'popular' ? idx + 1 : undefined}
                   onSelectApp={handleSelectApp}
                   onDirectDownload={handleDirectDownload}
                 />
               ))}
             </div>
           )}
+        </section>
+
+        {/* Apple Store Editorial Spotlight: Developer Publishing & Smart TV */}
+        <section className="mt-12">
+          <div className="overflow-hidden rounded-[24px] bg-[#1c1c1e] border border-white/[0.08] grid grid-cols-1 lg:grid-cols-12 items-stretch">
+            <div className="lg:col-span-5 relative min-h-[220px] lg:min-h-[280px] bg-black flex items-center justify-center">
+              {!showcaseImgError ? (
+                <img
+                  src={normalizeAssetPath('./assets/apple_tv_showcase.jpg')}
+                  alt="Smart TV streaming hardware and remote"
+                  onError={() => setShowcaseImgError(true)}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-900 to-black text-[#0a84ff] p-6">
+                  <Tv className="w-12 h-12" />
+                  <span className="text-xs font-semibold text-zinc-400">Smart TV &amp; Android SDK</span>
+                </div>
+              )}
+            </div>
+            <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center gap-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400">
+                <span className="text-[#0a84ff]">MRS Developer Program</span>
+                <span aria-hidden="true">·</span>
+                <span>Smart TV &amp; Android Direct Hosting</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight text-balance">
+                Publish your Android &amp; Smart TV APK directly to the store
+              </h2>
+              <p className="text-sm text-zinc-300 leading-relaxed max-w-2xl">
+                Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, link your Gravatar owner profile, and publish live with direct downloads.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsPublishModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors min-h-[42px] whitespace-nowrap"
+                >
+                  <span>Start App Submission ($25 USD)</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Instant On-Chain BEP-20 Verification</span>
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
 

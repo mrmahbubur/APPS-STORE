@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Download, Star, Check, Share2, UserCheck } from 'lucide-react';
+import { Download, Star, Check, Share2, UserCheck, Smartphone } from 'lucide-react';
 import { AppItem } from '../types';
+import { copyToClipboard, normalizeAssetPath } from '../data/catalog';
 
 interface AppCardProps {
   app: AppItem;
   onSelectApp: (app: AppItem) => void;
   onDirectDownload: (app: AppItem) => void;
   isDownloading?: boolean;
+  variant?: 'card' | 'row';
+  rank?: number;
 }
 
 export const AppCard: React.FC<AppCardProps> = ({
@@ -14,9 +17,13 @@ export const AppCard: React.FC<AppCardProps> = ({
   onSelectApp,
   onDirectDownload,
   isDownloading = false,
+  variant = 'card',
+  rank,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const appOwner = app.ownerName || app.developer;
 
@@ -27,17 +34,19 @@ export const AppCard: React.FC<AppCardProps> = ({
     setTimeout(() => setDownloadSuccess(false), 2500);
   };
 
-  const handleShareClick = (e: React.MouseEvent) => {
+  const handleShareClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
     if (navigator.share) {
-      navigator.share({
-        title: `${app.title} — Official APK`,
-        text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
-        url: shareUrl,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: `${app.title} — Official APK`,
+          text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
+          url: shareUrl,
+        })
+        .catch(() => {});
     } else {
-      navigator.clipboard.writeText(shareUrl);
+      await copyToClipboard(shareUrl);
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
     }
@@ -50,81 +59,59 @@ export const AppCard: React.FC<AppCardProps> = ({
     }
   };
 
-  return (
-    <article
-      tabIndex={0}
-      role="button"
-      onClick={() => onSelectApp(app)}
-      onKeyDown={handleCardKeyDown}
-      className="group relative bg-zinc-900/80 hover:bg-zinc-900 border border-white/[0.08] hover:border-white/[0.18] rounded-[1.5rem] sm:rounded-[1.75rem] p-4 sm:p-6 flex flex-col justify-between gap-4 sm:gap-5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 text-left"
-    >
-      {/* Top Header: Squircle Icon + Unboxed Metadata */}
-      <div className="flex items-start gap-3.5 sm:gap-4">
-        <img
-          src={app.icon}
-          alt={app.title}
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-[22%] object-cover ring-1 ring-white/15 shrink-0"
-          referrerPolicy="no-referrer"
-        />
+  if (variant === 'row') {
+    return (
+      <div
+        tabIndex={0}
+        role="button"
+        onClick={() => onSelectApp(app)}
+        onKeyDown={handleCardKeyDown}
+        className="group px-4 sm:px-6 py-4 flex items-center justify-between gap-3 sm:gap-5 hover:bg-white/[0.04] transition-colors cursor-pointer text-left"
+      >
+        <div className="flex items-center gap-3.5 sm:gap-4 min-w-0 flex-1">
+          {typeof rank === 'number' && (
+            <span className="w-6 text-center text-base sm:text-lg font-bold text-zinc-400 tabular-nums shrink-0">
+              {rank}
+            </span>
+          )}
 
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">
-            {app.title}
-          </h2>
-
-          <p className="text-xs text-zinc-400 mt-0.5 truncate">
-            {app.developer} · <span className="font-mono">{app.fileName}</span>
-          </p>
-
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-400 mt-2 tabular-nums">
-            <span className="text-blue-400 font-semibold truncate max-w-[140px] sm:max-w-none">{app.category}</span>
-            <span aria-hidden="true" className="text-zinc-600">·</span>
-            {app.reviewsCount > 0 ? (
-              <span className="flex items-center gap-1 text-amber-400 font-bold shrink-0">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <span>{app.rating.toFixed(1)}</span>
-              </span>
-            ) : (
-              <span className="font-mono text-zinc-400 shrink-0">v{app.version}</span>
-            )}
-            <span aria-hidden="true" className="text-zinc-600">·</span>
-            <span className="font-mono shrink-0">{app.size}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tagline */}
-      <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
-        {app.tagline}
-      </p>
-
-      {/* Per-App Owner Information */}
-      <div className="px-3.5 py-2.5 rounded-2xl bg-black/50 border border-white/[0.06] flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
-        <div className="flex items-center gap-2 min-w-0">
-          {app.ownerProfile?.avatarUrl ? (
+          {!imgError ? (
             <img
-              src={app.ownerProfile.avatarUrl}
-              alt={appOwner}
-              className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20 shrink-0"
+              src={normalizeAssetPath(app.icon)}
+              alt={app.title}
+              onError={() => setImgError(true)}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-[22.5%] object-cover ring-1 ring-white/15 shrink-0"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
+              <Smartphone className="w-6 h-6" />
+            </div>
           )}
-          <span className="text-zinc-300 font-semibold truncate">
-            Owner: <span className="text-white">{appOwner}</span>
-          </span>
-        </div>
-        <span className="text-zinc-400 font-mono truncate max-w-full sm:max-w-[165px]">
-          {app.ownerProfile?.email || app.developerEmail}
-        </span>
-      </div>
 
-      {/* Footer Strip: Compatibility & GET + Share Controls */}
-      <div className="pt-3.5 sm:pt-4 border-t border-white/[0.08] flex items-center justify-between gap-2">
-        <span className="text-[11px] sm:text-xs text-zinc-400 font-medium truncate">
-          {app.platform} · {app.reviewsCount > 0 ? `${app.reviewsCount} ${app.reviewsCount === 1 ? 'review' : 'reviews'}` : 'No reviews yet'}
-        </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-[#0a84ff] transition-colors truncate">
+              {app.title}
+            </h3>
+            <p className="text-xs text-zinc-400 truncate mt-0.5">
+              {app.category} · {appOwner}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400 mt-1 tabular-nums">
+              {app.reviewsCount > 0 ? (
+                <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                  <Star className="w-3 h-3 fill-current" />
+                  <span>{app.rating.toFixed(1)}</span>
+                </span>
+              ) : (
+                <span className="font-mono text-zinc-300">v{app.version}</span>
+              )}
+              <span aria-hidden="true" className="text-zinc-600">·</span>
+              <span className="font-mono">{app.size}</span>
+              <span aria-hidden="true" className="hidden sm:inline text-zinc-600">·</span>
+              <span className="hidden sm:inline font-mono text-zinc-400 truncate">{app.fileName}</span>
+            </div>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -132,10 +119,10 @@ export const AppCard: React.FC<AppCardProps> = ({
             onClick={handleShareClick}
             title="Share App Link"
             aria-label={`Share ${app.title}`}
-            className={`min-h-[40px] min-w-[40px] flex items-center justify-center rounded-full border transition-colors ${
+            className={`min-h-[38px] min-w-[38px] hidden sm:flex items-center justify-center rounded-full transition-colors ${
               shareSuccess
-                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                : 'bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white border-white/10'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-white/[0.08] hover:bg-white/[0.16] text-zinc-300 hover:text-white'
             }`}
           >
             {shareSuccess ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
@@ -145,10 +132,133 @@ export const AppCard: React.FC<AppCardProps> = ({
             type="button"
             onClick={handleDownloadClick}
             disabled={isDownloading}
-            className={`inline-flex items-center justify-center gap-1.5 px-5 py-2 text-xs font-extrabold uppercase tracking-wider rounded-full transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
+            className={`inline-flex items-center justify-center gap-1.5 px-5 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-all min-h-[36px] whitespace-nowrap shrink-0 ${
               downloadSuccess
                 ? 'bg-emerald-500 text-white'
-                : 'bg-white/10 hover:bg-white text-blue-400 hover:text-black active:scale-95'
+                : 'bg-white/[0.12] hover:bg-[#0071e3] text-[#0a84ff] hover:text-white active:scale-95'
+            }`}
+          >
+            {downloadSuccess ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Saved</span>
+              </>
+            ) : (
+              <span>GET</span>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <article
+      tabIndex={0}
+      role="button"
+      onClick={() => onSelectApp(app)}
+      onKeyDown={handleCardKeyDown}
+      className="group relative bg-[#1c1c1e] hover:bg-[#242426] border border-white/[0.08] hover:border-white/[0.16] rounded-[22px] p-5 flex flex-col justify-between gap-4 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 text-left"
+    >
+      {/* Top Row: Apple Squircle + Title/Meta + GET Button */}
+      <div className="flex items-start gap-3.5">
+        {!imgError ? (
+          <img
+            src={normalizeAssetPath(app.icon)}
+            alt={app.title}
+            onError={() => setImgError(true)}
+            className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-[22.5%] object-cover ring-1 ring-white/15 shrink-0"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
+            <Smartphone className="w-7 h-7" />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {typeof rank === 'number' && (
+              <span className="text-xs font-bold text-zinc-500 tabular-nums shrink-0">
+                #{rank}
+              </span>
+            )}
+            <h3 className="text-base sm:text-[17px] font-bold text-white group-hover:text-[#0a84ff] transition-colors truncate">
+              {app.title}
+            </h3>
+          </div>
+
+          <p className="text-xs text-zinc-400 mt-0.5 truncate">
+            {app.category} · {app.developer}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-400 mt-2 tabular-nums">
+            {app.reviewsCount > 0 ? (
+              <span className="inline-flex items-center gap-1 text-amber-400 font-bold shrink-0">
+                <Star className="w-3.5 h-3.5 fill-current" />
+                <span>{app.rating.toFixed(1)}</span>
+              </span>
+            ) : (
+              <span className="font-mono text-zinc-300 shrink-0">v{app.version}</span>
+            )}
+            <span aria-hidden="true" className="text-zinc-600">·</span>
+            <span className="font-mono shrink-0">{app.size}</span>
+            <span aria-hidden="true" className="text-zinc-600">·</span>
+            <span className="font-mono text-zinc-400 truncate max-w-[140px]">{app.fileName}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tagline */}
+      <p className="text-[13px] text-zinc-300 line-clamp-2 leading-relaxed">
+        {app.tagline}
+      </p>
+
+      {/* Clean Hairline Owner Row (No nested box) */}
+      <div className="pt-3 border-t border-white/[0.07] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {app.ownerProfile?.avatarUrl && !avatarError ? (
+            <img
+              src={app.ownerProfile.avatarUrl}
+              alt={appOwner}
+              onError={() => setAvatarError(true)}
+              className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <UserCheck className="w-4 h-4 text-[#0a84ff] shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs text-zinc-200 font-medium truncate">{appOwner}</p>
+            <p className="text-[11px] text-zinc-400 font-mono truncate">
+              {app.ownerProfile?.email || app.developerEmail}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleShareClick}
+            title="Share App Link"
+            aria-label={`Share ${app.title}`}
+            className={`min-h-[40px] min-w-[40px] flex items-center justify-center rounded-full transition-colors ${
+              shareSuccess
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-white/[0.08] hover:bg-white/[0.16] text-zinc-300 hover:text-white'
+            }`}
+          >
+            {shareSuccess ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadClick}
+            disabled={isDownloading}
+            className={`inline-flex items-center justify-center gap-1.5 px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-full transition-all min-h-[40px] whitespace-nowrap shrink-0 ${
+              downloadSuccess
+                ? 'bg-emerald-500 text-white'
+                : 'bg-white/[0.12] hover:bg-[#0071e3] text-[#0a84ff] hover:text-white active:scale-95'
             }`}
           >
             {downloadSuccess ? (

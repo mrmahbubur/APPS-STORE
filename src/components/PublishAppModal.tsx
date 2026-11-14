@@ -41,9 +41,12 @@ interface PublishAppModalProps {
   onClose: () => void;
   hasBackend?: boolean;
   initialCategory?: string;
+  availableCategories?: string[];
   onAppPublished?: (app: AppItem) => void;
   onSelectApp?: (app: AppItem) => void;
 }
+
+const CUSTOM_CATEGORY_VALUE = '__custom__';
 
 interface VerifiedPaymentInfo {
   tokenSymbol?: string;
@@ -211,6 +214,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   onClose,
   hasBackend = true,
   initialCategory,
+  availableCategories = [],
   onAppPublished,
   onSelectApp,
 }) => {
@@ -227,6 +231,10 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const [packageId, setPackageId] = useState('');
   const [category, setCategory] = useState(
     initialCategory && initialCategory !== 'All' ? initialCategory : 'IPTV & Streaming'
+  );
+  const [customCategory, setCustomCategory] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState<{ name: string; count: number }[]>(
+    () => APP_STORE_CATEGORIES.map((name) => ({ name, count: 0 }))
   );
   const [platform, setPlatform] = useState('Smart TV & Android Mobile');
   const [description, setDescription] = useState('');
@@ -285,7 +293,37 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setQrFailed(false);
     if (initialCategory && initialCategory !== 'All') {
       setCategory(initialCategory);
+      setCustomCategory('');
     }
+    const baseMerged = Array.from(
+      new Set([
+        ...APP_STORE_CATEGORIES,
+        ...availableCategories.filter((c) => c && c !== 'All'),
+        ...(initialCategory && initialCategory !== 'All' ? [initialCategory] : []),
+      ])
+    );
+    setCategoryOptions(baseMerged.map((name) => ({ name, count: 0 })));
+
+    if (hasBackend) {
+      fetch('./api/categories')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (Array.isArray(data?.categories)) {
+            const countMap = new Map<string, number>();
+            for (const c of baseMerged) countMap.set(c, 0);
+            for (const item of data.categories) {
+              if (item?.name) {
+                countMap.set(String(item.name), Number(item.count) || 0);
+              }
+            }
+            setCategoryOptions(
+              Array.from(countMap.entries()).map(([name, count]) => ({ name, count }))
+            );
+          }
+        })
+        .catch(() => {});
+    }
+
     if (activeTab === 'receipts') {
       loadSubmissions();
     }
@@ -294,7 +332,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeTab, initialCategory, onClose]);
+  }, [isOpen, activeTab, initialCategory, hasBackend, onClose]);
 
   const loadSubmissions = async () => {
     setLoadingSubmissions(true);
@@ -456,9 +494,13 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     }
   };
 
+  const effectiveCategory =
+    category === CUSTOM_CATEGORY_VALUE ? customCategory.trim() : category.trim();
+
   const validateStep1 = (): string | null => {
     if (!appTitle.trim()) return 'Enter your application name.';
     if (!version.trim()) return 'Enter your application version (e.g. 1.0.0).';
+    if (!effectiveCategory) return 'Select an app category or enter a custom category name.';
     if (!ownerName.trim()) return 'Enter the App Owner name.';
     if (!developerName.trim()) return 'Enter the Developer / Studio name.';
     if (!developerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(developerEmail.trim())) {
@@ -504,7 +546,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       const appDetailsPayload = {
         appTitle: appTitle.trim(),
         packageId: packageId.trim() || undefined,
-        category,
+        category: effectiveCategory,
         platform,
         version: version.trim() || '1.0.0',
         description: description.trim() || `${appTitle.trim()} Android application.`,
@@ -589,7 +631,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           appTitle: appTitle.trim(),
           packageId: packageId.trim() || undefined,
           apkDownloadUrl: 'Awaiting owner payment confirmation before APK upload',
-          category,
+          category: effectiveCategory,
           platform,
           version: version.trim() || '1.0.0',
           description: description.trim() || `${appTitle.trim()} Android application.`,
@@ -738,7 +780,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
             size: uploadedApk?.size || undefined,
             sha256: uploadedApk?.sha256 || undefined,
             architectures: uploadedApk?.architectures || undefined,
-            category,
+            category: effectiveCategory,
             platform,
             version: version.trim() || '1.0.0',
             description:
@@ -794,7 +836,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         title: appTitle.trim(),
         fileName: uploadedApk?.fileName || `${appTitle.trim().replace(/\s+/g, '_')}.apk`,
         tagline: `Published by ${ownerName.trim()} on MRS App Store.`,
-        category,
+        category: effectiveCategory,
         platform,
         version: version.trim() || '1.0.0',
         updatedAt: dateStr,
@@ -894,6 +936,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setAppTitle('');
     setPackageId('');
     setVersion('1.0.0');
+    setCustomCategory('');
     setDescription('');
     setIconUrl('');
     setTxHash('');
@@ -1314,19 +1357,30 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                        Category
+                        Category * ({categoryOptions.length} Categories Open)
                       </label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white focus:outline-none focus:border-blue-500"
                       >
-                        {APP_STORE_CATEGORIES.map((catName) => (
-                          <option key={catName} value={catName}>
-                            {catName}
+                        {categoryOptions.map((catObj) => (
+                          <option key={catObj.name} value={catObj.name}>
+                            {catObj.count > 0 ? `${catObj.name} (${catObj.count} live)` : catObj.name}
                           </option>
                         ))}
+                        <option value={CUSTOM_CATEGORY_VALUE}>+ Other / Custom Category...</option>
                       </select>
+                      {category === CUSTOM_CATEGORY_VALUE && (
+                        <input
+                          type="text"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          maxLength={60}
+                          placeholder="Enter custom category (e.g. Security & VPN)"
+                          className="mt-2 w-full bg-black border border-[#0a84ff]/60 rounded-xl px-3.5 py-2 text-sm sm:text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
@@ -1928,7 +1982,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                           {developerName} · Owner: {ownerName} · v{version}
                         </p>
                         <p className="text-[11px] text-zinc-500 truncate">
-                          {category} · {platform}
+                          {effectiveCategory || 'Select Category'} · {platform}
                         </p>
                       </div>
                     </div>

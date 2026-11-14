@@ -99,6 +99,16 @@ export const APP_STORE_CATEGORIES: string[] = [
   'Health & Fitness',
   'Travel & Navigation',
   'Business',
+  'Sports',
+  'Lifestyle',
+  'Books & Reference',
+  'Weather',
+  'Food & Drink',
+  'Medical',
+  'Graphics & Design',
+  'Kids & Family',
+  'Personalization',
+  'Auto & Vehicles',
 ];
 
 // Official owner profile name & avatar from Gravatar

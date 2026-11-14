@@ -545,11 +545,19 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
       }
     }
 
+    const cleanCategory = String(category || '').trim().slice(0, 60);
+    if (!cleanCategory) {
+      return res.status(400).json({
+        success: false,
+        message: 'Application category is required.',
+      });
+    }
+
     const publishedApp = AppDatabase.publishApp({
       appTitle: cleanTitle,
       fileName: fileName ? String(fileName).trim() : undefined,
       packageId: packageId ? String(packageId).trim() : undefined,
-      category: category ? String(category).trim() : 'Entertainment',
+      category: cleanCategory,
       platform: platform ? String(platform).trim() : 'Smart TV & Android Mobile',
       version: version ? String(version).trim() : '1.0.0',
       description: description ? String(description).trim() : `${cleanTitle} Android application package.`,

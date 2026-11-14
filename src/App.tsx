@@ -590,6 +590,7 @@ export default function App() {
         onClose={() => setIsPublishModalOpen(false)}
         hasBackend={hasBackend}
         initialCategory={publishInitialCategory}
+        availableCategories={categories.filter((c) => c !== 'All')}
         onAppPublished={(newApp) => {
           const normalized: AppItem = {
             ...newApp,
@@ -598,6 +599,9 @@ export default function App() {
             screenshots: (newApp.screenshots || []).map(normalizeAssetPath),
           };
           setApps((prev) => [normalized, ...prev.filter((a) => a.id !== normalized.id)]);
+          if (normalized.category && selectedCategory !== 'All') {
+            setSelectedCategory(normalized.category);
+          }
         }}
         onSelectApp={handleSelectApp}
       />

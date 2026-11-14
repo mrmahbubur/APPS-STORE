@@ -84,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({
           <p className="text-zinc-400 font-medium">{copyright}</p>
           <div className="flex items-center gap-2 text-zinc-400 tabular-nums">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>SHA-256 Verified Direct APKs · {currentYear}</span>
+            <span>SHA-256 Verified Direct Packages · {currentYear}</span>
           </div>
         </div>
       </div>

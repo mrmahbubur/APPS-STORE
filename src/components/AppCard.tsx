@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Star, Check, Share2, UserCheck, Smartphone } from 'lucide-react';
+import { Download, Star, Check, Share2, UserCheck, Smartphone, Monitor } from 'lucide-react';
 import { AppItem } from '../types';
 import { copyToClipboard, normalizeAssetPath } from '../data/catalog';
 
@@ -26,6 +26,9 @@ export const AppCard: React.FC<AppCardProps> = ({
   const [avatarError, setAvatarError] = useState(false);
 
   const appOwner = app.ownerName || app.developer;
+  const isWindowsApp =
+    /windows/i.test(app.platform || '') ||
+    /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,7 +43,7 @@ export const AppCard: React.FC<AppCardProps> = ({
     if (navigator.share) {
       navigator
         .share({
-          title: `${app.title} — Official APK`,
+          title: `${app.title} — Official ${isWindowsApp ? 'Package' : 'APK'}`,
           text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
           url: shareUrl,
         })
@@ -85,14 +88,22 @@ export const AppCard: React.FC<AppCardProps> = ({
             />
           ) : (
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
-              <Smartphone className="w-6 h-6" />
+              {isWindowsApp ? <Monitor className="w-6 h-6" /> : <Smartphone className="w-6 h-6" />}
             </div>
           )}
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-[#0a84ff] transition-colors truncate">
-              {app.title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-[#0a84ff] transition-colors truncate">
+                {app.title}
+              </h3>
+              {isWindowsApp && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0">
+                  <Monitor className="w-2.5 h-2.5" />
+                  <span>Windows</span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 truncate mt-0.5">
               {app.category} · {appOwner}
             </p>
@@ -172,7 +183,7 @@ export const AppCard: React.FC<AppCardProps> = ({
           />
         ) : (
           <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
-            <Smartphone className="w-7 h-7" />
+            {isWindowsApp ? <Monitor className="w-7 h-7" /> : <Smartphone className="w-7 h-7" />}
           </div>
         )}
 
@@ -186,6 +197,12 @@ export const AppCard: React.FC<AppCardProps> = ({
             <h3 className="text-base sm:text-[17px] font-bold text-white group-hover:text-[#0a84ff] transition-colors truncate">
               {app.title}
             </h3>
+            {isWindowsApp && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0">
+                <Monitor className="w-2.5 h-2.5" />
+                <span>Win</span>
+              </span>
+            )}
           </div>
 
           <p className="text-xs text-zinc-400 mt-0.5 truncate">

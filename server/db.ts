@@ -668,28 +668,50 @@ export const AppDatabase = {
       uniqueId = `${slugBase}-${Date.now().toString().slice(-5)}`;
     }
 
+    const rawPlatform = input.platform.trim() || 'Smart TV & Android Mobile';
+    const isWindowsTarget = /windows/i.test(rawPlatform);
+    const isHybridTarget = isWindowsTarget && /android|smart tv/i.test(rawPlatform);
     const cleanLocalPath = input.localApkPath ? input.localApkPath.trim() : '';
+
+    const rawOrLocalName =
+      input.fileName?.trim() || (cleanLocalPath ? path.basename(cleanLocalPath) : '');
+    const isWindowsBinary =
+      /\.(exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i.test(rawOrLocalName) ||
+      (isWindowsTarget && !/\.apk$/i.test(rawOrLocalName));
+
     const diskFacts =
       cleanLocalPath && cleanLocalPath.startsWith('/apks/')
         ? readRealApkFileMeta(cleanLocalPath, input.size || 'Unknown', input.sha256 || 'Not Verified')
         : {
-            size: input.size || 'External APK',
+            size: input.size || (isWindowsBinary ? 'External Installer' : 'External APK'),
             sha256: input.sha256 || 'Provided by Developer URL',
             updatedAt: new Date().toISOString().split('T')[0],
           };
 
     const resolvedFileName =
-      input.fileName?.trim() ||
-      (cleanLocalPath ? path.basename(cleanLocalPath) : `${input.appTitle.replace(/\s+/g, '_')}.apk`);
+      rawOrLocalName ||
+      `${input.appTitle.replace(/\s+/g, '_')}${isWindowsTarget && !isHybridTarget ? '.exe' : '.apk'}`;
     const resolvedPkg =
       input.packageId?.trim() || `com.mrs.${slugBase.replace(/-/g, '')}`;
 
     const resolvedOwner = (input.ownerName || input.ownerProfile?.displayName || input.developerName).trim();
     const resolvedIcon = input.iconUrl?.trim() || '/assets/site-logo-icon.jpg';
+    const archLabel = isWindowsBinary ? 'Architectures' : 'Supported ABIs';
     const abiNote =
       input.architectures && input.architectures.length > 0
-        ? `Supported ABIs: ${input.architectures.join(', ')}`
-        : `Target platform: ${input.platform.trim() || 'Smart TV & Android Mobile'}`;
+        ? `${archLabel}: ${input.architectures.join(', ')}`
+        : `Target platform: ${rawPlatform}`;
+
+    const minOsLabel = isHybridTarget
+      ? 'Windows 10/11 · Android 8.0+'
+      : isWindowsBinary || isWindowsTarget
+      ? 'Windows 10 / 11 (x64 / ARM64)'
+      : 'Android 8.0+ (API 26)';
+
+    const defaultPermissions =
+      isWindowsBinary && !isHybridTarget
+        ? ['Windows Desktop Runtime', 'Direct Installer / Executable']
+        : ['android.permission.INTERNET'];
 
     const newApp: AppItem = {
       id: uniqueId,
@@ -697,16 +719,16 @@ export const AppDatabase = {
       fileName: resolvedFileName,
       tagline: `Published by ${resolvedOwner} on MRS App Store.`,
       category: input.category.trim() || 'Entertainment',
-      platform: input.platform.trim() || 'Smart TV & Android Mobile',
+      platform: rawPlatform,
       version: input.version.trim() || '1.0.0',
       updatedAt: diskFacts.updatedAt,
       size: diskFacts.size,
       rating: 0,
       reviewsCount: 0,
       downloads: 0,
-      minAndroid: 'Android 8.0+ (API 26)',
+      minAndroid: minOsLabel,
       ageRating: 'Everyone',
-      languages: 'Android System Locale',
+      languages: 'System Locale',
       chartRank: `v${input.version.trim() || '1.0.0'}`,
       icon: resolvedIcon,
       banner: resolvedIcon,
@@ -726,11 +748,11 @@ export const AppDatabase = {
         `Version ${input.version.trim() || '1.0.0'} (${diskFacts.size})`,
       ],
       features: [
-        `Direct download link (${cleanLocalPath ? 'Self-hosted on MRS App Store' : 'Developer-hosted APK URL'})`,
+        `Direct package download (${cleanLocalPath ? 'Self-hosted on MRS App Store' : 'Developer-hosted package URL'})`,
         abiNote,
-        `Owner contact: ${input.developerEmail.trim()}`,
+        `Published by ${resolvedOwner}`,
       ],
-      permissions: ['android.permission.INTERNET'],
+      permissions: defaultPermissions,
       screenshots: [resolvedIcon],
       featured: false,
       editorChoice: false,

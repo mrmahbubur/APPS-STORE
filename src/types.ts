@@ -66,7 +66,13 @@ export interface AppItem {
   fileName: string;
   tagline: string;
   category: 'Entertainment' | 'IPTV & Streaming' | 'Smart TV & Video' | 'AI & Virtual Assistant' | string;
-  platform: 'Smart TV & Android Mobile' | 'Smart TV (Firestick / Android TV)' | 'Android Mobile' | string;
+  platform:
+    | 'Smart TV & Android Mobile'
+    | 'Smart TV (Firestick / Android TV)'
+    | 'Android Mobile'
+    | 'Windows PC (10 / 11)'
+    | 'Windows PC & Android'
+    | string;
   version: string;
   updatedAt: string;
   size: string;

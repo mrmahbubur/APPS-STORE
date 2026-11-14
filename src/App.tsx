@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Header } from './components/Header';
+import { Header, StorePlatformFilter } from './components/Header';
 import { HeroFeatured } from './components/HeroFeatured';
 import { AppCard } from './components/AppCard';
 import { AppDetailModal } from './components/AppDetailModal';
@@ -21,6 +21,8 @@ import {
 import {
   Search,
   Tv,
+  Monitor,
+  Smartphone,
   Download,
   AlertCircle,
   UploadCloud,
@@ -43,6 +45,7 @@ export default function App() {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedPlatform, setSelectedPlatform] = useState<StorePlatformFilter>('All');
   const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
   const [viewMode, setViewMode] = useState<'cards' | 'charts'>('cards');
   const [showcaseImgError, setShowcaseImgError] = useState(false);
@@ -51,6 +54,7 @@ export default function App() {
   const [selectedApp, setSelectedApp] = useState<AppItem | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishInitialCategory, setPublishInitialCategory] = useState<string | undefined>(undefined);
+  const [publishInitialPlatform, setPublishInitialPlatform] = useState<string | undefined>(undefined);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>('privacy');
   const [ownerAvatarError, setOwnerAvatarError] = useState(false);
@@ -151,12 +155,33 @@ export default function App() {
     );
   };
 
+  const matchesPlatformFilter = (app: AppItem, plat: StorePlatformFilter): boolean => {
+    if (plat === 'All') return true;
+    const rawPlat = (app.platform || '').toLowerCase();
+    const rawFile = (app.fileName || '').toLowerCase();
+    if (plat === 'Windows') {
+      return (
+        rawPlat.includes('windows') ||
+        /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(rawFile)
+      );
+    }
+    if (plat === 'Smart TV') {
+      return rawPlat.includes('smart tv') || rawPlat.includes('firestick') || rawPlat.includes('android tv');
+    }
+    if (plat === 'Android') {
+      return rawPlat.includes('android') || rawPlat.includes('mobile') || rawFile.endsWith('.apk');
+    }
+    return true;
+  };
+
   const filteredApps = useMemo(() => {
     return apps
       .filter((app) => {
         const matchesCategory =
           selectedCategory === 'All' ||
           app.category.toLowerCase() === selectedCategory.toLowerCase();
+
+        const matchesPlatform = matchesPlatformFilter(app, selectedPlatform);
 
         const q = searchQuery.toLowerCase().trim();
         const matchesSearch =
@@ -165,9 +190,10 @@ export default function App() {
           app.fileName.toLowerCase().includes(q) ||
           app.tagline.toLowerCase().includes(q) ||
           app.description.toLowerCase().includes(q) ||
-          app.developer.toLowerCase().includes(q);
+          app.developer.toLowerCase().includes(q) ||
+          app.platform.toLowerCase().includes(q);
 
-        return matchesCategory && matchesSearch;
+        return matchesCategory && matchesPlatform && matchesSearch;
       })
       .sort((a, b) => {
         if (sortBy === 'popular') return b.downloads - a.downloads;
@@ -177,7 +203,7 @@ export default function App() {
         }
         return 0;
       });
-  }, [apps, selectedCategory, searchQuery, sortBy]);
+  }, [apps, selectedCategory, selectedPlatform, searchQuery, sortBy]);
 
   const featuredApp = useMemo(() => {
     return apps.find((a) => a.featured) || apps[0];
@@ -199,8 +225,28 @@ export default function App() {
     return counts;
   }, [apps]);
 
-  const openPublishWithCategory = (cat?: string) => {
+  const platformCounts = useMemo(() => {
+    return {
+      All: apps.length,
+      Android: apps.filter((a) => matchesPlatformFilter(a, 'Android')).length,
+      'Smart TV': apps.filter((a) => matchesPlatformFilter(a, 'Smart TV')).length,
+      Windows: apps.filter((a) => matchesPlatformFilter(a, 'Windows')).length,
+    };
+  }, [apps]);
+
+  const openPublishWithContext = (cat?: string, plat?: StorePlatformFilter | string) => {
     setPublishInitialCategory(cat && cat !== 'All' ? cat : undefined);
+    if (plat === 'Windows') {
+      setPublishInitialPlatform('Windows PC (10 / 11)');
+    } else if (plat === 'Smart TV') {
+      setPublishInitialPlatform('Smart TV (Firestick / Android TV)');
+    } else if (plat === 'Android') {
+      setPublishInitialPlatform('Android Mobile');
+    } else if (plat && plat !== 'All') {
+      setPublishInitialPlatform(plat);
+    } else {
+      setPublishInitialPlatform(undefined);
+    }
     setIsPublishModalOpen(true);
   };
 
@@ -238,7 +284,7 @@ export default function App() {
       const el = document.getElementById('catalog-section');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     } else if (tab === 'publish') {
-      setIsPublishModalOpen(true);
+      openPublishWithContext(selectedCategory, selectedPlatform);
     } else if (tab === 'legal') {
       handleOpenLegal('developer');
     }
@@ -247,17 +293,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white pb-20 md:pb-0">
       <Header
-        onOpenPublish={() => openPublishWithCategory(selectedCategory)}
+        onOpenPublish={() => openPublishWithContext(selectedCategory, selectedPlatform)}
         onOpenLegal={handleOpenLegal}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
           setViewMode('cards');
         }}
+        onSelectPlatform={(plat) => {
+          setSelectedPlatform(plat);
+          setViewMode('cards');
+        }}
         onOpenCharts={() => {
           setSelectedCategory('All');
+          setSelectedPlatform('All');
           setViewMode('charts');
         }}
         activeCategory={selectedCategory}
+        activePlatform={selectedPlatform}
       />
 
       {activeDownloadNotification && (
@@ -270,7 +322,7 @@ export default function App() {
       )}
 
       <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
-        {featuredApp && !searchQuery && selectedCategory === 'All' && (
+        {featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All' && (
           <HeroFeatured
             app={featuredApp}
             onSelectApp={handleSelectApp}
@@ -284,10 +336,16 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {selectedCategory === 'All' ? 'Apps & Smart TV' : selectedCategory}
+                {selectedPlatform !== 'All'
+                  ? selectedCategory !== 'All'
+                    ? `${selectedPlatform} · ${selectedCategory}`
+                    : `${selectedPlatform} Apps`
+                  : selectedCategory === 'All'
+                  ? 'Android, Smart TV & Windows'
+                  : selectedCategory}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Direct APK releases with SHA-256 checksums, real user reviews, and verified owner profiles.
+                Direct APK &amp; Windows (.exe / .msi / .msix / .zip) releases with SHA-256 checksums, real user reviews, and verified owner profiles.
               </p>
             </div>
 
@@ -323,6 +381,54 @@ export default function App() {
                 <option value="newest">Latest</option>
               </select>
             </div>
+          </div>
+
+          {/* Platform Filter Bar (All · Android · Smart TV · Windows) */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div
+              className="inline-flex items-center gap-1 p-1 bg-[#1c1c1e] border border-white/[0.08] rounded-xl overflow-x-auto no-scrollbar max-w-full"
+              role="group"
+              aria-label="Filter by platform"
+            >
+              {(
+                [
+                  { id: 'All', label: 'All Platforms', icon: LayoutGrid },
+                  { id: 'Android', label: 'Android', icon: Smartphone },
+                  { id: 'Smart TV', label: 'Smart TV', icon: Tv },
+                  { id: 'Windows', label: 'Windows', icon: Monitor },
+                ] as const
+              ).map(({ id, label, icon: Icon }) => {
+                const count = platformCounts[id];
+                const isActive = selectedPlatform === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setSelectedPlatform(id)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 min-h-[34px] tabular-nums ${
+                      isActive
+                        ? 'bg-[#0071e3] text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{label}</span>
+                    <span className={isActive ? 'text-blue-100' : 'text-zinc-500'}>
+                      · {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openPublishWithContext(selectedCategory, selectedPlatform)}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline underline-offset-4 whitespace-nowrap shrink-0"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Publish Your App ($25 USD) ›</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
@@ -379,15 +485,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => openPublishWithCategory(selectedCategory)}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline underline-offset-4 whitespace-nowrap shrink-0"
-            >
-              <UploadCloud className="w-3.5 h-3.5" />
-              <span>Publish Your App ($25 USD) ›</span>
-            </button>
           </div>
 
           {loading ? (
@@ -410,28 +507,45 @@ export default function App() {
             </div>
           ) : filteredApps.length === 0 ? (
             <div className="p-8 sm:p-12 text-center rounded-[24px] bg-[#1c1c1e] border border-white/[0.08] space-y-4">
-              <Tv className="w-8 h-8 text-[#0a84ff] mx-auto" />
+              {selectedPlatform === 'Windows' ? (
+                <Monitor className="w-8 h-8 text-[#0a84ff] mx-auto" />
+              ) : (
+                <Tv className="w-8 h-8 text-[#0a84ff] mx-auto" />
+              )}
               <div className="space-y-1.5">
                 <h3 className="text-base sm:text-lg font-bold text-white">
-                  {selectedCategory !== 'All' && !searchQuery
+                  {selectedPlatform !== 'All' && !searchQuery
+                    ? selectedCategory !== 'All'
+                      ? `No ${selectedPlatform} apps in ${selectedCategory} yet`
+                      : `No ${selectedPlatform} apps published yet`
+                    : selectedCategory !== 'All' && !searchQuery
                     ? `No apps published in ${selectedCategory} yet`
                     : 'No applications match your search'}
                 </h3>
                 <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
-                  {selectedCategory !== 'All' && !searchQuery
-                    ? `Every listing in MRS App Store is a verified APK submission. Publish the first ${selectedCategory} APK directly with on-chain BEP-20 verification.`
-                    : 'Reset your search filter to browse all verified applications across the store.'}
+                  {selectedPlatform === 'Windows' && !searchQuery
+                    ? `Every listing in MRS App Store is a verified package submission. Publish the first Windows (.exe, .msi, .msix, .zip) app${
+                        selectedCategory !== 'All' ? ` in ${selectedCategory}` : ''
+                      } directly with on-chain BEP-20 verification.`
+                    : (selectedCategory !== 'All' || selectedPlatform !== 'All') && !searchQuery
+                    ? `Every listing in MRS App Store is a verified package submission. Publish the first ${
+                        selectedPlatform !== 'All' ? `${selectedPlatform} ` : ''
+                      }${selectedCategory !== 'All' ? `${selectedCategory} ` : ''}app directly with on-chain BEP-20 verification.`
+                    : 'Reset your filters to browse all verified applications across the store.'}
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-                {selectedCategory !== 'All' && !searchQuery && (
+                {(selectedCategory !== 'All' || selectedPlatform !== 'All') && !searchQuery && (
                   <button
                     type="button"
-                    onClick={() => openPublishWithCategory(selectedCategory)}
+                    onClick={() => openPublishWithContext(selectedCategory, selectedPlatform)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0071e3] hover:bg-[#0a84ff] text-white rounded-full text-xs font-bold transition-colors min-h-[42px]"
                   >
                     <UploadCloud className="w-3.5 h-3.5" />
-                    <span>Publish First {selectedCategory} App ($25 USD)</span>
+                    <span>
+                      Publish First {selectedPlatform !== 'All' ? `${selectedPlatform} ` : ''}
+                      {selectedCategory !== 'All' ? `${selectedCategory} ` : ''}App ($25 USD)
+                    </span>
                   </button>
                 )}
                 <button
@@ -439,6 +553,7 @@ export default function App() {
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedCategory('All');
+                    setSelectedPlatform('All');
                   }}
                   className="px-5 py-2.5 bg-white text-black rounded-full text-xs font-bold hover:bg-zinc-200 transition-colors min-h-[42px]"
                 >
@@ -537,17 +652,17 @@ export default function App() {
 
                   <div className="space-y-3">
                     <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight text-balance">
-                      Publish your Android &amp; Smart TV APK across any store category
+                      Publish your Android, Smart TV &amp; Windows app across any category
                     </h3>
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, and publish live with direct downloads.
+                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature (.apk, .exe, .msi, .msix, .zip), and publish live with direct downloads.
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <button
                       type="button"
-                      onClick={() => openPublishWithCategory(selectedCategory)}
+                      onClick={() => openPublishWithContext(selectedCategory, selectedPlatform)}
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors min-h-[42px] whitespace-nowrap"
                     >
                       <span>Start App Submission ($25 USD)</span>
@@ -568,7 +683,7 @@ export default function App() {
       <Footer
         siteMeta={siteMeta}
         onOpenLegal={handleOpenLegal}
-        onOpenPublish={() => openPublishWithCategory(selectedCategory)}
+        onOpenPublish={() => openPublishWithContext(selectedCategory, selectedPlatform)}
       />
 
       <MobileBottomNav
@@ -590,6 +705,7 @@ export default function App() {
         onClose={() => setIsPublishModalOpen(false)}
         hasBackend={hasBackend}
         initialCategory={publishInitialCategory}
+        initialPlatform={publishInitialPlatform}
         availableCategories={categories.filter((c) => c !== 'All')}
         onAppPublished={(newApp) => {
           const normalized: AppItem = {
@@ -601,6 +717,9 @@ export default function App() {
           setApps((prev) => [normalized, ...prev.filter((a) => a.id !== normalized.id)]);
           if (normalized.category && selectedCategory !== 'All') {
             setSelectedCategory(normalized.category);
+          }
+          if (selectedPlatform !== 'All' && !matchesPlatformFilter(normalized, selectedPlatform)) {
+            setSelectedPlatform('All');
           }
         }}
         onSelectApp={handleSelectApp}

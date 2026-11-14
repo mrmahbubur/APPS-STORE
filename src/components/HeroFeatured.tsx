@@ -59,7 +59,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
           </h1>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-xs text-zinc-400 tabular-nums">
-          <span>Verified Direct APKs</span>
+          <span>Verified Direct Packages</span>
           <span aria-hidden="true" className="text-zinc-600">·</span>
           <span>SHA-256 Checked</span>
         </div>

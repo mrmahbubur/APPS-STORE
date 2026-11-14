@@ -267,6 +267,22 @@ export interface ApkInspectionResult {
   architectures: string[];
 }
 
+export interface PackageInspectionResult {
+  isValid: boolean;
+  platformKind: 'android' | 'windows' | 'unknown';
+  packageType: 'APK' | 'EXE' | 'MSI' | 'MSIX' | 'APPX' | 'ZIP' | 'UNKNOWN';
+  totalEntries: number;
+  hasManifest: boolean;
+  hasAndroidManifest: boolean;
+  hasClassesDex: boolean;
+  hasResources: boolean;
+  hasWindowsManifest: boolean;
+  isPeExecutable: boolean;
+  isMsiInstaller: boolean;
+  architectures: string[];
+  reason?: string;
+}
+
 export function inspectApkArchive(buf: Buffer): ApkInspectionResult {
   if (!Buffer.isBuffer(buf) || buf.length < 128 || buf[0] !== 0x50 || buf[1] !== 0x4b) {
     return {
@@ -331,6 +347,272 @@ export function inspectApkArchive(buf: Buffer): ApkInspectionResult {
     hasClassesDex,
     hasResources,
     architectures: Array.from(abis),
+  };
+}
+
+function inspectZipEntries(buf: Buffer): { isValidZip: boolean; totalEntries: number; entryNames: string[] } {
+  if (!Buffer.isBuffer(buf) || buf.length < 22 || buf[0] !== 0x50 || buf[1] !== 0x4b) {
+    return { isValidZip: false, totalEntries: 0, entryNames: [] };
+  }
+
+  let eocd = -1;
+  const searchFloor = Math.max(0, buf.length - 65557);
+  for (let i = buf.length - 22; i >= searchFloor; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+
+  if (eocd === -1) {
+    return { isValidZip: true, totalEntries: 0, entryNames: [] };
+  }
+
+  const cdOffset = buf.readUInt32LE(eocd + 16);
+  const totalEntries = buf.readUInt16LE(eocd + 10);
+  let pos = cdOffset;
+  const entryNames: string[] = [];
+
+  for (let j = 0; j < totalEntries && pos + 46 <= buf.length; j++) {
+    if (buf.readUInt32LE(pos) !== 0x02014b50) break;
+    const nameLen = buf.readUInt16LE(pos + 28);
+    const extraLen = buf.readUInt16LE(pos + 30);
+    const commentLen = buf.readUInt16LE(pos + 32);
+    const name = buf.toString('utf8', pos + 46, pos + 46 + nameLen);
+    entryNames.push(name);
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  return { isValidZip: true, totalEntries, entryNames };
+}
+
+export function inspectWindowsPackage(buf: Buffer, fileName = ''): PackageInspectionResult {
+  const ext = path.extname(fileName || '').toLowerCase();
+  const baseFail = (
+    reason: string,
+    packageType: PackageInspectionResult['packageType'] = 'UNKNOWN'
+  ): PackageInspectionResult => ({
+    isValid: false,
+    platformKind: 'windows',
+    packageType,
+    totalEntries: 0,
+    hasManifest: false,
+    hasAndroidManifest: false,
+    hasClassesDex: false,
+    hasResources: false,
+    hasWindowsManifest: false,
+    isPeExecutable: false,
+    isMsiInstaller: false,
+    architectures: [],
+    reason,
+  });
+
+  if (!Buffer.isBuffer(buf) || buf.length < 128) {
+    return baseFail('Uploaded Windows package file is too small or empty.');
+  }
+
+  // 1. Windows PE Executable (.exe): MZ header + valid PE\0\0 COFF signature
+  const isMz = buf[0] === 0x4d && buf[1] === 0x5a;
+  if (ext === '.exe' || (!ext && isMz)) {
+    if (!isMz) {
+      return baseFail('Invalid .exe binary signature. Expected Windows MZ/PE executable.', 'EXE');
+    }
+    const peOffset = buf.readUInt32LE(0x3c);
+    if (
+      peOffset < 0x40 ||
+      peOffset + 24 > buf.length ||
+      buf[peOffset] !== 0x50 ||
+      buf[peOffset + 1] !== 0x45 ||
+      buf[peOffset + 2] !== 0x00 ||
+      buf[peOffset + 3] !== 0x00
+    ) {
+      return baseFail('EXE binary is missing a valid Windows PE32/PE32+ header.', 'EXE');
+    }
+
+    const machine = buf.readUInt16LE(peOffset + 4);
+    const archMap: Record<number, string> = {
+      0x8664: 'x64 (64-bit)',
+      0x014c: 'x86 (32-bit)',
+      0xaa64: 'ARM64',
+      0x01c4: 'ARM',
+      0x01c0: 'ARM',
+    };
+    const detectedArch = archMap[machine] || 'x86/x64';
+    return {
+      isValid: true,
+      platformKind: 'windows',
+      packageType: 'EXE',
+      totalEntries: 1,
+      hasManifest: true,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: true,
+      isPeExecutable: true,
+      isMsiInstaller: false,
+      architectures: [detectedArch],
+    };
+  }
+
+  // 2. Windows Installer (.msi): OLE Compound File binary magic D0 CF 11 E0 A1 B1 1A E1
+  const isOle =
+    buf[0] === 0xd0 &&
+    buf[1] === 0xcf &&
+    buf[2] === 0x11 &&
+    buf[3] === 0xe0 &&
+    buf[4] === 0xa1 &&
+    buf[5] === 0xb1 &&
+    buf[6] === 0x1a &&
+    buf[7] === 0xe1;
+  if (ext === '.msi' || (!ext && isOle)) {
+    if (!isOle) {
+      return baseFail('Invalid .msi binary signature. Expected a Microsoft Windows Installer package.', 'MSI');
+    }
+    return {
+      isValid: true,
+      platformKind: 'windows',
+      packageType: 'MSI',
+      totalEntries: 1,
+      hasManifest: true,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: true,
+      isPeExecutable: false,
+      isMsiInstaller: true,
+      architectures: ['Windows Installer (MSI)'],
+    };
+  }
+
+  // 3. Modern Windows Packages (.msix / .msixbundle / .appx / .appxbundle)
+  if (ext === '.msix' || ext === '.msixbundle' || ext === '.appx' || ext === '.appxbundle') {
+    const zip = inspectZipEntries(buf);
+    if (!zip.isValidZip) {
+      return baseFail(`Invalid ${ext} package archive. Expected a signed ZIP-based Windows bundle.`, ext.includes('appx') ? 'APPX' : 'MSIX');
+    }
+    const lowerNames = zip.entryNames.map((n) => n.toLowerCase());
+    const hasWinManifest =
+      lowerNames.includes('appxmanifest.xml') ||
+      lowerNames.includes('appxbundlemanifest.xml') ||
+      lowerNames.includes('appxmetadata/appxbundlemanifest.xml') ||
+      buf.includes(Buffer.from('AppxManifest.xml')) ||
+      buf.includes(Buffer.from('AppxBundleManifest.xml'));
+
+    if (!hasWinManifest) {
+      return baseFail(`Archive does not contain AppxManifest.xml. Please upload a valid ${ext} package.`, ext.includes('appx') ? 'APPX' : 'MSIX');
+    }
+
+    const detectedArchs: string[] = [];
+    const blobText = zip.entryNames.join(' ');
+    if (/x64/i.test(blobText)) detectedArchs.push('x64');
+    if (/arm64/i.test(blobText)) detectedArchs.push('ARM64');
+    if (/x86|win32/i.test(blobText)) detectedArchs.push('x86');
+    if (detectedArchs.length === 0) detectedArchs.push('Windows x64/ARM64');
+
+    return {
+      isValid: true,
+      platformKind: 'windows',
+      packageType: ext.includes('appx') ? 'APPX' : 'MSIX',
+      totalEntries: zip.totalEntries,
+      hasManifest: true,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: true,
+      isPeExecutable: false,
+      isMsiInstaller: false,
+      architectures: detectedArchs,
+    };
+  }
+
+  // 4. Portable Windows Archive (.zip)
+  if (ext === '.zip') {
+    const zip = inspectZipEntries(buf);
+    if (!zip.isValidZip) {
+      return baseFail('Invalid Windows portable .zip archive signature.', 'ZIP');
+    }
+    const hasExeInside = zip.entryNames.some((n) => /\.(exe|msi|bat|cmd)$/i.test(n));
+    return {
+      isValid: true,
+      platformKind: 'windows',
+      packageType: 'ZIP',
+      totalEntries: zip.totalEntries,
+      hasManifest: hasExeInside || zip.totalEntries > 0,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: hasExeInside,
+      isPeExecutable: false,
+      isMsiInstaller: false,
+      architectures: ['Portable Windows Archive'],
+    };
+  }
+
+  return baseFail('Unsupported Windows binary. Upload a valid .exe, .msi, .msix, .appx, or .zip package.');
+}
+
+export function inspectPackageBinary(
+  buf: Buffer,
+  fileName = '',
+  platform = ''
+): PackageInspectionResult {
+  const ext = path.extname(fileName || '').toLowerCase();
+  const isWindowsTarget = /windows/i.test(platform || '');
+  const isWindowsExt = ['.exe', '.msi', '.msix', '.msixbundle', '.appx', '.appxbundle'].includes(ext);
+
+  if (isWindowsExt || (ext === '.zip' && isWindowsTarget) || (isWindowsTarget && ext !== '.apk')) {
+    return inspectWindowsPackage(buf, fileName);
+  }
+
+  const apk = inspectApkArchive(buf);
+  if (!apk.isValidZip) {
+    return {
+      isValid: false,
+      platformKind: 'android',
+      packageType: 'APK',
+      totalEntries: 0,
+      hasManifest: false,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: false,
+      isPeExecutable: false,
+      isMsiInstaller: false,
+      architectures: [],
+      reason: 'Invalid APK binary signature. Expected a valid Android .apk archive.',
+    };
+  }
+  if (!apk.hasAndroidManifest) {
+    return {
+      isValid: false,
+      platformKind: 'android',
+      packageType: 'APK',
+      totalEntries: apk.totalEntries,
+      hasManifest: false,
+      hasAndroidManifest: false,
+      hasClassesDex: apk.hasClassesDex,
+      hasResources: apk.hasResources,
+      hasWindowsManifest: false,
+      isPeExecutable: false,
+      isMsiInstaller: false,
+      architectures: apk.architectures,
+      reason: 'Archive does not contain AndroidManifest.xml. Please upload a valid Android .apk.',
+    };
+  }
+
+  return {
+    isValid: true,
+    platformKind: 'android',
+    packageType: 'APK',
+    totalEntries: apk.totalEntries,
+    hasManifest: true,
+    hasAndroidManifest: apk.hasAndroidManifest,
+    hasClassesDex: apk.hasClassesDex,
+    hasResources: apk.hasResources,
+    hasWindowsManifest: false,
+    isPeExecutable: false,
+    isMsiInstaller: false,
+    architectures: apk.architectures,
   };
 }
 
@@ -413,11 +695,11 @@ async function assertSafeExternalUrl(urlStr: string): Promise<{ safe: boolean; p
   try {
     parsed = new URL(urlStr);
   } catch {
-    return { safe: false, message: 'Enter a valid HTTP or HTTPS APK download URL.' };
+    return { safe: false, message: 'Enter a valid HTTP or HTTPS package download URL.' };
   }
 
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    return { safe: false, message: 'Only HTTPS or HTTP APK URLs are supported.' };
+    return { safe: false, message: 'Only HTTPS or HTTP package URLs are supported.' };
   }
 
   const host = parsed.hostname.toLowerCase();
@@ -428,7 +710,7 @@ async function assertSafeExternalUrl(urlStr: string): Promise<{ safe: boolean; p
     host.endsWith('.internal') ||
     host === 'metadata.google.internal'
   ) {
-    return { safe: false, message: 'Internal or localhost APK URLs are not permitted.' };
+    return { safe: false, message: 'Internal or localhost package URLs are not permitted.' };
   }
 
   if (net.isIP(host)) {
@@ -441,7 +723,7 @@ async function assertSafeExternalUrl(urlStr: string): Promise<{ safe: boolean; p
   try {
     const records = await dns.lookup(host, { all: true });
     if (!records.length || records.some((r) => isPrivateOrReservedIp(r.address))) {
-      return { safe: false, message: 'APK URL hostname resolves to a private or restricted IP address.' };
+      return { safe: false, message: 'Package URL hostname resolves to a private or restricted IP address.' };
     }
   } catch {
     return { safe: false, message: `Unable to resolve hostname "${host}".` };
@@ -462,7 +744,7 @@ export async function verifyExternalApkUrl(urlStr: string): Promise<{
   for (let hop = 0; hop < 4; hop++) {
     const check = await assertSafeExternalUrl(currentUrl);
     if (!check.safe) {
-      return { valid: false, reachable: false, message: check.message || 'Unsafe APK URL.' };
+      return { valid: false, reachable: false, message: check.message || 'Unsafe package URL.' };
     }
 
     try {
@@ -500,7 +782,7 @@ export async function verifyExternalApkUrl(urlStr: string): Promise<{
         return {
           valid: false,
           reachable: false,
-          message: `External APK URL returned HTTP ${res.status}. Verify the link is publicly downloadable.`,
+          message: `External package URL returned HTTP ${res.status}. Verify the link is publicly downloadable.`,
         };
       }
 
@@ -514,13 +796,13 @@ export async function verifyExternalApkUrl(urlStr: string): Promise<{
         reachable: true,
         finalUrl: currentUrl,
         size,
-        message: 'External APK download URL verified reachable.',
+        message: 'External package download URL verified reachable.',
       };
     } catch (err: any) {
       return {
         valid: false,
         reachable: false,
-        message: `Could not reach external APK URL: ${err?.message || 'network timeout'}`,
+        message: `Could not reach external package URL: ${err?.message || 'network timeout'}`,
       };
     }
   }
@@ -528,7 +810,7 @@ export async function verifyExternalApkUrl(urlStr: string): Promise<{
   return {
     valid: false,
     reachable: false,
-    message: 'Too many redirects while verifying external APK URL.',
+    message: 'Too many redirects while verifying external package URL.',
   };
 }
 

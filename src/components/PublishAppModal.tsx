@@ -41,6 +41,7 @@ interface PublishAppModalProps {
   onClose: () => void;
   hasBackend?: boolean;
   initialCategory?: string;
+  initialPlatform?: string;
   availableCategories?: string[];
   onAppPublished?: (app: AppItem) => void;
   onSelectApp?: (app: AppItem) => void;
@@ -66,7 +67,12 @@ interface UploadedApkTelemetry {
   directDownloadUrl: string;
   size: string;
   sha256: string;
+  platformKind?: string;
+  packageType?: string;
   hasManifest?: boolean;
+  hasWindowsManifest?: boolean;
+  isPeExecutable?: boolean;
+  isMsiInstaller?: boolean;
   hasClassesDex?: boolean;
   hasResources?: boolean;
   architectures?: string[];
@@ -214,6 +220,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   onClose,
   hasBackend = true,
   initialCategory,
+  initialPlatform,
   availableCategories = [],
   onAppPublished,
   onSelectApp,
@@ -236,7 +243,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const [categoryOptions, setCategoryOptions] = useState<{ name: string; count: number }[]>(
     () => APP_STORE_CATEGORIES.map((name) => ({ name, count: 0 }))
   );
-  const [platform, setPlatform] = useState('Smart TV & Android Mobile');
+  const [platform, setPlatform] = useState(
+    initialPlatform && initialPlatform !== 'All' ? initialPlatform : 'Smart TV & Android Mobile'
+  );
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
   const [uploadingIcon, setUploadingIcon] = useState(false);
@@ -295,6 +304,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       setCategory(initialCategory);
       setCustomCategory('');
     }
+    if (initialPlatform && initialPlatform !== 'All') {
+      setPlatform(initialPlatform);
+    }
     const baseMerged = Array.from(
       new Set([
         ...APP_STORE_CATEGORIES,
@@ -332,7 +344,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeTab, initialCategory, hasBackend, onClose]);
+  }, [isOpen, activeTab, initialCategory, initialPlatform, hasBackend, onClose]);
 
   const loadSubmissions = async () => {
     setLoadingSubmissions(true);
@@ -670,13 +682,37 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     }
   };
 
+  const isWindowsPlatform = /windows/i.test(platform);
+  const isWindowsOnlyPlatform = isWindowsPlatform && !/android|smart tv/i.test(platform);
+  const isHybridPlatform = isWindowsPlatform && /android|smart tv/i.test(platform);
+
   const handleApkSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormError(null);
 
-    if (!file.name.toLowerCase().endsWith('.apk')) {
-      setFormError('Please select a valid Android .apk binary file.');
+    const lowerName = file.name.toLowerCase();
+    const isApkFile = lowerName.endsWith('.apk');
+    const isExeFile = lowerName.endsWith('.exe');
+    const isMsiFile = lowerName.endsWith('.msi');
+    const isWinStorePkg =
+      lowerName.endsWith('.msix') ||
+      lowerName.endsWith('.msixbundle') ||
+      lowerName.endsWith('.appx') ||
+      lowerName.endsWith('.appxbundle');
+    const isZipFile = lowerName.endsWith('.zip');
+    const isWinFile = isExeFile || isMsiFile || isWinStorePkg || isZipFile;
+
+    if (isWindowsOnlyPlatform && !isWinFile) {
+      setFormError('Select a valid Windows binary (.exe, .msi, .msix, .appx, or .zip).');
+      return;
+    }
+    if (!isWindowsPlatform && !isApkFile) {
+      setFormError('Please select a valid Android .apk binary file (or switch Target Platform to Windows).');
+      return;
+    }
+    if (isHybridPlatform && !isApkFile && !isWinFile) {
+      setFormError('Select a valid .apk or Windows (.exe, .msi, .msix, .appx, .zip) file.');
       return;
     }
 
@@ -684,14 +720,30 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     try {
       const arrayBuf = await file.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);
-      if (bytes.length < 128 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
-        setFormError('Selected file does not have a valid Android APK/ZIP signature.');
+      if (bytes.length < 128) {
+        setFormError('Selected package file is too small or corrupted.');
+        return;
+      }
+
+      if (isExeFile) {
+        if (bytes[0] !== 0x4d || bytes[1] !== 0x5a) {
+          setFormError('Selected .exe does not contain a valid Windows MZ/PE header.');
+          return;
+        }
+      } else if (isMsiFile) {
+        const ole = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+        if (!ole.every((val, idx) => bytes[idx] === val)) {
+          setFormError('Selected .msi does not have a valid Microsoft Installer signature.');
+          return;
+        }
+      } else if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+        setFormError('Selected archive does not have a valid APK / MSIX / ZIP signature.');
         return;
       }
 
       if (hasBackend) {
         if (!verificationToken || !verifiedPaymentInfo) {
-          setFormError('Complete Step 2 payment verification before uploading your APK.');
+          setFormError('Complete Step 2 payment verification before uploading your app package.');
           setCurrentStep(2);
           return;
         }
@@ -701,6 +753,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           headers: {
             'Content-Type': 'application/octet-stream',
             'x-file-name': encodeURIComponent(file.name),
+            'x-platform': platform,
             'x-payment-token': verificationToken,
             'x-tx-hash': verifiedPaymentInfo.txHash,
             'x-payment-method': verifiedPaymentInfo.paymentMethod,
@@ -710,7 +763,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json') ? await res.json().catch(() => null) : null;
         if (!res.ok || !data?.success) {
-          setFormError(data?.message || 'APK upload rejected by server verification.');
+          setFormError(data?.message || 'Package upload rejected by server verification.');
           return;
         }
 
@@ -720,7 +773,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           directDownloadUrl: data.directDownloadUrl,
           size: data.size,
           sha256: data.sha256,
+          platformKind: data.platformKind,
+          packageType: data.packageType,
           hasManifest: data.hasManifest,
+          hasWindowsManifest: data.hasWindowsManifest,
+          isPeExecutable: data.isPeExecutable,
+          isMsiInstaller: data.isMsiInstaller,
           hasClassesDex: data.hasClassesDex,
           hasResources: data.hasResources,
           architectures: data.architectures,
@@ -735,10 +793,19 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           directDownloadUrl: apkDownloadUrl.trim(),
           size: mbSize,
           sha256: shaHex,
+          packageType: isExeFile
+            ? 'EXE'
+            : isMsiFile
+            ? 'MSI'
+            : isWinStorePkg
+            ? 'MSIX'
+            : isZipFile
+            ? 'ZIP'
+            : 'APK',
         });
       }
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to read or upload APK package.');
+      setFormError(err?.message || 'Failed to read or upload application package.');
     } finally {
       setUploadingApk(false);
     }
@@ -756,13 +823,19 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
     const cleanUrl = apkDownloadUrl.trim();
     if (hasBackend && apkSourceMode === 'upload' && !uploadedApk?.localApkPath) {
-      setFormError('Upload your verified .apk binary in Step 3 before publishing.');
+      setFormError(
+        `Upload your verified ${isWindowsOnlyPlatform ? 'Windows binary (.exe, .msi, .msix, .zip)' : 'app package'} in Step 3 before publishing.`
+      );
       return;
     }
     if ((apkSourceMode === 'url' || !hasBackend) && !/^https?:\/\/.+/i.test(cleanUrl)) {
-      setFormError('Enter a valid HTTPS direct download URL for your .apk file.');
+      setFormError('Enter a valid HTTPS direct download URL for your application package.');
       return;
     }
+
+    const fallbackExt = isWindowsOnlyPlatform ? '.exe' : '.apk';
+    const resolvedFileName =
+      uploadedApk?.fileName || `${appTitle.trim().replace(/\s+/g, '_')}${fallbackExt}`;
 
     setSubmitting(true);
     try {
@@ -773,7 +846,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           body: JSON.stringify({
             appTitle: appTitle.trim(),
             packageId: packageId.trim() || undefined,
-            fileName: uploadedApk?.fileName || `${appTitle.trim().replace(/\s+/g, '_')}.apk`,
+            fileName: resolvedFileName,
             iconUrl: iconUrl || undefined,
             apkDownloadUrl: apkSourceMode === 'url' ? cleanUrl : (uploadedApk?.localApkPath || cleanUrl),
             localApkPath: apkSourceMode === 'upload' ? uploadedApk?.localApkPath || undefined : undefined,
@@ -784,7 +857,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
             platform,
             version: version.trim() || '1.0.0',
             description:
-              description.trim() || `${appTitle.trim()} Android application published via MRS App Store.`,
+              description.trim() ||
+              `${appTitle.trim()} (${platform}) application published via MRS App Store.`,
             developerName: developerName.trim(),
             ownerName: ownerName.trim(),
             ownerProfile,
@@ -831,22 +905,31 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       const pkg = packageId.trim() || `com.mrs.${slug.replace(/-/g, '')}`;
       const finalIcon = normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
 
+      const minOsOffline = isHybridPlatform
+        ? 'Windows 10/11 · Android 8.0+'
+        : isWindowsOnlyPlatform
+        ? 'Windows 10 / 11 (x64 / ARM64)'
+        : 'Android 8.0+ (API 26)';
+      const permissionsOffline = isWindowsOnlyPlatform
+        ? ['Windows Desktop Runtime', 'Direct Installer / Executable']
+        : ['android.permission.INTERNET'];
+
       const newApp: AppItem = {
         id: `${slug}-${String(now).slice(-4)}`,
         title: appTitle.trim(),
-        fileName: uploadedApk?.fileName || `${appTitle.trim().replace(/\s+/g, '_')}.apk`,
+        fileName: resolvedFileName,
         tagline: `Published by ${ownerName.trim()} on MRS App Store.`,
         category: effectiveCategory,
         platform,
         version: version.trim() || '1.0.0',
         updatedAt: dateStr,
-        size: uploadedApk?.size || 'Direct APK URL',
+        size: uploadedApk?.size || (isWindowsOnlyPlatform ? 'Direct Package' : 'Direct APK URL'),
         rating: 0,
         reviewsCount: 0,
         downloads: 0,
-        minAndroid: 'Android 8.0+ (API 26)',
+        minAndroid: minOsOffline,
         ageRating: 'Everyone',
-        languages: 'Android System Locale',
+        languages: 'System Locale',
         chartRank: `v${version.trim() || '1.0.0'}`,
         icon: finalIcon,
         banner: finalIcon,
@@ -860,17 +943,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         downloadUrl: cleanUrl,
         shareUrl: `./?app=${slug}-${String(now).slice(-4)}`,
         localApkPath: cleanUrl,
-        description: description.trim() || `${appTitle.trim()} Android application package.`,
+        description:
+          description.trim() || `${appTitle.trim()} (${platform}) application package.`,
         whatsNew: [
           `Published to MRS App Store on ${dateStr}`,
           `Version ${version.trim() || '1.0.0'}${uploadedApk?.size ? ` (${uploadedApk.size})` : ''}`,
         ],
         features: [
-          `Direct APK URL: ${cleanUrl}`,
+          `Direct package download URL`,
           `Target platform: ${platform}`,
-          `Owner contact: ${developerEmail.trim()}`,
+          `Published by ${ownerName.trim()}`,
         ],
-        permissions: ['android.permission.INTERNET'],
+        permissions: permissionsOffline,
         screenshots: [finalIcon],
       };
 
@@ -990,7 +1074,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         {/* Subtitle & Switcher */}
         <div className="pb-5 border-b border-white/[0.08]">
           <p className="text-xs text-zinc-400">
-            Enter app &amp; owner details, verify your $25.00 USD payment on-chain, then upload your APK to publish live.
+            Enter app &amp; owner details, verify your $25.00 USD payment on-chain, then upload your Android or Windows package to publish live.
           </p>
 
           {/* Navigation Switcher */}
@@ -1087,7 +1171,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       </div>
                       {sub.sha256 && (
                         <div className="sm:col-span-2 truncate">
-                          <span className="text-zinc-500 block">APK SHA-256 ({sub.size || 'APK'})</span>
+                          <span className="text-zinc-500 block">Package SHA-256 ({sub.size || sub.platform})</span>
                           <span className="text-zinc-300">{sub.sha256}</span>
                         </div>
                       )}
@@ -1195,7 +1279,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   {copiedKey === 'apk' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedKey === 'apk' ? 'APK Link Copied' : 'Copy Direct APK Link'}</span>
+                  <span>{copiedKey === 'apk' ? 'Download Link Copied' : 'Copy Direct Package Link'}</span>
                 </button>
 
                 <button
@@ -1388,12 +1472,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       </label>
                       <select
                         value={platform}
-                        onChange={(e) => setPlatform(e.target.value)}
+                        onChange={(e) => {
+                          setPlatform(e.target.value);
+                          setUploadedApk(null);
+                          setFormError(null);
+                        }}
                         className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white focus:outline-none focus:border-blue-500"
                       >
                         <option value="Smart TV & Android Mobile">Smart TV &amp; Android Mobile</option>
                         <option value="Smart TV (Firestick / Android TV)">Smart TV (Firestick / Android TV)</option>
                         <option value="Android Mobile">Android Mobile</option>
+                        <option value="Windows PC (10 / 11)">Windows PC (10 / 11)</option>
+                        <option value="Windows PC & Android">Windows PC &amp; Android</option>
                       </select>
                     </div>
                   </div>
@@ -1856,9 +1946,15 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">
-                        Step 3 of 3 · Upload Android Package
+                        Step 3 of 3 · {isWindowsOnlyPlatform ? 'Upload Windows Package' : isHybridPlatform ? 'Upload App Package' : 'Upload Android Package'}
                       </span>
-                      <p className="text-sm font-bold text-white">Upload Verified .apk Binary</p>
+                      <p className="text-sm font-bold text-white">
+                        {isWindowsOnlyPlatform
+                          ? 'Upload Verified .exe / .msi / .msix / .zip Binary'
+                          : isHybridPlatform
+                          ? 'Upload Verified Windows or Android Binary'
+                          : 'Upload Verified .apk Binary'}
+                      </p>
                     </div>
 
                     <div className="grid grid-cols-2 sm:flex p-1 bg-black rounded-xl border border-white/[0.08] w-full sm:w-auto gap-1">
@@ -1872,7 +1968,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         }`}
                       >
                         <UploadCloud className="w-3.5 h-3.5 shrink-0" />
-                        <span>Upload .apk</span>
+                        <span>{isWindowsOnlyPlatform ? 'Upload Package' : 'Upload .apk'}</span>
                       </button>
                       <button
                         type="button"
@@ -1884,7 +1980,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         }`}
                       >
                         <Link2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>APK URL</span>
+                        <span>{isWindowsOnlyPlatform ? 'Package URL' : 'APK URL'}</span>
                       </button>
                     </div>
                   </div>
@@ -1899,19 +1995,33 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         )}
                         <span className="text-xs font-bold text-white">
                           {uploadingApk
-                            ? 'Inspecting AndroidManifest.xml & computing SHA-256...'
+                            ? isWindowsOnlyPlatform
+                              ? 'Inspecting Windows PE/MSI/MSIX header & computing SHA-256...'
+                              : 'Inspecting package manifest & computing SHA-256...'
                             : uploadedApk
                             ? `Verified: ${uploadedApk.fileName} (${uploadedApk.size})`
+                            : isWindowsOnlyPlatform
+                            ? 'Choose .exe, .msi, .msix, .appx, or .zip file'
+                            : isHybridPlatform
+                            ? 'Choose .exe, .msi, .msix, .zip, or .apk file'
                             : 'Choose .apk file from your device'}
                         </span>
                         <span className="text-[11px] text-zinc-400">
                           {hasBackend
-                            ? 'Validates ZIP signature, inspects AndroidManifest.xml, computes SHA-256, and hosts APK on store server.'
-                            : 'Computes exact MB size & SHA-256 locally in-browser (enter your direct HTTPS APK URL below).'}
+                            ? isWindowsOnlyPlatform
+                              ? 'Validates Windows PE/MSI/MSIX signature, detects x64/x86/ARM64, computes SHA-256, and hosts package on store server.'
+                              : 'Validates binary signature & manifest, computes SHA-256, and hosts package on store server.'
+                            : 'Computes exact MB size & SHA-256 locally in-browser (enter your direct HTTPS package URL below).'}
                         </span>
                         <input
                           type="file"
-                          accept=".apk,application/vnd.android.package-archive"
+                          accept={
+                            isWindowsOnlyPlatform
+                              ? '.exe,.msi,.msix,.msixbundle,.appx,.appxbundle,.zip'
+                              : isHybridPlatform
+                              ? '.apk,.exe,.msi,.msix,.msixbundle,.appx,.appxbundle,.zip'
+                              : '.apk,application/vnd.android.package-archive'
+                          }
                           onChange={handleApkSelected}
                           className="hidden"
                         />
@@ -1921,9 +2031,29 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         <div className="p-3 rounded-lg bg-zinc-900 border border-white/[0.06] text-[11px] font-mono space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-emerald-400 font-bold">SHA-256 Verified</span>
-                            {uploadedApk.hasManifest && (
+                            {uploadedApk.packageType && (
+                              <span className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 text-[10px]">
+                                {uploadedApk.packageType} Package ✓
+                              </span>
+                            )}
+                            {uploadedApk.hasManifest && uploadedApk.platformKind !== 'windows' && (
                               <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px]">
                                 AndroidManifest.xml ✓
+                              </span>
+                            )}
+                            {uploadedApk.isPeExecutable && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px]">
+                                Windows PE Header ✓
+                              </span>
+                            )}
+                            {uploadedApk.isMsiInstaller && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px]">
+                                Windows MSI Installer ✓
+                              </span>
+                            )}
+                            {uploadedApk.hasWindowsManifest && !uploadedApk.isPeExecutable && !uploadedApk.isMsiInstaller && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px]">
+                                Windows Package Manifest ✓
                               </span>
                             )}
                             {uploadedApk.hasClassesDex && (
@@ -1941,7 +2071,10 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                           {uploadedApk.architectures && uploadedApk.architectures.length > 0 && (
                             <p className="text-zinc-400 inline-flex items-center gap-1">
                               <Cpu className="w-3 h-3 text-blue-400" />
-                              <span>ABIs: {uploadedApk.architectures.join(', ')}</span>
+                              <span>
+                                {uploadedApk.platformKind === 'windows' ? 'Arch:' : 'ABIs:'}{' '}
+                                {uploadedApk.architectures.join(', ')}
+                              </span>
                             </p>
                           )}
                         </div>
@@ -1952,13 +2085,17 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                   {(apkSourceMode === 'url' || !hasBackend) && (
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                        Direct APK Download URL *
+                        {isWindowsOnlyPlatform ? 'Direct Windows Package Download URL *' : 'Direct Package Download URL *'}
                       </label>
                       <input
                         type="url"
                         value={apkDownloadUrl}
                         onChange={(e) => setApkDownloadUrl(e.target.value)}
-                        placeholder="https://example.com/downloads/your-app.apk"
+                        placeholder={
+                          isWindowsOnlyPlatform
+                            ? 'https://example.com/downloads/your-app-setup.exe'
+                            : 'https://example.com/downloads/your-app.apk'
+                        }
                         className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white font-mono focus:outline-none focus:border-blue-500"
                       />
                     </div>

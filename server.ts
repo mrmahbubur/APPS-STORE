@@ -6,12 +6,22 @@ import { AppDatabase } from './server/db.ts';
 import {
   checkBscRpcHealth,
   fetchGravatarProfileByHandle,
-  inspectApkArchive,
+  inspectPackageBinary,
   issuePaymentVerificationToken,
   verifyBscUsdtPayment,
   verifyExternalApkUrl,
   verifyPaymentVerificationToken,
 } from './server/publish-service.ts';
+
+function getPackageMimeType(fileName: string): string {
+  const lower = (fileName || '').toLowerCase();
+  if (lower.endsWith('.exe')) return 'application/vnd.microsoft.portable-executable';
+  if (lower.endsWith('.msi')) return 'application/x-msi';
+  if (lower.endsWith('.msix') || lower.endsWith('.msixbundle')) return 'application/msix';
+  if (lower.endsWith('.appx') || lower.endsWith('.appxbundle')) return 'application/appx';
+  if (lower.endsWith('.zip')) return 'application/zip';
+  return 'application/vnd.android.package-archive';
+}
 
 const app = express();
 const rawPort =
@@ -65,10 +75,10 @@ app.get('/api/apps', (req: Request, res: Response) => {
   });
 });
 
-// Static route for direct APK files with correct MIME type
+// Static route for direct APK & Windows package files with correct MIME type
 app.use('/apks', express.static(path.resolve(process.cwd(), 'public/apks'), {
-  setHeaders: (res) => {
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  setHeaders: (res, filePath) => {
+    res.setHeader('Content-Type', getPackageMimeType(filePath));
   }
 }));
 
@@ -99,7 +109,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     }
   }
 
-  // Serve developer-uploaded local APKs stored inside public/apks/
+  // Serve developer-uploaded local packages stored inside public/apks/
   if (appItem.localApkPath && appItem.localApkPath.startsWith('/apks/')) {
     const safeRel = appItem.localApkPath.replace(/^\/apks\//, '').replace(/\.\./g, '');
     const apksRoot = path.resolve(process.cwd(), 'public/apks');
@@ -109,7 +119,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
       fs.existsSync(filePath) &&
       fs.statSync(filePath).isFile()
     ) {
-      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath);
     }
@@ -123,19 +133,19 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     return res.redirect(302, appItem.directDownloadUrl);
   }
 
-  return res.status(404).send('APK binary file not found on server storage.');
+  return res.status(404).send('Application package binary not found on server storage.');
 });
 
-// Direct APK download route by filename
+// Direct package download route by filename
 app.get('/download/:filename', (req: Request, res: Response) => {
   const safeName = path.basename(req.params.filename);
   const filePath = path.resolve(process.cwd(), 'public/apks', safeName);
   if (fs.existsSync(filePath)) {
-    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Type', getPackageMimeType(safeName));
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
     return res.sendFile(filePath);
   }
-  return res.status(404).send('APK file not found.');
+  return res.status(404).send('Application package file not found.');
 });
 
 // 3. Real Inbuilt App Publishing Pipeline: Details -> Payment Verification -> APK Upload -> Publish Live
@@ -321,21 +331,22 @@ app.post(
   }
 );
 
-// 3b. Inbuilt Binary APK Upload Endpoint (payment-token gated + real ZIP/AndroidManifest inspection + SHA-256)
+// 3b. Inbuilt Binary Package Upload Endpoint (Android APK + Windows EXE/MSI/MSIX/APPX/ZIP)
 app.post(
-  '/api/publish/upload-apk',
+  ['/api/publish/upload-apk', '/api/publish/upload-package'],
   express.raw({ type: 'application/octet-stream', limit: '150mb' }),
   (req: Request, res: Response) => {
     try {
       const token = String(req.headers['x-payment-token'] || '');
       const txHash = String(req.headers['x-tx-hash'] || '');
       const paymentMethod = String(req.headers['x-payment-method'] || 'USDT (BEP-20)');
+      const targetPlatform = String(req.headers['x-platform'] || '');
 
       const tokenCheck = verifyPaymentVerificationToken(token, txHash, paymentMethod);
       if (!tokenCheck.valid) {
         return res.status(403).json({
           success: false,
-          message: tokenCheck.message || 'Complete payment verification in Step 2 before uploading your APK.',
+          message: tokenCheck.message || 'Complete payment verification in Step 2 before uploading your app package.',
         });
       }
       if (AppDatabase.isPaymentProofUsed(txHash)) {
@@ -349,31 +360,45 @@ app.post(
       if (!Buffer.isBuffer(buf) || buf.length < 128) {
         return res.status(400).json({
           success: false,
-          message: 'Please upload a valid .apk package file.',
+          message: 'Please upload a valid .apk or Windows (.exe, .msi, .msix, .appx, .zip) package file.',
         });
       }
 
-      const inspection = inspectApkArchive(buf);
-      if (!inspection.isValidZip) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid APK binary signature. Expected a valid Android .apk archive.',
-        });
-      }
-      if (!inspection.hasAndroidManifest) {
-        return res.status(400).json({
-          success: false,
-          message: 'Archive does not contain AndroidManifest.xml. Please upload a valid Android .apk.',
-        });
-      }
-
-      const rawHeaderName = String(req.headers['x-file-name'] || 'app.apk');
+      const rawHeaderName = String(
+        req.headers['x-file-name'] || (/windows/i.test(targetPlatform) ? 'app.exe' : 'app.apk')
+      );
       const decodedName = decodeURIComponent(rawHeaderName);
+
+      const inspection = inspectPackageBinary(buf, decodedName, targetPlatform);
+      if (!inspection.isValid) {
+        return res.status(400).json({
+          success: false,
+          message:
+            inspection.reason ||
+            'Invalid binary package signature. Upload a valid Android .apk or Windows .exe/.msi/.msix/.zip file.',
+        });
+      }
+
+      const extMatch = path.extname(decodedName).toLowerCase();
+      const allowedExts = new Set(['.apk', '.exe', '.msi', '.msix', '.msixbundle', '.appx', '.appxbundle', '.zip']);
+      const fallbackExt =
+        inspection.packageType === 'EXE'
+          ? '.exe'
+          : inspection.packageType === 'MSI'
+          ? '.msi'
+          : inspection.packageType === 'MSIX'
+          ? '.msix'
+          : inspection.packageType === 'APPX'
+          ? '.appx'
+          : inspection.packageType === 'ZIP'
+          ? '.zip'
+          : '.apk';
+      const resolvedExt = allowedExts.has(extMatch) ? extMatch : fallbackExt;
+
       const cleanBase = path
-        .basename(decodedName)
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .replace(/\.apk$/i, '');
-      const originalFileName = `${cleanBase || 'app'}.apk`;
+        .basename(decodedName, extMatch)
+        .replace(/[^a-zA-Z0-9._-]/g, '_');
+      const originalFileName = `${cleanBase || 'app'}${resolvedExt}`;
       const storedFileName = `${Date.now()}-${originalFileName}`;
 
       const uploadsDir = path.resolve(process.cwd(), 'public/apks/uploads');
@@ -397,7 +422,12 @@ app.post(
         size,
         bytes,
         sha256,
-        hasManifest: inspection.hasAndroidManifest,
+        platformKind: inspection.platformKind,
+        packageType: inspection.packageType,
+        hasManifest: inspection.hasManifest,
+        hasWindowsManifest: inspection.hasWindowsManifest,
+        isPeExecutable: inspection.isPeExecutable,
+        isMsiInstaller: inspection.isMsiInstaller,
         hasClassesDex: inspection.hasClassesDex,
         hasResources: inspection.hasResources,
         architectures: inspection.architectures,
@@ -407,7 +437,7 @@ app.post(
     } catch (err: any) {
       return res.status(500).json({
         success: false,
-        message: err?.message || 'Failed to store APK upload.',
+        message: err?.message || 'Failed to store uploaded package.',
       });
     }
   }
@@ -460,7 +490,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
     if (!cleanLocalPath && !cleanUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Upload your .apk file in Step 3 or provide a valid direct APK download URL.',
+        message: 'Upload your app package (.apk, .exe, .msi, .msix, or .zip) in Step 3 or provide a valid direct download URL.',
       });
     }
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -501,7 +531,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
       if (!cleanLocalPath.startsWith('/apks/uploads/')) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid uploaded APK storage path.',
+          message: 'Invalid uploaded package storage path.',
         });
       }
       const uploadsRoot = path.resolve(process.cwd(), 'public/apks/uploads');
@@ -514,15 +544,19 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
       ) {
         return res.status(400).json({
           success: false,
-          message: 'Uploaded APK file could not be located on server storage. Please upload again.',
+          message: 'Uploaded package file could not be located on server storage. Please upload again.',
         });
       }
       const diskBuf = fs.readFileSync(diskPath);
-      const inspection = inspectApkArchive(diskBuf);
-      if (!inspection.isValidZip || !inspection.hasAndroidManifest) {
+      const inspection = inspectPackageBinary(
+        diskBuf,
+        String(fileName || relUpload),
+        String(platform || '')
+      );
+      if (!inspection.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Stored APK package failed server integrity inspection.',
+          message: inspection.reason || 'Stored application package failed server integrity inspection.',
         });
       }
       authoritativeSize = `${(diskBuf.length / (1024 * 1024)).toFixed(2)} MB`;
@@ -553,14 +587,18 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
       });
     }
 
+    const resolvedPlatform = platform ? String(platform).trim() : 'Smart TV & Android Mobile';
     const publishedApp = AppDatabase.publishApp({
       appTitle: cleanTitle,
       fileName: fileName ? String(fileName).trim() : undefined,
       packageId: packageId ? String(packageId).trim() : undefined,
       category: cleanCategory,
-      platform: platform ? String(platform).trim() : 'Smart TV & Android Mobile',
+      platform: resolvedPlatform,
       version: version ? String(version).trim() : '1.0.0',
-      description: description ? String(description).trim() : `${cleanTitle} Android application package.`,
+      description:
+        description
+          ? String(description).trim()
+          : `${cleanTitle} (${resolvedPlatform}) application package.`,
       developerName: developerName ? String(developerName).trim() : cleanTitle,
       ownerName: ownerName
         ? String(ownerName).trim()

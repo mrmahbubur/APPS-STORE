@@ -2,20 +2,26 @@ import React, { useState } from 'react';
 import { UploadCloud, AppWindow } from 'lucide-react';
 import { normalizeAssetPath } from '../data/catalog';
 
+export type StorePlatformFilter = 'All' | 'Android' | 'Smart TV' | 'Windows';
+
 interface HeaderProps {
   onOpenPublish: () => void;
   onOpenLegal: (tab?: 'privacy' | 'terms' | 'developer' | 'dmca') => void;
   onSelectCategory: (category: string) => void;
+  onSelectPlatform?: (platform: StorePlatformFilter) => void;
   onOpenCharts?: () => void;
   activeCategory: string;
+  activePlatform?: StorePlatformFilter;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenPublish,
   onOpenLegal,
   onSelectCategory,
+  onSelectPlatform,
   onOpenCharts,
   activeCategory,
+  activePlatform = 'All',
 }) => {
   const [logoError, setLogoError] = useState(false);
 
@@ -36,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={(e) => {
             e.preventDefault();
             onSelectCategory('All');
+            if (onSelectPlatform) onSelectPlatform('All');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap shrink-0 group min-h-[40px] min-w-0"
@@ -64,10 +71,13 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={() => {
               onSelectCategory('All');
+              if (onSelectPlatform) onSelectPlatform('All');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 py-1 ${
-              activeCategory === 'All' ? 'text-white font-semibold' : 'hover:text-white'
+              activeCategory === 'All' && activePlatform === 'All'
+                ? 'text-white font-semibold'
+                : 'hover:text-white'
             }`}
           >
             Today
@@ -75,26 +85,41 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => {
-              onSelectCategory('IPTV & Streaming');
+              onSelectCategory('All');
+              if (onSelectPlatform) onSelectPlatform('Android');
               scrollToSection('catalog-section');
             }}
             className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 py-1 ${
-              activeCategory === 'IPTV & Streaming' ? 'text-white font-semibold' : 'hover:text-white'
+              activePlatform === 'Android' ? 'text-white font-semibold' : 'hover:text-white'
             }`}
           >
-            Apps
+            Android
           </button>
           <button
             type="button"
             onClick={() => {
-              onSelectCategory('Smart TV & Video');
+              onSelectCategory('All');
+              if (onSelectPlatform) onSelectPlatform('Smart TV');
               scrollToSection('catalog-section');
             }}
             className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 py-1 ${
-              activeCategory === 'Smart TV & Video' ? 'text-white font-semibold' : 'hover:text-white'
+              activePlatform === 'Smart TV' ? 'text-white font-semibold' : 'hover:text-white'
             }`}
           >
             Smart TV
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSelectCategory('All');
+              if (onSelectPlatform) onSelectPlatform('Windows');
+              scrollToSection('catalog-section');
+            }}
+            className={`transition-colors whitespace-nowrap shrink-0 hover:underline underline-offset-4 py-1 ${
+              activePlatform === 'Windows' ? 'text-white font-semibold' : 'hover:text-white'
+            }`}
+          >
+            Windows
           </button>
           <button
             type="button"

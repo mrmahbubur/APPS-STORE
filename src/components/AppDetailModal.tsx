@@ -8,6 +8,7 @@ import {
   Check,
   Tv,
   Smartphone,
+  Monitor,
   Share2,
   QrCode,
   Link2,
@@ -80,6 +81,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   useEffect(() => {
     if (!app) return;
+    const isWin =
+      /windows/i.test(app.platform || '') ||
+      /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
+    const isHyb = isWin && /android|smart tv/i.test(app.platform || '');
+    setReviewDevice(isWin && !isHyb ? 'Windows 11 PC' : 'Android Mobile');
     setShowQrCode(false);
     setShowSharePanel(false);
     setShowPermissions(false);
@@ -264,6 +270,24 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   const displayRating = reviews.length > 0 ? reviewStats.averageRating : app.rating;
   const displayReviewsCount = reviews.length > 0 ? reviewStats.totalReviews : app.reviewsCount;
+  const isWindowsApp =
+    /windows/i.test(app.platform || '') ||
+    /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
+  const isHybridApp = isWindowsApp && /android|smart tv/i.test(app.platform || '');
+  const lowerFile = (app.fileName || '').toLowerCase();
+  const packageFormatLabel = lowerFile.endsWith('.exe')
+    ? 'Direct EXE'
+    : lowerFile.endsWith('.msi')
+    ? 'Direct MSI'
+    : lowerFile.endsWith('.msix') || lowerFile.endsWith('.msixbundle')
+    ? 'Direct MSIX'
+    : lowerFile.endsWith('.appx') || lowerFile.endsWith('.appxbundle')
+    ? 'Direct APPX'
+    : lowerFile.endsWith('.zip')
+    ? 'Direct ZIP'
+    : isWindowsApp
+    ? 'Direct Package'
+    : 'Direct APK';
 
   const shareText = encodeURIComponent(`Download ${app.title} (${app.fileName}) directly from MRS App Store`);
   const encodedShareUrl = encodeURIComponent(shareUrl);
@@ -294,7 +318,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 />
               ) : (
                 <div className="w-7 h-7 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
-                  <Smartphone className="w-3.5 h-3.5" />
+                  {isWindowsApp && !isHybridApp ? (
+                    <Monitor className="w-3.5 h-3.5" />
+                  ) : (
+                    <Smartphone className="w-3.5 h-3.5" />
+                  )}
                 </div>
               )}
               <span className="text-xs sm:text-sm font-bold text-white truncate">{app.title}</span>
@@ -332,7 +360,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             />
           ) : (
             <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/15 flex items-center justify-center text-[#0a84ff] shrink-0">
-              <Smartphone className="w-10 h-10" />
+              {isWindowsApp && !isHybridApp ? (
+                <Monitor className="w-10 h-10" />
+              ) : (
+                <Smartphone className="w-10 h-10" />
+              )}
             </div>
           )}
 
@@ -368,7 +400,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 {downloadStarted ? (
                   <>
                     <Check className="w-4 h-4" />
-                    <span>Downloading APK</span>
+                    <span>{isWindowsApp ? 'Downloading Package' : 'Downloading APK'}</span>
                   </>
                 ) : (
                   <>
@@ -427,8 +459,16 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
           <div className="min-w-[116px] sm:min-w-0 px-3">
             <p className="text-[11px] text-zinc-400 font-semibold">Min OS</p>
-            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">8.0+</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Android API 26</p>
+            <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">
+              {isHybridApp ? 'Win · TV' : isWindowsApp ? 'Win 10/11' : '8.0+'}
+            </p>
+            <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+              {isHybridApp
+                ? 'Cross-Platform'
+                : isWindowsApp
+                ? '64-bit / ARM64'
+                : 'Android API 26'}
+            </p>
           </div>
 
           <div className="min-w-[126px] sm:min-w-0 px-3">
@@ -446,7 +486,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <div className="min-w-[116px] sm:min-w-0 px-3">
             <p className="text-[11px] text-zinc-400 font-semibold">Size</p>
             <p className="text-lg sm:text-xl font-extrabold text-white mt-1 tabular-nums">{app.size}</p>
-            <p className="text-[11px] text-emerald-400 mt-0.5">Direct APK</p>
+            <p className="text-[11px] text-emerald-400 mt-0.5">{packageFormatLabel}</p>
           </div>
         </div>
 
@@ -456,14 +496,14 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             <div className="p-3 bg-white rounded-xl shadow-lg shrink-0">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(directDownloadUrl)}`}
-                alt="Direct APK QR Code"
+                alt="Direct Package QR Code"
                 className="w-36 h-36"
               />
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h4 className="text-base font-bold text-white">Scan with Mobile or Smart TV Camera</h4>
+              <h4 className="text-base font-bold text-white">Scan QR to Transfer Download Link</h4>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Point your phone camera or Smart TV scanner at this QR code to download{' '}
+                Scan this QR code or copy the direct link to download{' '}
                 <span className="text-white font-mono">{app.fileName}</span> directly.
               </p>
               <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
@@ -473,7 +513,13 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white inline-flex items-center gap-1.5"
                 >
                   {copiedDownloadLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedDownloadLink ? 'Download Link Copied' : 'Copy Direct APK Link'}</span>
+                  <span>
+                    {copiedDownloadLink
+                      ? 'Download Link Copied'
+                      : isWindowsApp
+                      ? 'Copy Direct Package Link'
+                      : 'Copy Direct APK Link'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -528,7 +574,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   <HardDrive className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-white">Direct APK Download Link</p>
+                  <p className="text-xs font-bold text-white">
+                    {isWindowsApp ? 'Direct Package Download Link' : 'Direct APK Download Link'}
+                  </p>
                   <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">{directDownloadUrl}</p>
                 </div>
               </div>
@@ -633,29 +681,79 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           {/* Compatibility */}
           <div>
             <h4 className="text-sm font-bold text-white mb-3">Compatibility</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
-                <Smartphone className="w-4 h-4 text-blue-400 shrink-0" />
-                <div>
-                  <p className="font-semibold text-white">Android Mobile</p>
-                  <p className="text-zinc-400">{app.minAndroid.split('(')[0].trim()}</p>
+            {isWindowsApp && !isHybridApp ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Monitor className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Windows 10 / 11 PC</p>
+                    <p className="text-zinc-400">{app.minAndroid || '64-bit / ARM64'}</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <HardDrive className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Package Format</p>
+                    <p className="text-zinc-400">{packageFormatLabel}</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Desktop Integrity</p>
+                    <p className="text-zinc-400">SHA-256 Verified Build</p>
+                  </div>
                 </div>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
-                <Tv className="w-4 h-4 text-blue-400 shrink-0" />
-                <div>
-                  <p className="font-semibold text-white">Smart TV &amp; Firestick</p>
-                  <p className="text-zinc-400">Android TV / Google TV</p>
+            ) : isHybridApp ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Monitor className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Windows 10 / 11 PC</p>
+                    <p className="text-zinc-400">Desktop &amp; Surface</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Smartphone className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Android Mobile</p>
+                    <p className="text-zinc-400">Android 8.0+ (API 26)</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Tv className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Smart TV &amp; Tablet</p>
+                    <p className="text-zinc-400">Android TV / Firestick</p>
+                  </div>
                 </div>
               </div>
-              <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
-                <Tablet className="w-4 h-4 text-blue-400 shrink-0" />
-                <div>
-                  <p className="font-semibold text-white">Android Tablet</p>
-                  <p className="text-zinc-400">HD &amp; Landscape Ready</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Smartphone className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Android Mobile</p>
+                    <p className="text-zinc-400">{app.minAndroid.split('(')[0].trim()}</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Tv className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Smart TV &amp; Firestick</p>
+                    <p className="text-zinc-400">Android TV / Google TV</p>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-white/[0.06] flex items-center gap-3">
+                  <Tablet className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white">Android Tablet</p>
+                    <p className="text-zinc-400">HD &amp; Landscape Ready</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -788,6 +886,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     onChange={(e) => setReviewDevice(e.target.value)}
                     className="w-full bg-black border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
                   >
+                    <option value="Windows 11 PC">Windows 11 PC</option>
+                    <option value="Windows 10 PC">Windows 10 PC</option>
                     <option value="Android Mobile">Android Mobile</option>
                     <option value="Android TV / Google TV">Android TV / Google TV</option>
                     <option value="Amazon Fire TV Stick">Amazon Fire TV Stick</option>
@@ -937,7 +1037,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 <span>SHA-256 Verified Binary</span>
               </div>
               <p className="text-zinc-400 leading-relaxed">
-                Signed APK distributed directly from MRS App Store storage without adware wrappers.
+                Verified package distributed directly from MRS App Store storage without adware wrappers.
               </p>
             </div>
           </div>
@@ -989,7 +1089,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.packageId}</dd>
             </div>
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-              <dt className="text-zinc-400">APK File Name</dt>
+              <dt className="text-zinc-400">{isWindowsApp ? 'Package File Name' : 'APK File Name'}</dt>
               <dd className="text-zinc-200 font-mono sm:text-right break-all">{app.fileName}</dd>
             </div>
             <div className="py-3 flex justify-between gap-4">
@@ -1008,7 +1108,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               <dt className="text-zinc-400">Languages</dt>
               <dd className="text-zinc-200 text-right flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                <span>{app.languages || 'Android System Locale'}</span>
+                <span>{app.languages || 'System Locale'}</span>
               </dd>
             </div>
             <div className="py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1.5 sm:gap-4">
@@ -1030,7 +1130,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 onClick={() => setShowPermissions(!showPermissions)}
                 className="w-full flex items-center justify-between text-zinc-400 hover:text-white transition-colors"
               >
-                <span>Android Permissions ({app.permissions.length})</span>
+                <span>
+                  {isWindowsApp && !isHybridApp
+                    ? `Runtime & Package Info (${app.permissions.length})`
+                    : `Android Permissions (${app.permissions.length})`}
+                </span>
                 {showPermissions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               {showPermissions && (

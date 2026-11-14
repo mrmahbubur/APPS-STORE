@@ -137,6 +137,8 @@ export interface SiteMeta {
   copyrightNotice: string;
   adminEmail: string;
   ownerInfo?: OwnerInfo;
+  ownerProfile?: AppOwnerProfile;
+  categories?: string[];
   submissionFeeUsd: number;
   lastUpdated: string;
   policies: {

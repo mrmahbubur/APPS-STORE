@@ -92,12 +92,47 @@ export interface DeveloperSubmission {
   submittedAt: string;
 }
 
+export const APP_STORE_CATEGORIES: string[] = [
+  'IPTV & Streaming',
+  'Smart TV & Video',
+  'Entertainment',
+  'AI & Virtual Assistant',
+  'Games',
+  'Productivity',
+  'Utilities',
+  'Social & Communication',
+  'Music & Audio',
+  'Photo & Video',
+  'Education',
+  'Developer Tools',
+  'News & Magazines',
+  'Finance & Crypto',
+  'Shopping',
+  'Health & Fitness',
+  'Travel & Navigation',
+  'Business',
+];
+
+export interface OwnerInfo {
+  ownerName: string;
+  organization: string;
+  email: string;
+  role: string;
+  location: string;
+  supportResponseTime: string;
+  publishingFeeUsd: number;
+  verificationNote: string;
+}
+
 export interface SiteMeta {
   appName: string;
   tagline: string;
   currentYear: number;
   copyrightNotice: string;
   adminEmail: string;
+  ownerInfo?: OwnerInfo;
+  ownerProfile?: AppOwnerProfile;
+  categories?: string[];
   submissionFeeUsd: number;
   lastUpdated: string;
   policies: {
@@ -554,6 +589,27 @@ export const AppDatabase = {
     return memoryStore;
   },
 
+  getOwnerProfile(): AppOwnerProfile {
+    return currentOwnerProfile;
+  },
+
+  async refreshOwnerProfile(): Promise<AppOwnerProfile> {
+    await syncGravatarOwnerProfile();
+    return currentOwnerProfile;
+  },
+
+  getCategoriesWithCounts(): { name: string; count: number }[] {
+    const counts = new Map<string, number>();
+    for (const cat of APP_STORE_CATEGORIES) {
+      counts.set(cat, 0);
+    }
+    for (const app of memoryStore) {
+      const cat = (app.category || 'Entertainment').trim();
+      counts.set(cat, (counts.get(cat) || 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([name, count]) => ({ name, count }));
+  },
+
   getAppById(id: string): AppItem | undefined {
     return memoryStore.find((a) => a.id === id);
   },
@@ -838,12 +894,32 @@ export const AppDatabase = {
 
   getSiteMeta(): SiteMeta {
     const currentYear = new Date().getFullYear();
+    const ownerLabel = formatOwnerLabel(currentOwnerProfile);
+    const dynamicCategories = Array.from(
+      new Set([
+        ...APP_STORE_CATEGORIES,
+        ...memoryStore.map((a) => (a.category || '').trim()).filter(Boolean),
+      ])
+    );
+
     return {
       appName: 'MRS App Store',
-      tagline: 'Direct APK Marketplace by MRS TV Network',
+      tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
       currentYear,
-      copyrightNotice: `© ${currentYear} MRS TV Network. All rights reserved.`,
-      adminEmail: 'mr216873@gmail.com',
+      copyrightNotice: `© ${currentYear} ${ownerLabel} · MRS TV Network. All rights reserved.`,
+      adminEmail: currentOwnerProfile.email,
+      ownerInfo: {
+        ownerName: ownerLabel,
+        organization: 'MRS TV Network',
+        email: currentOwnerProfile.email,
+        role: 'Store Owner & Lead Administrator',
+        location: 'Global Remote Operations',
+        supportResponseTime: 'Within 24 hours',
+        publishingFeeUsd: 25.0,
+        verificationNote: `Verified identity on ${currentOwnerProfile.profileUrl}`,
+      },
+      ownerProfile: currentOwnerProfile,
+      categories: dynamicCategories,
       submissionFeeUsd: 25.0,
       lastUpdated: new Date().toISOString(),
       policies: {

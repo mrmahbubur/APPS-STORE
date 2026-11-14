@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Scale, DollarSign, Mail } from 'lucide-react';
+import { X, ShieldCheck, Scale, DollarSign, Mail, Phone, ExternalLink, Calendar, UserCheck } from 'lucide-react';
 import { SiteMeta } from '../types';
+import { MRS_GRAVATAR_OWNER_PROFILE } from '../data/catalog';
 
 interface LegalPoliciesModalProps {
   isOpen: boolean;
@@ -16,10 +17,12 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   initialTab = 'privacy',
 }) => {
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>(initialTab);
+  const [ownerAvatarFailed, setOwnerAvatarFailed] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setActiveTab(initialTab);
+    setOwnerAvatarFailed(false);
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -119,6 +122,72 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
 
         {/* Content Body */}
         <div className="overflow-y-auto py-5 space-y-5 flex-1 pr-2">
+          {/* Verified Store Owner Card */}
+          {(() => {
+            const owner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
+            return (
+              <div className="p-4 sm:p-5 rounded-2xl bg-black/50 border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  {owner.avatarUrl && !ownerAvatarFailed ? (
+                    <img
+                      src={owner.avatarUrl}
+                      alt={`${owner.displayName} (@${owner.username})`}
+                      className="w-12 h-12 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
+                      referrerPolicy="no-referrer"
+                      onError={() => setOwnerAvatarFailed(true)}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-[22.5%] bg-[#0a84ff]/20 text-[#0a84ff] flex items-center justify-center shrink-0">
+                      <UserCheck className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-white">{owner.displayName}</span>
+                      <span className="text-xs font-mono text-zinc-400">@{owner.username}</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 truncate mt-0.5">{owner.headline}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-300 font-mono mt-1">
+                      <a href={`mailto:${owner.email}`} className="inline-flex items-center gap-1 text-[#0a84ff] hover:underline">
+                        <Mail className="w-3 h-3" />
+                        <span>{owner.email}</span>
+                      </a>
+                      {owner.phone && (
+                        <a href={`tel:${owner.phone}`} className="inline-flex items-center gap-1 hover:text-white">
+                          <Phone className="w-3 h-3 text-emerald-400" />
+                          <span>{owner.phone}</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {owner.calendarUrl && (
+                    <a
+                      href={owner.calendarUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.16] text-xs font-semibold text-white inline-flex items-center gap-1.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5 text-[#0a84ff]" />
+                      <span>Book Meeting</span>
+                    </a>
+                  )}
+                  <a
+                    href={owner.profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-xs font-bold text-white inline-flex items-center gap-1.5"
+                  >
+                    <span>Gravatar</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
+
           {currentPolicy ? (
             <>
               <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08]">

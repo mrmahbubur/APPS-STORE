@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { AppItem, AppOwnerProfile, DeveloperSubmission } from '../types';
 import {
+  APP_STORE_CATEGORIES,
   copyToClipboard,
   getAppLocalApkUrl,
   getLocalPublishedApps,
@@ -39,6 +40,7 @@ interface PublishAppModalProps {
   isOpen: boolean;
   onClose: () => void;
   hasBackend?: boolean;
+  initialCategory?: string;
   onAppPublished?: (app: AppItem) => void;
   onSelectApp?: (app: AppItem) => void;
 }
@@ -208,6 +210,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   isOpen,
   onClose,
   hasBackend = true,
+  initialCategory,
   onAppPublished,
   onSelectApp,
 }) => {
@@ -222,7 +225,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   const [appTitle, setAppTitle] = useState('');
   const [version, setVersion] = useState('1.0.0');
   const [packageId, setPackageId] = useState('');
-  const [category, setCategory] = useState('IPTV & Streaming');
+  const [category, setCategory] = useState(
+    initialCategory && initialCategory !== 'All' ? initialCategory : 'IPTV & Streaming'
+  );
   const [platform, setPlatform] = useState('Smart TV & Android Mobile');
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
@@ -268,10 +273,19 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
   // Copy helper feedback
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [iconPreviewFailed, setIconPreviewFailed] = useState(false);
+  const [gravatarAvatarFailed, setGravatarAvatarFailed] = useState(false);
+  const [qrFailed, setQrFailed] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setFormError(null);
+    setIconPreviewFailed(false);
+    setGravatarAvatarFailed(false);
+    setQrFailed(false);
+    if (initialCategory && initialCategory !== 'All') {
+      setCategory(initialCategory);
+    }
     if (activeTab === 'receipts') {
       loadSubmissions();
     }
@@ -280,7 +294,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, activeTab, onClose]);
+  }, [isOpen, activeTab, initialCategory, onClose]);
 
   const loadSubmissions = async () => {
     setLoadingSubmissions(true);
@@ -918,7 +932,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setFormError(null);
   };
 
-  const previewIcon = normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
+  const previewIcon = iconPreviewFailed
+    ? normalizeAssetPath('./assets/site-logo-icon.jpg')
+    : normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
 
   return (
     <div
@@ -1275,6 +1291,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       src={previewIcon}
                       alt="App Icon Preview"
                       className="w-16 h-16 rounded-2xl object-cover ring-1 ring-white/15 shrink-0"
+                      onError={() => setIconPreviewFailed(true)}
                     />
                     <div className="flex-1 text-center sm:text-left">
                       <p className="text-xs font-bold text-white">App Icon (Optional · PNG/JPG/WebP)</p>
@@ -1332,11 +1349,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white focus:outline-none focus:border-blue-500"
                       >
-                        <option value="IPTV & Streaming">IPTV &amp; Streaming</option>
-                        <option value="Smart TV & Video">Smart TV &amp; Video</option>
-                        <option value="AI & Virtual Assistant">AI &amp; Virtual Assistant</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Utilities">Utilities</option>
+                        {APP_STORE_CATEGORIES.map((catName) => (
+                          <option key={catName} value={catName}>
+                            {catName}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1423,13 +1440,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     )}
                     {ownerProfile && (
                       <div className="flex items-center gap-3 pt-1">
-                        {ownerProfile.avatarUrl && (
+                        {ownerProfile.avatarUrl && !gravatarAvatarFailed ? (
                           <img
                             src={ownerProfile.avatarUrl}
                             alt={ownerProfile.displayName}
                             className="w-10 h-10 rounded-xl object-cover ring-1 ring-white/20 shrink-0"
                             referrerPolicy="no-referrer"
+                            onError={() => setGravatarAvatarFailed(true)}
                           />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                            <UserCheck className="w-5 h-5" />
+                          </div>
                         )}
                         <div className="min-w-0 text-xs">
                           <p className="font-bold text-white truncate">
@@ -1525,6 +1547,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       src={previewIcon}
                       alt={appTitle}
                       className="w-8 h-8 rounded-lg object-cover shrink-0"
+                      onError={() => setIconPreviewFailed(true)}
                     />
                     <div className="min-w-0">
                       <p className="font-bold text-white truncate">
@@ -1593,11 +1616,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
 
                   <div className="flex flex-col sm:flex-row items-center gap-4 bg-black p-4 rounded-xl border border-white/[0.06]">
                     <div className="w-32 h-32 bg-zinc-950 p-1.5 rounded-xl flex items-center justify-center shrink-0 border border-white/10 overflow-hidden">
-                      <img
-                        src={activeMethod.qrImage}
-                        alt={activeMethod.displayName}
-                        className="w-full h-full object-contain rounded-lg"
-                      />
+                      {!qrFailed ? (
+                        <img
+                          src={activeMethod.qrImage}
+                          alt={activeMethod.displayName}
+                          className="w-full h-full object-contain rounded-lg"
+                          onError={() => setQrFailed(true)}
+                        />
+                      ) : (
+                        <div className="text-center px-2 text-[10px] font-mono text-zinc-400">
+                          {activeMethod.title}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0 text-center sm:text-left space-y-1.5">
@@ -1918,6 +1948,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         src={previewIcon}
                         alt={appTitle}
                         className="w-12 h-12 rounded-xl object-cover ring-1 ring-white/15 shrink-0"
+                        onError={() => setIconPreviewFailed(true)}
                       />
                       <div className="min-w-0 flex-1 text-xs">
                         <p className="font-bold text-white truncate">{appTitle}</p>

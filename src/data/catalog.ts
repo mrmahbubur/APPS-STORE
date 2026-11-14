@@ -80,6 +80,27 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+export const APP_STORE_CATEGORIES: string[] = [
+  'IPTV & Streaming',
+  'Smart TV & Video',
+  'Entertainment',
+  'AI & Virtual Assistant',
+  'Games',
+  'Productivity',
+  'Utilities',
+  'Social & Communication',
+  'Music & Audio',
+  'Photo & Video',
+  'Education',
+  'Developer Tools',
+  'News & Magazines',
+  'Finance & Crypto',
+  'Shopping',
+  'Health & Fitness',
+  'Travel & Navigation',
+  'Business',
+];
+
 // Official owner profile verified from https://gravatar.com/mrxshahin.json
 export const MRS_GRAVATAR_OWNER_PROFILE: AppOwnerProfile = {
   displayName: 'M R S',
@@ -399,12 +420,25 @@ export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewI
 
 export function getDefaultSiteMeta(): SiteMeta {
   const currentYear = new Date().getFullYear();
+  const ownerLabel = `${MRS_GRAVATAR_OWNER_PROFILE.displayName} (@${MRS_GRAVATAR_OWNER_PROFILE.username})`;
   return {
     appName: 'MRS App Store',
-    tagline: 'Direct APK Marketplace by MRS TV Network',
+    tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
     currentYear,
-    copyrightNotice: `© ${currentYear} MRS TV Network. All rights reserved.`,
-    adminEmail: 'mr216873@gmail.com',
+    copyrightNotice: `© ${currentYear} ${ownerLabel} · MRS TV Network. All rights reserved.`,
+    adminEmail: MRS_GRAVATAR_OWNER_PROFILE.email,
+    ownerInfo: {
+      ownerName: ownerLabel,
+      organization: 'MRS TV Network',
+      email: MRS_GRAVATAR_OWNER_PROFILE.email,
+      role: 'Store Owner & Lead Administrator',
+      location: 'Global Remote Operations',
+      supportResponseTime: 'Within 24 hours',
+      publishingFeeUsd: 25.0,
+      verificationNote: `Verified identity on ${MRS_GRAVATAR_OWNER_PROFILE.profileUrl}`,
+    },
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
+    categories: APP_STORE_CATEGORIES,
     submissionFeeUsd: 25.0,
     lastUpdated: new Date().toISOString(),
     policies: {

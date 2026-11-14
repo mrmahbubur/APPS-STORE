@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SiteMeta } from '../types';
-import { ShieldCheck, UploadCloud, AppWindow } from 'lucide-react';
-import { normalizeAssetPath } from '../data/catalog';
+import { ShieldCheck, UploadCloud, AppWindow, ExternalLink } from 'lucide-react';
+import { MRS_GRAVATAR_OWNER_PROFILE, normalizeAssetPath } from '../data/catalog';
 
 interface FooterProps {
   siteMeta: SiteMeta | null;
@@ -16,7 +16,10 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   const [logoError, setLogoError] = useState(false);
   const currentYear = siteMeta?.currentYear || new Date().getFullYear();
-  const copyright = siteMeta?.copyrightNotice || `© ${currentYear} MRS TV Network. All rights reserved.`;
+  const owner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
+  const copyright =
+    siteMeta?.copyrightNotice ||
+    `© ${currentYear} ${owner.displayName} (@${owner.username}) · MRS TV Network. All rights reserved.`;
 
   return (
     <footer className="mt-16 border-t border-white/[0.08] bg-black text-zinc-400 pt-10 pb-24 md:pb-12 px-4 sm:px-6 lg:px-8 text-xs">
@@ -39,12 +42,21 @@ export const Footer: React.FC<FooterProps> = ({
             <div>
               <span className="font-bold text-white text-sm">MRS App Store</span>
               <p className="text-[11px] text-zinc-400">
-                Direct Android &amp; Smart TV APK Storefront
+                Owned &amp; Operated by {owner.displayName} (@{owner.username})
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium">
+            <a
+              href={owner.profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[36px] inline-flex items-center gap-1 hover:text-white transition-colors"
+            >
+              <span>Owner Profile</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
             <button
               type="button"
               onClick={() => onOpenLegal('privacy')}
@@ -81,7 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
           <p className="text-zinc-400 font-medium">{copyright}</p>
           <div className="flex items-center gap-2 text-zinc-400 tabular-nums">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>SHA-256 Verified Direct APKs · {currentYear}</span>
+            <span>{owner.email} · SHA-256 Direct APKs · {currentYear}</span>
           </div>
         </div>
       </div>

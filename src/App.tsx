@@ -9,7 +9,9 @@ import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { AppItem, SiteMeta } from './types';
 import {
+  APP_STORE_CATEGORIES,
   DEFAULT_APPS,
+  MRS_GRAVATAR_OWNER_PROFILE,
   getDefaultSiteMeta,
   normalizeAssetPath,
   getAppLocalApkUrl,
@@ -26,13 +28,14 @@ import {
   ShieldCheck,
   LayoutGrid,
   ListOrdered,
+  Mail,
+  Phone,
+  Calendar,
+  ExternalLink,
+  UserCheck,
 } from 'lucide-react';
 
-const CATEGORIES = [
-  'All',
-  'IPTV & Streaming',
-  'Smart TV & Video',
-];
+const CATEGORIES = ['All', ...APP_STORE_CATEGORIES];
 
 export default function App() {
   const [apps, setApps] = useState<AppItem[]>([]);
@@ -51,8 +54,10 @@ export default function App() {
   // Modals
   const [selectedApp, setSelectedApp] = useState<AppItem | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishInitialCategory, setPublishInitialCategory] = useState<string | undefined>(undefined);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>('privacy');
+  const [ownerAvatarError, setOwnerAvatarError] = useState(false);
 
   // Mobile navigation
   const [mobileTab, setMobileTab] = useState<'discover' | 'categories' | 'publish' | 'legal'>('discover');
@@ -183,10 +188,25 @@ export default function App() {
   }, [apps]);
 
   const categories = useMemo(() => {
-    const dynamicCats = Array.from(new Set(apps.map((a) => a.category).filter(Boolean)));
-    if (dynamicCats.length === 0) return CATEGORIES;
-    return ['All', ...dynamicCats];
+    const dynamicCats = apps.map((a) => (a.category || '').trim()).filter(Boolean);
+    const metaCats = siteMeta?.categories || [];
+    const uniqueAll = Array.from(new Set([...APP_STORE_CATEGORIES, ...metaCats, ...dynamicCats]));
+    return ['All', ...uniqueAll];
+  }, [apps, siteMeta]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: apps.length };
+    for (const app of apps) {
+      const cat = (app.category || '').trim();
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
   }, [apps]);
+
+  const openPublishWithCategory = (cat?: string) => {
+    setPublishInitialCategory(cat && cat !== 'All' ? cat : undefined);
+    setIsPublishModalOpen(true);
+  };
 
   const handleDirectDownload = (app: AppItem) => {
     setApps((prev) =>
@@ -231,7 +251,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white pb-20 md:pb-0">
       <Header
-        onOpenPublish={() => setIsPublishModalOpen(true)}
+        onOpenPublish={() => openPublishWithCategory(selectedCategory)}
         onOpenLegal={handleOpenLegal}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
@@ -312,20 +332,28 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full min-w-0">
               <div className="inline-flex items-center gap-1 p-1 bg-[#1c1c1e] border border-white/[0.08] rounded-xl shrink-0">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 min-h-[34px] ${
-                      selectedCategory === cat
-                        ? 'bg-white text-black shadow-sm'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {categories.map((cat) => {
+                  const count = categoryCounts[cat] || 0;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 min-h-[34px] tabular-nums ${
+                        selectedCategory === cat
+                          ? 'bg-white text-black shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      {count > 0 && (
+                        <span className={selectedCategory === cat ? 'text-zinc-600' : 'text-zinc-500'}>
+                          · {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               <div
@@ -358,7 +386,7 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setIsPublishModalOpen(true)}
+              onClick={() => openPublishWithCategory(selectedCategory)}
               className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline underline-offset-4 whitespace-nowrap shrink-0"
             >
               <UploadCloud className="w-3.5 h-3.5" />
@@ -385,22 +413,42 @@ export default function App() {
               </button>
             </div>
           ) : filteredApps.length === 0 ? (
-            <div className="p-12 text-center rounded-[2rem] bg-zinc-900/40 border border-white/[0.08] space-y-3">
-              <Tv className="w-8 h-8 text-zinc-600 mx-auto" />
-              <h3 className="text-base font-bold text-white">No applications match your filter</h3>
-              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                Reset filters to view all official M R S IPTV applications.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('All');
-                }}
-                className="px-5 py-2 bg-white text-black rounded-full text-xs font-bold hover:bg-zinc-200 transition-colors"
-              >
-                Reset Filter
-              </button>
+            <div className="p-8 sm:p-12 text-center rounded-[24px] bg-[#1c1c1e] border border-white/[0.08] space-y-4">
+              <Tv className="w-8 h-8 text-[#0a84ff] mx-auto" />
+              <div className="space-y-1.5">
+                <h3 className="text-base sm:text-lg font-bold text-white">
+                  {selectedCategory !== 'All' && !searchQuery
+                    ? `No apps published in ${selectedCategory} yet`
+                    : 'No applications match your search'}
+                </h3>
+                <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+                  {selectedCategory !== 'All' && !searchQuery
+                    ? `Every listing in MRS App Store is a verified APK submission. Publish the first ${selectedCategory} APK directly with on-chain BEP-20 verification.`
+                    : 'Reset your search filter to browse all verified applications across the store.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                {selectedCategory !== 'All' && !searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => openPublishWithCategory(selectedCategory)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0071e3] hover:bg-[#0a84ff] text-white rounded-full text-xs font-bold transition-colors min-h-[42px]"
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    <span>Publish First {selectedCategory} App ($25 USD)</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                  }}
+                  className="px-5 py-2.5 bg-white text-black rounded-full text-xs font-bold hover:bg-zinc-200 transition-colors min-h-[42px]"
+                >
+                  View All Apps
+                </button>
+              </div>
             </div>
           ) : viewMode === 'charts' ? (
             <div className="bg-[#1c1c1e] border border-white/[0.08] rounded-[22px] divide-y divide-white/[0.08] overflow-hidden">
@@ -439,60 +487,145 @@ export default function App() {
           )}
         </section>
 
-        {/* Apple Store Editorial Spotlight: Developer Publishing & Smart TV */}
-        <section className="mt-12">
-          <div className="overflow-hidden rounded-[24px] bg-[#1c1c1e] border border-white/[0.08] grid grid-cols-1 lg:grid-cols-12 items-stretch">
-            <div className="lg:col-span-5 relative min-h-[220px] lg:min-h-[280px] bg-black flex items-center justify-center">
-              {!showcaseImgError ? (
-                <img
-                  src={normalizeAssetPath('./assets/apple_tv_showcase.jpg')}
-                  alt="Smart TV streaming hardware and remote"
-                  onError={() => setShowcaseImgError(true)}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-900 to-black text-[#0a84ff] p-6">
-                  <Tv className="w-12 h-12" />
-                  <span className="text-xs font-semibold text-zinc-400">Smart TV &amp; Android SDK</span>
+        {/* Apple Store Editorial Spotlight: Real Verified Store Owner & Developer Publishing */}
+        {(() => {
+          const storeOwner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
+          return (
+            <section className="mt-12">
+              <div className="overflow-hidden rounded-[24px] bg-[#1c1c1e] border border-white/[0.08] grid grid-cols-1 lg:grid-cols-12 items-stretch">
+                <div className="lg:col-span-5 relative min-h-[220px] lg:min-h-[300px] bg-black flex items-center justify-center">
+                  {!showcaseImgError ? (
+                    <img
+                      src={normalizeAssetPath('./assets/apple_tv_showcase.jpg')}
+                      alt="Smart TV streaming hardware and remote"
+                      onError={() => setShowcaseImgError(true)}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-900 to-black text-[#0a84ff] p-6">
+                      <Tv className="w-12 h-12" />
+                      <span className="text-xs font-semibold text-zinc-400">Smart TV &amp; Android SDK</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center gap-4">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400">
-                <span className="text-[#0a84ff]">MRS Developer Program</span>
-                <span aria-hidden="true">·</span>
-                <span>Smart TV &amp; Android Direct Hosting</span>
+                <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center gap-5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400">
+                    <span className="text-[#0a84ff]">Official Store Owner &amp; Developer Program</span>
+                    <span aria-hidden="true">·</span>
+                    <span>All {categories.length - 1} App Categories Open</span>
+                  </div>
+
+                  {/* Real Verified Store Owner Row (No nested box) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {storeOwner.avatarUrl && !ownerAvatarError ? (
+                        <img
+                          src={storeOwner.avatarUrl}
+                          alt={`${storeOwner.displayName} (@${storeOwner.username})`}
+                          onError={() => setOwnerAvatarError(true)}
+                          className="w-14 h-14 rounded-[22.5%] object-cover ring-1 ring-white/20 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/20 flex items-center justify-center text-[#0a84ff] shrink-0">
+                          <UserCheck className="w-6 h-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                            {storeOwner.displayName}
+                          </h2>
+                          <span className="text-xs font-mono text-zinc-400">@{storeOwner.username}</span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mt-0.5 line-clamp-2">
+                          {storeOwner.headline}
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={storeOwner.profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline whitespace-nowrap shrink-0"
+                    >
+                      <span>gravatar.com/{storeOwner.username}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight text-balance">
+                      Publish your Android &amp; Smart TV APK across any store category
+                    </h3>
+                    <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
+                      Direct marketplace operated by {storeOwner.displayName} (@{storeOwner.username}). Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, and publish live with direct downloads.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-300 font-mono">
+                      <a href={`mailto:${storeOwner.email}`} className="inline-flex items-center gap-1.5 hover:text-white">
+                        <Mail className="w-3.5 h-3.5 text-[#0a84ff]" />
+                        <span>{storeOwner.email}</span>
+                      </a>
+                      {storeOwner.phone && (
+                        <a href={`tel:${storeOwner.phone}`} className="inline-flex items-center gap-1.5 hover:text-white">
+                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{storeOwner.phone}</span>
+                        </a>
+                      )}
+                      {storeOwner.calendarUrl && (
+                        <a
+                          href={storeOwner.calendarUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 font-sans text-zinc-300 hover:text-white"
+                        >
+                          <Calendar className="w-3.5 h-3.5 text-[#0a84ff]" />
+                          <span>Calendly</span>
+                        </a>
+                      )}
+                      {storeOwner.accounts?.map((acc) => (
+                        <a
+                          key={acc.url}
+                          href={acc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-sans text-zinc-400 hover:text-white"
+                        >
+                          <span>{acc.name}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => openPublishWithCategory(selectedCategory)}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors min-h-[42px] whitespace-nowrap"
+                    >
+                      <span>Start App Submission ($25 USD)</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Instant On-Chain BEP-20 Verification</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight text-balance">
-                Publish your Android &amp; Smart TV APK directly to the store
-              </h2>
-              <p className="text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature, link your Gravatar owner profile, and publish live with direct downloads.
-              </p>
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsPublishModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors min-h-[42px] whitespace-nowrap"
-                >
-                  <span>Start App Submission ($25 USD)</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Instant On-Chain BEP-20 Verification</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+            </section>
+          );
+        })()}
       </main>
 
       <Footer
         siteMeta={siteMeta}
         onOpenLegal={handleOpenLegal}
-        onOpenPublish={() => setIsPublishModalOpen(true)}
+        onOpenPublish={() => openPublishWithCategory(selectedCategory)}
       />
 
       <MobileBottomNav
@@ -513,6 +646,7 @@ export default function App() {
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         hasBackend={hasBackend}
+        initialCategory={publishInitialCategory}
         onAppPublished={(newApp) => {
           const normalized: AppItem = {
             ...newApp,

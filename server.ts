@@ -617,13 +617,34 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
   }
 });
 
-// 4. Backend site metadata, auto-renewed copyright & policies
+// 4. Backend site metadata, real store owner profile, categories & policies
 app.get('/api/meta', (_req: Request, res: Response) => {
   const meta = AppDatabase.getSiteMeta();
   res.setHeader('Cache-Control', 'public, max-age=60');
   res.json({
     success: true,
     meta
+  });
+});
+
+app.get('/api/categories', (_req: Request, res: Response) => {
+  const categories = AppDatabase.getCategoriesWithCounts();
+  res.setHeader('Cache-Control', 'public, max-age=15');
+  res.json({
+    success: true,
+    categories,
+  });
+});
+
+app.get('/api/owner', async (req: Request, res: Response) => {
+  const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+  const profile = forceRefresh
+    ? await AppDatabase.refreshOwnerProfile()
+    : AppDatabase.getOwnerProfile();
+  res.setHeader('Cache-Control', forceRefresh ? 'no-cache' : 'public, max-age=60');
+  res.json({
+    success: true,
+    owner: profile,
   });
 });
 

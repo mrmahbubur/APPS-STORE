@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { AppItem, ReviewItem, ReviewStats } from '../types';
 import {
-  getAppLocalApkFile,
+  getAppLocalApkUrl,
   computeReviewStats,
   getLocalReviews,
   saveLocalReview,
@@ -129,16 +129,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     : pathname.split('/').pop()?.includes('.')
     ? pathname.replace(/\/[^/]*$/, '/')
     : `${pathname}/`;
-  const isExternalDirectUrl =
-    app.directDownloadUrl &&
-    (app.directDownloadUrl.startsWith('http://') || app.directDownloadUrl.startsWith('https://'));
+  const staticApkRel = getAppLocalApkUrl(app);
   const directDownloadUrl = hasBackend
     ? `${window.location.origin}${basePath}api/download/${app.id}`
-    : isExternalDirectUrl
-    ? app.directDownloadUrl
-    : app.localApkPath && app.localApkPath.startsWith('./apks/')
-    ? `${window.location.origin}${basePath}${app.localApkPath.replace(/^\.\//, '')}`
-    : `${window.location.origin}${basePath}apks/${getAppLocalApkFile(app.id)}`;
+    : staticApkRel.startsWith('http://') || staticApkRel.startsWith('https://')
+    ? staticApkRel
+    : `${window.location.origin}${basePath}${staticApkRel.replace(/^\.\//, '')}`;
   const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
 
   const handleCopyDownloadLink = () => {

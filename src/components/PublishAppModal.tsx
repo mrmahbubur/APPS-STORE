@@ -314,7 +314,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       network: 'BNB Smart Chain (BEP20)',
       label: 'Deposit Wallet Address',
       value: OWNER_BSC_WALLET,
-      qrImage: './assets/aistudio/unnamed__2__145559af.png',
+      qrImage: normalizeAssetPath('./assets/aistudio/unnamed__2__145559af.png'),
       notice: "Send at least $25.00 USDT/USDC via BNB Smart Chain (BEP20) for instant automated on-chain verification.",
     },
     BINANCE_PAY: {
@@ -323,7 +323,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       network: 'Binance App (Zero Fee)',
       label: 'Binance Pay ID / Username',
       value: 'mrxshahin',
-      qrImage: './assets/aistudio/unnamed__1__2b5c7e8c.png',
+      qrImage: normalizeAssetPath('./assets/aistudio/unnamed__1__2b5c7e8c.png'),
       notice: 'Send $25.00 USD via Binance Pay to ID mrxshahin, then enter your Order ID for store owner review.',
     },
   };
@@ -799,7 +799,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '') || `app-${now}`;
       const pkg = packageId.trim() || `com.mrs.${slug.replace(/-/g, '')}`;
-      const finalIcon = iconUrl || './assets/site-logo-icon.jpg';
+      const finalIcon = normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
 
       const newApp: AppItem = {
         id: `${slug}-${String(now).slice(-4)}`,
@@ -916,7 +916,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setFormError(null);
   };
 
-  const previewIcon = iconUrl ? normalizeAssetPath(iconUrl) : './assets/site-logo-icon.jpg';
+  const previewIcon = normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
 
   return (
     <div

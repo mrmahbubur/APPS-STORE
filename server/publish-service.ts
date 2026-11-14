@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import dns from 'node:dns/promises';
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
 import type { AppOwnerAccount, AppOwnerProfile } from './db.ts';
 
@@ -418,4 +420,194 @@ export async function fetchGravatarProfileByHandle(
       message: err?.message || 'Unable to connect to Gravatar profile service.',
     };
   }
+}
+
+function isPrivateOrReservedIp(ipRaw: string): boolean {
+  const ip = ipRaw.replace(/^\[|\]$/g, '').toLowerCase();
+  const ver = net.isIP(ip);
+  if (ver === 4) {
+    const parts = ip.split('.').map((p) => parseInt(p, 10));
+    if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    if (a >= 224) return true;
+    return false;
+  }
+  if (ver === 6) {
+    if (ip === '::1' || ip === '::') return true;
+    if (ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80')) return true;
+    if (ip.startsWith('::ffff:')) {
+      return isPrivateOrReservedIp(ip.slice(7));
+    }
+    return false;
+  }
+  return true;
+}
+
+async function assertSafeExternalUrl(urlStr: string): Promise<{ safe: boolean; parsed?: URL; message?: string }> {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlStr);
+  } catch {
+    return { safe: false, message: 'Enter a valid HTTP or HTTPS APK download URL.' };
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return { safe: false, message: 'Only HTTPS or HTTP APK URLs are supported.' };
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (
+    !host ||
+    host === 'localhost' ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host === 'metadata.google.internal'
+  ) {
+    return { safe: false, message: 'Internal or localhost APK URLs are not permitted.' };
+  }
+
+  if (net.isIP(host)) {
+    if (isPrivateOrReservedIp(host)) {
+      return { safe: false, message: 'Private or reserved network IP URLs are not permitted.' };
+    }
+    return { safe: true, parsed };
+  }
+
+  try {
+    const records = await dns.lookup(host, { all: true });
+    if (!records.length || records.some((r) => isPrivateOrReservedIp(r.address))) {
+      return { safe: false, message: 'APK URL hostname resolves to a private or restricted IP address.' };
+    }
+  } catch {
+    return { safe: false, message: `Unable to resolve hostname "${host}".` };
+  }
+
+  return { safe: true, parsed };
+}
+
+export async function verifyExternalApkUrl(urlStr: string): Promise<{
+  valid: boolean;
+  reachable: boolean;
+  finalUrl?: string;
+  size?: string;
+  message: string;
+}> {
+  let currentUrl = urlStr.trim();
+
+  for (let hop = 0; hop < 4; hop++) {
+    const check = await assertSafeExternalUrl(currentUrl);
+    if (!check.safe) {
+      return { valid: false, reachable: false, message: check.message || 'Unsafe APK URL.' };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let res = await fetch(currentUrl, {
+        method: 'HEAD',
+        redirect: 'manual',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get('location');
+        if (!loc) {
+          return { valid: false, reachable: false, message: 'Redirect response missing target URL.' };
+        }
+        currentUrl = new URL(loc, currentUrl).toString();
+        continue;
+      }
+
+      if (res.status === 405 || res.status === 501) {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 8000);
+        res = await fetch(currentUrl, {
+          method: 'GET',
+          headers: { Range: 'bytes=0-1023' },
+          redirect: 'manual',
+          signal: c2.signal,
+        });
+        clearTimeout(t2);
+      }
+
+      if (!res.ok) {
+        return {
+          valid: false,
+          reachable: false,
+          message: `External APK URL returned HTTP ${res.status}. Verify the link is publicly downloadable.`,
+        };
+      }
+
+      const lenHeader = res.headers.get('content-length');
+      const bytes = lenHeader ? parseInt(lenHeader, 10) : 0;
+      const size =
+        bytes > 0 ? `${(bytes / (1024 * 1024)).toFixed(2)} MB` : undefined;
+
+      return {
+        valid: true,
+        reachable: true,
+        finalUrl: currentUrl,
+        size,
+        message: 'External APK download URL verified reachable.',
+      };
+    } catch (err: any) {
+      return {
+        valid: false,
+        reachable: false,
+        message: `Could not reach external APK URL: ${err?.message || 'network timeout'}`,
+      };
+    }
+  }
+
+  return {
+    valid: false,
+    reachable: false,
+    message: 'Too many redirects while verifying external APK URL.',
+  };
+}
+
+export async function checkBscRpcHealth() {
+  const results = await Promise.all(
+    BSC_RPC_ENDPOINTS.map(async (endpoint) => {
+      const started = Date.now();
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        const json: any = await res.json().catch(() => null);
+        const latestBlock = json?.result ? parseInt(json.result, 16) : null;
+        return {
+          endpoint,
+          healthy: res.ok && typeof latestBlock === 'number' && !Number.isNaN(latestBlock),
+          latestBlock,
+          latencyMs: Date.now() - started,
+        };
+      } catch {
+        return {
+          endpoint,
+          healthy: false,
+          latestBlock: null,
+          latencyMs: Date.now() - started,
+        };
+      }
+    })
+  );
+
+  return {
+    healthyNodes: results.filter((r) => r.healthy).length,
+    totalNodes: results.length,
+    nodes: results,
+  };
 }

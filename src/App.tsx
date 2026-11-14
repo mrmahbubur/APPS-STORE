@@ -12,7 +12,7 @@ import {
   DEFAULT_APPS,
   getDefaultSiteMeta,
   normalizeAssetPath,
-  getAppLocalApkFile,
+  getAppLocalApkUrl,
   getLocalPublishedApps,
   mergeCatalogApps,
 } from './data/catalog';
@@ -186,13 +186,7 @@ export default function App() {
     setActiveDownloadNotification(`Downloading ${app.fileName} directly from MRS App Store...`);
     setTimeout(() => setActiveDownloadNotification(null), 4000);
 
-    const staticUrl =
-      app.directDownloadUrl &&
-      (app.directDownloadUrl.startsWith('http://') || app.directDownloadUrl.startsWith('https://'))
-        ? app.directDownloadUrl
-        : app.localApkPath && app.localApkPath.startsWith('./apks/')
-        ? app.localApkPath
-        : `./apks/${getAppLocalApkFile(app.id)}`;
+    const staticUrl = getAppLocalApkUrl(app);
 
     const link = document.createElement('a');
     link.href = hasBackend ? `./api/download/${app.id}` : staticUrl;

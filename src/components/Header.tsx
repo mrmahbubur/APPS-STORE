@@ -1,5 +1,6 @@
 import React from 'react';
 import { DollarSign } from 'lucide-react';
+import { normalizeAssetPath } from '../data/catalog';
 
 interface HeaderProps {
   onOpenPublish: () => void;
@@ -36,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2.5 sm:gap-3 whitespace-nowrap shrink-0 group min-h-[40px]"
         >
           <img
-            src="./assets/site-logo-icon.jpg"
+            src={normalizeAssetPath('./assets/site-logo-icon.jpg')}
             alt="MRS App Store"
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-[22%] object-cover ring-1 ring-white/15 group-hover:scale-105 transition-transform duration-200"
             referrerPolicy="no-referrer"

@@ -12,7 +12,6 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="MRS App Store - Official IPTV Network" />
     <meta name="twitter:description" content="Download verified M R S IPTV Android and M R S IPTV TV APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing." />
-    <meta name="monetag" content="43bce6afdc53e6d304c43c5ea69a3c25" />
     <link rel="icon" type="image/jpeg" href="./assets/site-logo-icon.jpg" />
     <link rel="apple-touch-icon" href="./assets/site-logo.jpg" />
     <meta property="og:image" content="./assets/site-logo.jpg" />
@@ -40,8 +39,33 @@
         </div>
       </div>
     </div>
+    <script type="module" src="/src/main.tsx"></script>
     <script>
       (function () {
+        var hasViteClient = !!document.querySelector('script[src*="/@vite/client"]');
+        var rawEntry = document.querySelector('script[src="/src/main.tsx"]');
+        if (!hasViteClient && rawEntry) {
+          window.__MRS_GH_ROOT_MODE__ = true;
+          if (rawEntry.parentNode) rawEntry.parentNode.removeChild(rawEntry);
+
+          var iconLink = document.querySelector('link[rel="icon"]');
+          if (iconLink) iconLink.setAttribute('href', './public/assets/site-logo-icon.jpg');
+          var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+          if (appleIcon) appleIcon.setAttribute('href', './public/assets/site-logo.jpg');
+          var ogImg = document.querySelector('meta[property="og:image"]');
+          if (ogImg) ogImg.setAttribute('content', './public/assets/site-logo.jpg');
+
+          var css = document.createElement('link');
+          css.rel = 'stylesheet';
+          css.href = './gh-pages/app.css';
+          document.head.appendChild(css);
+
+          var appScript = document.createElement('script');
+          appScript.type = 'module';
+          appScript.src = './gh-pages/app.js';
+          document.body.appendChild(appScript);
+        }
+
         var bootErrors = [];
         window.addEventListener(
           'error',
@@ -49,7 +73,11 @@
             if (ev && ev.message) {
               bootErrors.push(ev.message);
             } else if (ev && ev.target && (ev.target.src || ev.target.href)) {
-              bootErrors.push('Failed to load ' + (ev.target.src || ev.target.href));
+              var assetUrl = ev.target.src || ev.target.href || '';
+              if (window.__MRS_GH_ROOT_MODE__ && assetUrl.indexOf('/src/main.tsx') !== -1) {
+                return;
+              }
+              bootErrors.push('Failed to load ' + assetUrl);
             }
           },
           true
@@ -58,35 +86,18 @@
           if (ev && ev.reason) bootErrors.push(ev.reason.message || String(ev.reason));
         });
 
-        function showBootError(customMsg) {
+        setTimeout(function () {
           if (window.__MRS_APP_MOUNTED__) return;
           var statusEl = document.getElementById('mrs-boot-status');
           if (!statusEl) return;
-          var isGh = /github\.io$/i.test(window.location.hostname || '');
-          var msg =
-            customMsg ||
-            (isGh
-              ? 'GitHub Pages is serving the unbuilt source branch instead of the compiled site. In your GitHub repo open Settings → Pages → Build and deployment → Source and select "GitHub Actions", then run the "Deploy to GitHub Pages" workflow.'
-              : 'Unable to initialize the frontend script bundle. Please rebuild the application or reload this page.');
+          var msg = 'Unable to initialize MRS App Store. Please reload this page.';
           if (bootErrors.length > 0) {
             msg += ' (' + bootErrors[0] + ')';
           }
           statusEl.textContent = msg;
           statusEl.style.color = '#fca5a5';
-        }
-
-        var isGhHost = /github\.io$/i.test(window.location.hostname || '');
-        var hasRawEntry = !!document.querySelector('script[src="/src/main.tsx"]');
-        if (isGhHost && hasRawEntry) {
-          showBootError();
-        } else {
-          setTimeout(function () {
-            showBootError();
-          }, 3000);
-        }
+        }, 5000);
       })();
     </script>
-    <script type="module" src="/src/main.tsx"></script>
-    <script src="https://quge5.com/88/tag.min.js" data-zone="300912" async data-cfasync="false"></script>
   </body>
 </html>

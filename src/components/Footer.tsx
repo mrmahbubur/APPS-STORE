@@ -1,6 +1,7 @@
 import React from 'react';
 import { SiteMeta } from '../types';
 import { ShieldCheck, RefreshCw, DollarSign } from 'lucide-react';
+import { normalizeAssetPath } from '../data/catalog';
 
 interface FooterProps {
   siteMeta: SiteMeta | null;
@@ -22,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-white/[0.06]">
           <div className="flex items-center gap-3.5">
             <img
-              src="./assets/site-logo-icon.jpg"
+              src={normalizeAssetPath('./assets/site-logo-icon.jpg')}
               alt="MRS App Store Official Logo"
               className="w-10 h-10 rounded-[22%] object-cover ring-1 ring-white/20 shrink-0"
               referrerPolicy="no-referrer"

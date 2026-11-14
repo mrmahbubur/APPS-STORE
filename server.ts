@@ -1,13 +1,15 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { AppDatabase } from './server/db.ts';
 import {
+  checkBscRpcHealth,
   fetchGravatarProfileByHandle,
   inspectApkArchive,
   issuePaymentVerificationToken,
   verifyBscUsdtPayment,
+  verifyExternalApkUrl,
   verifyPaymentVerificationToken,
 } from './server/publish-service.ts';
 
@@ -90,7 +92,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
 
   if (apkMap[appItem.id]) {
     const filePath = path.resolve(process.cwd(), 'public/apks', apkMap[appItem.id]);
-    if (fs.existsSync(filePath)) {
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath);
@@ -100,17 +102,28 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
   // Serve developer-uploaded local APKs stored inside public/apks/
   if (appItem.localApkPath && appItem.localApkPath.startsWith('/apks/')) {
     const safeRel = appItem.localApkPath.replace(/^\/apks\//, '').replace(/\.\./g, '');
-    const filePath = path.resolve(process.cwd(), 'public/apks', safeRel);
     const apksRoot = path.resolve(process.cwd(), 'public/apks');
-    if (filePath.startsWith(apksRoot) && fs.existsSync(filePath)) {
+    const filePath = path.resolve(apksRoot, safeRel);
+    if (
+      (filePath.startsWith(apksRoot + path.sep) || filePath === apksRoot) &&
+      fs.existsSync(filePath) &&
+      fs.statSync(filePath).isFile()
+    ) {
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath);
     }
   }
 
-  // External HTTPS fallback if submitted with an external direct APK link
-  return res.redirect(appItem.directDownloadUrl);
+  // External HTTPS fallback only if it is a safe absolute HTTP(S) URL
+  if (
+    appItem.directDownloadUrl &&
+    (appItem.directDownloadUrl.startsWith('https://') || appItem.directDownloadUrl.startsWith('http://'))
+  ) {
+    return res.redirect(302, appItem.directDownloadUrl);
+  }
+
+  return res.status(404).send('APK binary file not found on server storage.');
 });
 
 // Direct APK download route by filename
@@ -408,8 +421,8 @@ app.get('/api/publish/submissions', (_req: Request, res: Response) => {
   });
 });
 
-// 3d. Finalize App Publishing (enforces verified HMAC payment token + replay check)
-app.post('/api/publish/submit', (req: Request, res: Response) => {
+// 3d. Finalize App Publishing (enforces verified HMAC payment token + replay check + server-side APK/URL verification)
+app.post('/api/publish/submit', async (req: Request, res: Response) => {
   try {
     const {
       appTitle,
@@ -478,6 +491,60 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       });
     }
 
+    let authoritativeSize = size ? String(size).trim() : undefined;
+    let authoritativeSha256 = sha256 ? String(sha256).trim() : undefined;
+    let authoritativeAbis = Array.isArray(architectures) ? architectures.map(String) : undefined;
+    let verifiedLocalPath: string | undefined;
+    let verifiedExternalUrl = cleanUrl;
+
+    if (cleanLocalPath) {
+      if (!cleanLocalPath.startsWith('/apks/uploads/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid uploaded APK storage path.',
+        });
+      }
+      const uploadsRoot = path.resolve(process.cwd(), 'public/apks/uploads');
+      const relUpload = path.basename(cleanLocalPath);
+      const diskPath = path.resolve(uploadsRoot, relUpload);
+      if (
+        !diskPath.startsWith(uploadsRoot + path.sep) ||
+        !fs.existsSync(diskPath) ||
+        !fs.statSync(diskPath).isFile()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Uploaded APK file could not be located on server storage. Please upload again.',
+        });
+      }
+      const diskBuf = fs.readFileSync(diskPath);
+      const inspection = inspectApkArchive(diskBuf);
+      if (!inspection.isValidZip || !inspection.hasAndroidManifest) {
+        return res.status(400).json({
+          success: false,
+          message: 'Stored APK package failed server integrity inspection.',
+        });
+      }
+      authoritativeSize = `${(diskBuf.length / (1024 * 1024)).toFixed(2)} MB`;
+      authoritativeSha256 = crypto.createHash('sha256').update(diskBuf).digest('hex');
+      if (inspection.architectures.length > 0) {
+        authoritativeAbis = inspection.architectures;
+      }
+      verifiedLocalPath = `/apks/uploads/${relUpload}`;
+    } else {
+      const urlCheck = await verifyExternalApkUrl(cleanUrl);
+      if (!urlCheck.valid || !urlCheck.reachable) {
+        return res.status(400).json({
+          success: false,
+          message: urlCheck.message,
+        });
+      }
+      verifiedExternalUrl = urlCheck.finalUrl || cleanUrl;
+      if (!authoritativeSize && urlCheck.size) {
+        authoritativeSize = urlCheck.size;
+      }
+    }
+
     const publishedApp = AppDatabase.publishApp({
       appTitle: cleanTitle,
       fileName: fileName ? String(fileName).trim() : undefined,
@@ -495,11 +562,11 @@ app.post('/api/publish/submit', (req: Request, res: Response) => {
       ownerProfile: ownerProfile && typeof ownerProfile === 'object' ? ownerProfile : undefined,
       developerEmail: cleanEmail,
       iconUrl: iconUrl ? String(iconUrl).trim() : undefined,
-      apkDownloadUrl: cleanUrl || cleanLocalPath,
-      localApkPath: cleanLocalPath || undefined,
-      size: size ? String(size).trim() : undefined,
-      sha256: sha256 ? String(sha256).trim() : undefined,
-      architectures: Array.isArray(architectures) ? architectures.map(String) : undefined,
+      apkDownloadUrl: verifiedLocalPath ? verifiedLocalPath : verifiedExternalUrl,
+      localApkPath: verifiedLocalPath,
+      size: authoritativeSize,
+      sha256: authoritativeSha256,
+      architectures: authoritativeAbis,
     });
 
     const submission = AppDatabase.createSubmission(
@@ -598,11 +665,31 @@ app.post('/api/reviews/:appId/:reviewId/helpful', (req: Request, res: Response) 
   });
 });
 
-// 5. Root Service Worker handler for Monetag push notifications
-app.get('/sw.js', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.setHeader('Service-Worker-Allowed', '/');
-  res.sendFile(path.resolve(process.cwd(), 'public/sw.js'));
+// 5. Backend Health & Integrity Diagnostics Endpoint
+app.get('/api/health', async (req: Request, res: Response) => {
+  const dbHealth = AppDatabase.getHealthReport();
+  const includeRpc = req.query.checkRpc === '1' || req.query.checkRpc === 'true';
+  const rpc = includeRpc ? await checkBscRpcHealth() : undefined;
+
+  res.status(dbHealth.ok ? 200 : 503).json({
+    success: dbHealth.ok,
+    timestamp: new Date().toISOString(),
+    ...dbHealth,
+    ...(rpc ? { bscRpc: rpc } : {}),
+  });
+});
+
+// Structured JSON error middleware for API requests (e.g. malformed JSON payloads)
+app.use('/api', (err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err?.status || err?.statusCode || (err instanceof SyntaxError ? 400 : 500);
+  const message =
+    err instanceof SyntaxError
+      ? 'Invalid JSON request body.'
+      : err?.message || 'Internal backend error.';
+  return res.status(status).json({
+    success: false,
+    message,
+  });
 });
 
 // Start dev or production server

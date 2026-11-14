@@ -7,6 +7,7 @@ declare global {
   interface Window {
     __MRS_APP_MOUNTED__?: boolean;
     __MRS_MOUNTED_AT__?: string;
+    __MRS_GH_ROOT_MODE__?: boolean;
   }
 }
 
@@ -64,6 +65,14 @@ function MountTracker({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     window.__MRS_APP_MOUNTED__ = true;
     window.__MRS_MOUNTED_AT__ = new Date().toISOString();
+    if ('serviceWorker' in navigator && navigator.serviceWorker?.getRegistrations) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => {
+          regs.forEach((reg) => reg.unregister().catch(() => {}));
+        })
+        .catch(() => {});
+    }
   }, []);
 
   return <>{children}</>;

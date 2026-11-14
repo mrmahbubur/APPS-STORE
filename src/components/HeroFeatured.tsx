@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Star, ArrowRight, Share2, Check, UserCheck } from 'lucide-react';
 import { AppItem } from '../types';
-import { getAppLocalApkFile } from '../data/catalog';
+import { getAppLocalApkUrl, normalizeAssetPath } from '../data/catalog';
 
 interface HeroFeaturedProps {
   app: AppItem;
@@ -142,7 +142,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
             <span className="text-emerald-400 font-semibold">Self-Hosted Direct CDN</span>
             <span aria-hidden="true" className="text-zinc-700">·</span>
             <span className="font-mono text-zinc-400 truncate max-w-full">
-              {hasBackend ? `./api/download/${app.id}` : `./apks/${getAppLocalApkFile(app.id)}`}
+              {hasBackend ? `./api/download/${app.id}` : getAppLocalApkUrl(app)}
             </span>
           </div>
         </div>
@@ -163,7 +163,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
         >
           <div className="relative">
             <img
-              src={app.icon || './assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'}
+              src={normalizeAssetPath(app.icon) || normalizeAssetPath('./assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png')}
               alt={app.title}
               className="w-24 h-24 sm:w-52 sm:h-52 lg:w-72 lg:h-72 xl:w-80 xl:h-80 rounded-[22%] object-cover ring-1 ring-white/15 shadow-2xl group-hover:scale-[1.02] transition-transform duration-300"
               referrerPolicy="no-referrer"

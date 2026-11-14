@@ -150,6 +150,23 @@ const APPS_FILE = path.join(DATA_DIR, 'apps.json');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
 
+function writeJsonAtomic(filePath: string, data: unknown) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch {}
+    throw err;
+  }
+}
+
 /** Read real byte size, SHA-256 hash, and mtime directly from the APK binary on disk */
 function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackSha256: string) {
   try {
@@ -398,7 +415,7 @@ function ensureDatabase() {
       reviewsStore = JSON.parse(revContent);
     } else {
       reviewsStore = {};
-      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+      writeJsonAtomic(REVIEWS_FILE, reviewsStore);
     }
 
     const genuineApps = buildGenuineApps().map((app) => {
@@ -431,14 +448,14 @@ function ensureDatabase() {
     });
 
     const mergedApps = [...genuineApps, ...refreshedCustomApps];
-    fs.writeFileSync(APPS_FILE, JSON.stringify(mergedApps, null, 2), 'utf-8');
+    writeJsonAtomic(APPS_FILE, mergedApps);
     memoryStore = mergedApps;
 
     if (fs.existsSync(SUBMISSIONS_FILE)) {
       const subContent = fs.readFileSync(SUBMISSIONS_FILE, 'utf-8');
       submissionsStore = JSON.parse(subContent);
     } else {
-      fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify([], null, 2), 'utf-8');
+      writeJsonAtomic(SUBMISSIONS_FILE, []);
       submissionsStore = [];
     }
   } catch (err) {
@@ -524,7 +541,7 @@ async function syncGravatarOwnerProfile() {
           }
         : app
     );
-    fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+    writeJsonAtomic(APPS_FILE, memoryStore);
   } catch (err) {
     console.warn('Using verified cached Gravatar owner profile:', err instanceof Error ? err.message : err);
   }
@@ -573,7 +590,7 @@ export const AppDatabase = {
     reviewsStore[appId] = list;
 
     try {
-      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+      writeJsonAtomic(REVIEWS_FILE, reviewsStore);
     } catch (err) {
       console.error('Failed to save review:', err);
     }
@@ -583,7 +600,7 @@ export const AppDatabase = {
       app.rating = stats.averageRating;
       app.reviewsCount = stats.totalReviews;
       try {
-        fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+        writeJsonAtomic(APPS_FILE, memoryStore);
       } catch (e) {}
     }
 
@@ -597,7 +614,7 @@ export const AppDatabase = {
     );
     reviewsStore[appId] = updated;
     try {
-      fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviewsStore, null, 2), 'utf-8');
+      writeJsonAtomic(REVIEWS_FILE, reviewsStore);
     } catch (e) {}
     return { reviews: updated, stats: computeStats(updated) };
   },
@@ -704,7 +721,7 @@ export const AppDatabase = {
 
     memoryStore = [...memoryStore, newApp];
     try {
-      fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+      writeJsonAtomic(APPS_FILE, memoryStore);
     } catch (err) {
       console.error('Failed to persist published app:', err);
     }
@@ -731,7 +748,7 @@ export const AppDatabase = {
 
     submissionsStore.unshift(newSubmission);
     try {
-      fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(submissionsStore, null, 2), 'utf-8');
+      writeJsonAtomic(SUBMISSIONS_FILE, submissionsStore);
     } catch (err) {
       console.error('Failed to save submission:', err);
     }
@@ -755,11 +772,68 @@ export const AppDatabase = {
     if (app) {
       app.downloads = (app.downloads || 0) + 1;
       try {
-        fs.writeFileSync(APPS_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+        writeJsonAtomic(APPS_FILE, memoryStore);
       } catch (e) {}
       return app.downloads;
     }
     return 0;
+  },
+
+  getHealthReport() {
+    let dataDirWritable = false;
+    try {
+      fs.accessSync(DATA_DIR, fs.constants.W_OK | fs.constants.R_OK);
+      dataDirWritable = true;
+    } catch {
+      dataDirWritable = false;
+    }
+
+    const apksRoot = path.resolve(process.cwd(), 'public/apks');
+    const apkChecks = memoryStore.map((app) => {
+      if (!app.localApkPath || !app.localApkPath.startsWith('/apks/')) {
+        return {
+          appId: app.id,
+          source: 'external',
+          exists: true,
+          sha256Match: true,
+          size: app.size,
+        };
+      }
+      const safeRel = app.localApkPath.replace(/^\/apks\//, '').replace(/\.\./g, '');
+      const fullPath = path.resolve(apksRoot, safeRel);
+      const insideRoot = fullPath.startsWith(apksRoot + path.sep) || fullPath === apksRoot;
+      const exists = insideRoot && fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
+      if (!exists) {
+        return {
+          appId: app.id,
+          source: 'local',
+          exists: false,
+          sha256Match: false,
+          size: app.size,
+        };
+      }
+      const stat = fs.statSync(fullPath);
+      const buf = fs.readFileSync(fullPath);
+      const actualSha256 = crypto.createHash('sha256').update(buf).digest('hex');
+      return {
+        appId: app.id,
+        source: 'local',
+        exists: true,
+        bytes: stat.size,
+        size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
+        sha256Match: actualSha256 === app.sha256,
+      };
+    });
+
+    const allApksHealthy = apkChecks.every((c) => c.exists && c.sha256Match);
+    return {
+      ok: dataDirWritable && allApksHealthy && memoryStore.length > 0,
+      dataDirWritable,
+      totalApps: memoryStore.length,
+      totalSubmissions: submissionsStore.length,
+      totalReviewThreads: Object.keys(reviewsStore).length,
+      apkChecks,
+    };
   },
 
   getSiteMeta(): SiteMeta {

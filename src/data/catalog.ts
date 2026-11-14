@@ -1,14 +1,35 @@
 import { AppItem, AppOwnerProfile, ReviewItem, ReviewStats, SiteMeta } from '../types';
 
+export function isGitHubRootStaticMode(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as any).__MRS_GH_ROOT_MODE__);
+}
+
 export function normalizeAssetPath(url: string | undefined): string {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('./')) {
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
     return url;
   }
-  if (url.startsWith('/')) {
-    return `.${url}`;
+
+  let normalized = url.startsWith('./')
+    ? url
+    : url.startsWith('/')
+    ? `.${url}`
+    : `./${url}`;
+
+  if (
+    isGitHubRootStaticMode() &&
+    (normalized.startsWith('./assets/') || normalized.startsWith('./apks/')) &&
+    !normalized.startsWith('./public/')
+  ) {
+    normalized = `./public/${normalized.slice(2)}`;
   }
-  return `./${url}`;
+
+  return normalized;
 }
 
 export function getAppLocalApkFile(appId: string): string {
@@ -17,6 +38,23 @@ export function getAppLocalApkFile(appId: string): string {
     'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
   };
   return apkMap[appId] || `${appId}.apk`;
+}
+
+export function getAppLocalApkUrl(app: {
+  id: string;
+  localApkPath?: string;
+  directDownloadUrl?: string;
+}): string {
+  if (
+    app.directDownloadUrl &&
+    (app.directDownloadUrl.startsWith('http://') || app.directDownloadUrl.startsWith('https://'))
+  ) {
+    return app.directDownloadUrl;
+  }
+  if (app.localApkPath && (app.localApkPath.startsWith('/apks/') || app.localApkPath.startsWith('./apks/'))) {
+    return normalizeAssetPath(app.localApkPath);
+  }
+  return normalizeAssetPath(`./apks/${getAppLocalApkFile(app.id)}`);
 }
 
 // Official owner profile verified from https://gravatar.com/mrxshahin.json
@@ -226,8 +264,8 @@ export function getLocalPublishedApps(): AppItem[] {
         whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
         features: Array.isArray(app.features) ? app.features : [],
         permissions: Array.isArray(app.permissions) ? app.permissions : [],
-        icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
-        banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
+        icon: normalizeAssetPath(app.icon) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
+        banner: normalizeAssetPath(app.banner) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
         screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
       }));
   } catch {
@@ -293,8 +331,8 @@ export function mergeCatalogApps(primaryApps: AppItem[], localApps: AppItem[]): 
         whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
         features: Array.isArray(app.features) ? app.features : [],
         permissions: Array.isArray(app.permissions) ? app.permissions : [],
-        icon: normalizeAssetPath(app.icon) || './assets/site-logo-icon.jpg',
-        banner: normalizeAssetPath(app.banner) || './assets/site-logo-icon.jpg',
+        icon: normalizeAssetPath(app.icon) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
+        banner: normalizeAssetPath(app.banner) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
         screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
       });
     }

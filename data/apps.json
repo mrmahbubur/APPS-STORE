@@ -7,11 +7,11 @@
     "category": "IPTV & Streaming",
     "platform": "Android Mobile & Smart TV",
     "version": "1.0.0",
-    "updatedAt": "2026-11-13",
+    "updatedAt": "2026-11-14",
     "size": "9.33 MB",
     "rating": 0,
     "reviewsCount": 0,
-    "downloads": 0,
+    "downloads": 1,
     "minAndroid": "Android 8.0+ (API 26)",
     "ageRating": "Everyone",
     "languages": "Android System Locale",
@@ -97,7 +97,7 @@
     "category": "Smart TV & Video",
     "platform": "Smart TV & Android Mobile",
     "version": "1.0",
-    "updatedAt": "2026-11-13",
+    "updatedAt": "2026-11-14",
     "size": "31.93 MB",
     "rating": 0,
     "reviewsCount": 0,
@@ -192,96 +192,6 @@
     ],
     "screenshots": [
       "/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png"
-    ],
-    "featured": false,
-    "editorChoice": false
-  },
-  {
-    "id": "camellia-ai",
-    "title": "Camellia Ai",
-    "fileName": "Camellia Ai.apk",
-    "tagline": "Official Camellia Ai Android APK hosted directly on MRS App Store.",
-    "category": "AI & Virtual Assistant",
-    "platform": "Android Mobile",
-    "version": "1.0.0",
-    "updatedAt": "2026-11-13",
-    "size": "9.33 MB",
-    "rating": 0,
-    "reviewsCount": 0,
-    "downloads": 0,
-    "minAndroid": "Android 8.0+ (API 26)",
-    "ageRating": "Everyone",
-    "languages": "Android System Locale",
-    "chartRank": "v1.0.0",
-    "icon": "/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg",
-    "banner": "/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg",
-    "developer": "Camellia Studio",
-    "developerEmail": "mr216873@gmail.com",
-    "ownerName": "M R S (@mrxshahin)",
-    "ownerProfile": {
-      "displayName": "M R S",
-      "username": "mrxshahin",
-      "profileUrl": "https://gravatar.com/mrxshahin",
-      "avatarUrl": "https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256",
-      "email": "mr216873@gmail.com",
-      "phone": "+8809611056361",
-      "headline": "Available for Remote IT Support, Virtual Assistance & Administrative Work",
-      "bio": "Available for Remote IT Support, Virtual Assistance & Administrative Work. Certified 360-hour computer systems coursework; writing technology guides and solutions since 2018 with focus on Android support, web solutions, technical documentation, and AI productivity tools.",
-      "calendarUrl": "https://calendly.com/mrxshahin",
-      "accounts": [
-        {
-          "name": "WordPress",
-          "username": "mrxshahin.wordpress.com",
-          "url": "https://mrxshahin.wordpress.com",
-          "verified": true
-        },
-        {
-          "name": "X",
-          "username": "Mrshahinx",
-          "url": "https://x.com/Mrshahinx",
-          "verified": true
-        },
-        {
-          "name": "LinkedIn",
-          "username": "mrmahbubur",
-          "url": "https://www.linkedin.com/in/mrmahbubur",
-          "verified": true
-        },
-        {
-          "name": "Bluesky",
-          "username": "mrxshahin.bsky.social",
-          "url": "https://bsky.app/profile/mrxshahin.bsky.social",
-          "verified": true
-        }
-      ]
-    },
-    "packageId": "co.median.android.rdalmaa",
-    "sha256": "78d49e74f404c870714494d59634fa3c7ba1f30cb7e4a132b523e481925f56d4",
-    "directDownloadUrl": "/api/download/camellia-ai",
-    "downloadUrl": "/api/download/camellia-ai",
-    "shareUrl": "/?app=camellia-ai",
-    "localApkPath": "/apks/Camellia_Ai.apk",
-    "description": "Camellia Ai is an Android AI assistant package (Camellia Ai.apk) hosted directly on MRS App Store for Android 8.0+ smartphones and tablets.",
-    "whatsNew": [
-      "Direct in-house APK hosting from MRS App Store (9.33 MB)",
-      "Build 3 (Version 1.0.0) compiled for Android API 26+",
-      "Verified SHA-256 binary checksum published on product page"
-    ],
-    "features": [
-      "Direct APK download from MRS App Store",
-      "Supports Android 8.0 (API 26) and above",
-      "Verified SHA-256 integrity hash",
-      "Shareable app page link and direct APK download URL"
-    ],
-    "permissions": [
-      "android.permission.INTERNET",
-      "android.permission.ACCESS_NETWORK_STATE",
-      "android.permission.READ_PHONE_STATE",
-      "android.permission.VIBRATE",
-      "android.permission.DUMP"
-    ],
-    "screenshots": [
-      "/assets/aistudio/young_sweet_girl_1787078669904-jjixDzch_83b23e69.jpg"
     ],
     "featured": false,
     "editorChoice": false

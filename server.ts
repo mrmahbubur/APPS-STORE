@@ -682,6 +682,24 @@ app.get('/api/categories', (_req: Request, res: Response) => {
   });
 });
 
+app.get('/api/sponsors', (_req: Request, res: Response) => {
+  const sponsors = AppDatabase.getSponsors();
+  res.setHeader('Cache-Control', 'public, max-age=30');
+  res.json({
+    success: true,
+    total: sponsors.length,
+    sponsors,
+  });
+});
+
+app.post('/api/sponsors/:id/click', (req: Request, res: Response) => {
+  const clicks = AppDatabase.incrementSponsorClick(req.params.id);
+  return res.json({
+    success: true,
+    clicks,
+  });
+});
+
 app.get('/api/owner', async (req: Request, res: Response) => {
   const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
   const profile = forceRefresh
@@ -766,7 +784,10 @@ async function startServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

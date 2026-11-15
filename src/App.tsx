@@ -7,10 +7,12 @@ import { PublishAppModal } from './components/PublishAppModal';
 import { LegalPoliciesModal } from './components/LegalPoliciesModal';
 import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { AppItem, SiteMeta } from './types';
+import { SponsoredSpotlight } from './components/SponsoredSpotlight';
+import { AppItem, SiteMeta, SponsorAdLink } from './types';
 import {
   APP_STORE_CATEGORIES,
   DEFAULT_APPS,
+  DEFAULT_SPONSOR_LINKS,
   MRS_GRAVATAR_OWNER_PROFILE,
   getDefaultSiteMeta,
   normalizeAssetPath,
@@ -38,6 +40,7 @@ const CATEGORIES = ['All', ...APP_STORE_CATEGORIES];
 export default function App() {
   const [apps, setApps] = useState<AppItem[]>([]);
   const [siteMeta, setSiteMeta] = useState<SiteMeta | null>(null);
+  const [sponsors, setSponsors] = useState<SponsorAdLink[]>(DEFAULT_SPONSOR_LINKS);
   const [hasBackend, setHasBackend] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,9 +73,10 @@ export default function App() {
       setLoading(true);
       setError(null);
 
-      const [appsRes, metaRes] = await Promise.all([
+      const [appsRes, metaRes, sponsorsRes] = await Promise.all([
         fetch('./api/apps').catch(() => null),
         fetch('./api/meta').catch(() => null),
+        fetch('./api/sponsors').catch(() => null),
       ]);
 
       const localPublished = getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai');
@@ -89,16 +93,26 @@ export default function App() {
         } else {
           setSiteMeta(getDefaultSiteMeta());
         }
+
+        const sponsorsContentType = sponsorsRes?.headers.get('content-type') || '';
+        if (sponsorsRes && sponsorsRes.ok && sponsorsContentType.includes('application/json')) {
+          const sponsorsData = await sponsorsRes.json();
+          if (Array.isArray(sponsorsData.sponsors) && sponsorsData.sponsors.length > 0) {
+            setSponsors(sponsorsData.sponsors);
+          }
+        }
       } else {
         setHasBackend(false);
         setApps(mergeCatalogApps(DEFAULT_APPS, localPublished));
         setSiteMeta(getDefaultSiteMeta());
+        setSponsors(DEFAULT_SPONSOR_LINKS);
       }
     } catch (err) {
       console.warn('Falling back to static catalog:', err);
       setHasBackend(false);
       setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai')));
       setSiteMeta(getDefaultSiteMeta());
+      setSponsors(DEFAULT_SPONSOR_LINKS);
     } finally {
       setLoading(false);
     }
@@ -268,6 +282,20 @@ export default function App() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleSponsorClick = (sponsor: SponsorAdLink) => {
+    setSponsors((prev) =>
+      prev.map((item) =>
+        item.id === sponsor.id ? { ...item, clicks: (item.clicks || 0) + 1 } : item
+      )
+    );
+    if (hasBackend) {
+      fetch(`./api/sponsors/${encodeURIComponent(sponsor.id)}/click`, {
+        method: 'POST',
+        keepalive: true,
+      }).catch(() => {});
+    }
   };
 
   const handleOpenLegal = (tab: 'privacy' | 'terms' | 'developer' | 'dmca' = 'privacy') => {
@@ -598,6 +626,12 @@ export default function App() {
           )}
         </section>
 
+        <SponsoredSpotlight
+          sponsors={sponsors}
+          activePlatform={selectedPlatform}
+          onSponsorClick={handleSponsorClick}
+        />
+
         {/* Apple Store Editorial Spotlight: Real Verified Store Owner & Developer Publishing */}
         {(() => {
           const storeOwner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
@@ -698,6 +732,8 @@ export default function App() {
         hasBackend={hasBackend}
         onReviewStatsUpdated={handleReviewStatsUpdated}
         onOpenLegal={handleOpenLegal}
+        sponsors={sponsors}
+        onSponsorClick={handleSponsorClick}
       />
 
       <PublishAppModal

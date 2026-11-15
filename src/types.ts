@@ -174,3 +174,16 @@ export interface SiteMeta {
     };
   };
 }
+
+export interface SponsorAdLink {
+  id: string;
+  zoneId: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  platformHint: 'Android & TV' | 'Windows PC' | 'All Devices';
+  placement: 'featured' | 'catalog' | 'detail';
+  url: string;
+  ctaLabel: string;
+  clicks?: number;
+}

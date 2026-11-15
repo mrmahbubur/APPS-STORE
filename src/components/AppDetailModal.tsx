@@ -22,8 +22,9 @@ import {
   Send,
   Globe,
   Tablet,
+  ExternalLink,
 } from 'lucide-react';
-import { AppItem, ReviewItem, ReviewStats } from '../types';
+import { AppItem, ReviewItem, ReviewStats, SponsorAdLink } from '../types';
 import {
   copyToClipboard,
   getAppLocalApkUrl,
@@ -32,6 +33,7 @@ import {
   getLocalReviews,
   saveLocalReview,
   markLocalReviewHelpful,
+  DEFAULT_SPONSOR_LINKS,
 } from '../data/catalog';
 
 interface AppDetailModalProps {
@@ -41,6 +43,8 @@ interface AppDetailModalProps {
   hasBackend?: boolean;
   onReviewStatsUpdated?: (appId: string, rating: number, reviewsCount: number) => void;
   onOpenLegal?: (tab: 'privacy' | 'terms' | 'developer' | 'dmca') => void;
+  sponsors?: SponsorAdLink[];
+  onSponsorClick?: (sponsor: SponsorAdLink) => void;
 }
 
 export const AppDetailModal: React.FC<AppDetailModalProps> = ({
@@ -50,6 +54,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   hasBackend = true,
   onReviewStatsUpdated,
   onOpenLegal,
+  sponsors,
+  onSponsorClick,
 }) => {
   const [copiedDownloadLink, setCopiedDownloadLink] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
@@ -1042,6 +1048,75 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </div>
           </div>
         </section>
+
+        {/* Contextual Sponsored Partners */}
+        {(() => {
+          const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
+          const isWindowsPkg =
+            /windows/i.test(app.platform || '') ||
+            /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
+          const detailFirst = pool.filter((item) => item.placement === 'detail');
+          const prioritized = isWindowsPkg
+            ? [
+                ...pool.filter((item) => item.platformHint === 'Windows PC'),
+                ...detailFirst,
+                ...pool,
+              ]
+            : [
+                ...detailFirst,
+                ...pool.filter((item) => item.platformHint === 'Android & TV'),
+                ...pool,
+              ];
+          const uniqueTwo: SponsorAdLink[] = [];
+          const seen = new Set<string>();
+          for (const item of prioritized) {
+            if (!seen.has(item.id)) {
+              seen.add(item.id);
+              uniqueTwo.push(item);
+            }
+            if (uniqueTwo.length === 2) break;
+          }
+          if (uniqueTwo.length === 0) return null;
+
+          return (
+            <section className="my-7 pt-6 border-t border-white/[0.08] space-y-3" aria-label="Sponsored Partners">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-bold text-white">Sponsored Partners</h3>
+                <span className="text-[11px] font-medium text-zinc-500">External Links</span>
+              </div>
+              <div className="rounded-2xl bg-[#1c1c1e] border border-white/[0.08] divide-y divide-white/[0.08] overflow-hidden">
+                {uniqueTwo.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-[11px] font-medium text-zinc-400 truncate">
+                        <span className="text-[#0a84ff]">Sponsored</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>{item.category}</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>External Link</span>
+                      </div>
+                      <h4 className="text-sm font-bold text-white truncate">{item.title}</h4>
+                      <p className="text-xs text-zinc-400 truncate">{item.subtitle}</p>
+                    </div>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      onClick={() => onSponsorClick?.(item)}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
+                    >
+                      <span>{item.ctaLabel || 'Visit'}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* 9. App Owner Section */}
         <section id="owner-info-section" className="my-7 pt-6 border-t border-white/[0.08] space-y-4">

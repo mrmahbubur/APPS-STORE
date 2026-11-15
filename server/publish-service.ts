@@ -650,8 +650,8 @@ export async function fetchGravatarProfileByHandle(
       success: true,
       profile: {
         displayName: String(entry.displayName || cleanHandle),
-        username: String(entry.preferredUsername || cleanHandle),
-        profileUrl: String(entry.profileUrl || `https://gravatar.com/${cleanHandle}`),
+        username: '',
+        profileUrl: '',
         avatarUrl: entry.thumbnailUrl ? `${String(entry.thumbnailUrl)}?s=256` : '',
         email: '',
       },

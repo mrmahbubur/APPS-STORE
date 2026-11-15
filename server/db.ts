@@ -92,6 +92,19 @@ export interface DeveloperSubmission {
   submittedAt: string;
 }
 
+export interface SponsorAdLink {
+  id: string;
+  zoneId: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  platformHint: 'Android & TV' | 'Windows PC' | 'All Devices';
+  placement: 'featured' | 'catalog' | 'detail';
+  url: string;
+  ctaLabel: string;
+  clicks: number;
+}
+
 export const APP_STORE_CATEGORIES: string[] = [
   'IPTV & Streaming',
   'Smart TV & Video',
@@ -235,8 +248,8 @@ const GRAVATAR_PROFILE_ENDPOINT = 'https://gravatar.com/mrxshahin.json';
 
 let currentOwnerProfile: AppOwnerProfile = {
   displayName: 'M R S',
-  username: 'mrxshahin',
-  profileUrl: 'https://gravatar.com/mrxshahin',
+  username: '',
+  profileUrl: '',
   avatarUrl:
     'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
   email: '',
@@ -518,8 +531,8 @@ async function syncGravatarOwnerProfile() {
 
     currentOwnerProfile = {
       displayName: String(entry.displayName || currentOwnerProfile.displayName),
-      username: String(entry.preferredUsername || currentOwnerProfile.username),
-      profileUrl: String(entry.profileUrl || currentOwnerProfile.profileUrl),
+      username: '',
+      profileUrl: '',
       avatarUrl: rawAvatar,
       email: '',
     };
@@ -922,6 +935,11 @@ export const AppDatabase = {
               content:
                 'User reviews submitted on app pages store only the name, device type, rating, and review text entered by the reviewer.',
             },
+            {
+              heading: '3. Sponsored Partner Links',
+              content:
+                'Clearly labeled Sponsored partner placements link to external sponsor destinations (uplcm.com) in a separate tab and remain independent from direct APK and Windows installer downloads.',
+            },
           ],
         },
         terms: {
@@ -968,4 +986,140 @@ export const AppDatabase = {
       },
     };
   },
+
+  getSponsors(): SponsorAdLink[] {
+    return sponsorLinksStore;
+  },
+
+  incrementSponsorClick(id: string): number {
+    const sponsor = sponsorLinksStore.find((s) => s.id === id || s.zoneId === id);
+    if (sponsor) {
+      sponsor.clicks = (sponsor.clicks || 0) + 1;
+      return sponsor.clicks;
+    }
+    return 0;
+  },
 };
+
+const sponsorLinksStore: SponsorAdLink[] = [
+  {
+    id: 'sponsor-11226634',
+    zoneId: '11226634',
+    title: 'Streaming & Smart TV Partners',
+    subtitle: 'Live TV channels, smart player add-ons, and 4K streaming tools.',
+    category: 'Streaming & TV',
+    platformHint: 'Android & TV',
+    placement: 'featured',
+    url: 'https://uplcm.com/4/11226634',
+    ctaLabel: 'Open',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11683565',
+    zoneId: '11683565',
+    title: 'Windows PC Software Spotlight',
+    subtitle: 'Featured desktop utilities, media suites, and Windows 11 tools.',
+    category: 'Windows PC',
+    platformHint: 'Windows PC',
+    placement: 'featured',
+    url: 'https://uplcm.com/4/11683565',
+    ctaLabel: 'Open',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11242745',
+    zoneId: '11242745',
+    title: 'VPN & Network Privacy',
+    subtitle: 'Fast encrypted routing for Smart TV, Android, and desktop.',
+    category: 'Privacy & VPN',
+    platformHint: 'All Devices',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/11242745',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11242069',
+    zoneId: '11242069',
+    title: 'Smart TV Remote & Cast Tools',
+    subtitle: 'Companion casting helpers and playlist management utilities.',
+    category: 'Smart TV',
+    platformHint: 'Android & TV',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/11242069',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11242067',
+    zoneId: '11242067',
+    title: 'Android Device Optimizer',
+    subtitle: 'Storage cleanup, APK backup, and system performance tools.',
+    category: 'Android Utilities',
+    platformHint: 'Android & TV',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/11242067',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11242742',
+    zoneId: '11242742',
+    title: 'Windows Driver & Codec Pack',
+    subtitle: 'Essential desktop media codecs and hardware runtime helpers.',
+    category: 'Windows Utilities',
+    platformHint: 'Windows PC',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/11242742',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11230440',
+    zoneId: '11230440',
+    title: 'Cloud Storage & Fast Sync',
+    subtitle: 'Encrypted cross-device file transfers across PC and mobile.',
+    category: 'Productivity',
+    platformHint: 'All Devices',
+    placement: 'detail',
+    url: 'https://uplcm.com/4/11230440',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11683560',
+    zoneId: '11683560',
+    title: 'Games & Controller Hub',
+    subtitle: 'Featured casual games and gamepad mapping companions.',
+    category: 'Games',
+    platformHint: 'All Devices',
+    placement: 'detail',
+    url: 'https://uplcm.com/4/11683560',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-9912130',
+    zoneId: '9912130',
+    title: 'Cloud Hosting & CDN Suite',
+    subtitle: 'High-speed edge delivery and developer infrastructure.',
+    category: 'Developer Tools',
+    platformHint: 'All Devices',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/9912130',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+  {
+    id: 'sponsor-11242744',
+    zoneId: '11242744',
+    title: 'Security & Ad-Shield Pro',
+    subtitle: 'Web protection and anti-tracking shields for all screens.',
+    category: 'Security',
+    platformHint: 'All Devices',
+    placement: 'catalog',
+    url: 'https://uplcm.com/4/11242744',
+    ctaLabel: 'Visit',
+    clicks: 0,
+  },
+];

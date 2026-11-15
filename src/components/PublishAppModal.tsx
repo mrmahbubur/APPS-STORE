@@ -441,8 +441,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         }
         profile = {
           displayName: String(entry.displayName || slug),
-          username: String(entry.preferredUsername || slug),
-          profileUrl: String(entry.profileUrl || `https://gravatar.com/${slug}`),
+          username: '',
+          profileUrl: '',
           avatarUrl: entry.thumbnailUrl ? `${String(entry.thumbnailUrl)}?s=256` : '',
           email: '',
         };

@@ -270,6 +270,11 @@ function buildGenuineApps(): AppItem[] {
     '31.93 MB',
     'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92'
   );
+  const camelliaMeta = readRealApkFileMeta(
+    'apks/Camillia_Ai.apk',
+    '7.68 MB',
+    '6ebf12098208a31dbb00a15864d95e966aae11b441975fb240b8ce78a35676cd'
+  );
 
   const ownerLabel = formatOwnerLabel(currentOwnerProfile);
 
@@ -396,6 +401,60 @@ function buildGenuineApps(): AppItem[] {
       screenshots: ['/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'],
       featured: false,
       editorChoice: false,
+    },
+    {
+      id: 'camellia-ai',
+      title: 'Camillia Ai',
+      fileName: 'Camillia Ai.apk',
+      tagline: 'Intelligent AI chat & productivity assistant Android APK hosted directly on MRS App Store.',
+      category: 'AI & Virtual Assistant',
+      platform: 'Android Mobile',
+      version: '1.0.0',
+      updatedAt: camelliaMeta.updatedAt,
+      size: camelliaMeta.size,
+      rating: 0,
+      reviewsCount: 0,
+      downloads: 0,
+      minAndroid: 'Android 8.0+ (API 26)',
+      ageRating: 'Everyone',
+      languages: 'Android System Locale',
+      chartRank: 'v1.0.0',
+      icon: '/assets/aistudio/camellia-logo_e7fcb198.png',
+      banner: '/assets/aistudio/camellia-logo_e7fcb198.png',
+      developer: currentOwnerProfile.displayName,
+      developerEmail: 'mr216873@gmail.com',
+      ownerName: ownerLabel,
+      ownerProfile: currentOwnerProfile,
+      packageId: 'co.median.android.krqrjbd',
+      sha256: camelliaMeta.sha256,
+      directDownloadUrl: '/api/download/camellia-ai',
+      downloadUrl: '/api/download/camellia-ai',
+      shareUrl: '/?app=camellia-ai',
+      localApkPath: '/apks/Camillia_Ai.apk',
+      description:
+        `Camillia Ai (Camillia Ai.apk) is an Android AI & Virtual Assistant application imported from upload-apk.com (aOOQ4KXgicyfICc) and distributed directly by ${ownerLabel} on MRS App Store with instant APK delivery and SHA-256 checksum verification.`,
+      whatsNew: [
+        `Direct in-house APK hosting from MRS App Store (${camelliaMeta.size})`,
+        'Package co.median.android.krqrjbd (Version 1.0.0) for Android 8.0+ (API 26)',
+        'Custom uploaded Camillia app icon and verified SHA-256 binary signature',
+      ],
+      features: [
+        'Instant direct APK download without countdown timers or redirects',
+        'Supports Android 8.0 (API 26) and above',
+        'Verified binary imported from https://www.upload-apk.com/aOOQ4KXgicyfICc',
+        `Listed and maintained by ${ownerLabel}`,
+      ],
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_NETWORK_STATE',
+        'android.permission.READ_PHONE_STATE',
+        'android.permission.VIBRATE',
+        'android.permission.DUMP',
+        'com.google.android.c2dm.permission.RECEIVE',
+      ],
+      screenshots: ['/assets/aistudio/camellia-logo_e7fcb198.png'],
+      featured: false,
+      editorChoice: true,
     },
   ];
 }
@@ -537,7 +596,7 @@ async function syncGravatarOwnerProfile() {
       email: '',
     };
 
-    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro']);
+    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai']);
     const ownerLabel = formatOwnerLabel(currentOwnerProfile);
     memoryStore = memoryStore.map((app) =>
       builtInIds.has(app.id)

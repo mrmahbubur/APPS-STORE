@@ -34,6 +34,7 @@ import {
   saveLocalReview,
   markLocalReviewHelpful,
   DEFAULT_SPONSOR_LINKS,
+  pickContextualSponsor,
 } from '../data/catalog';
 
 interface AppDetailModalProps {
@@ -447,6 +448,41 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Compact Contextual Companion Partner Row */}
+        {(() => {
+          const companion = pickContextualSponsor(
+            sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS,
+            { platform: app.platform, category: app.category }
+          );
+          if (!companion) return null;
+          return (
+            <div className="my-5 rounded-2xl bg-zinc-900/80 border border-white/[0.08] px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-zinc-400 truncate">
+                  <span className="text-[#0a84ff]">Sponsored</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>{downloadStarted ? 'Recommended Companion' : companion.category}</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>External Link</span>
+                </p>
+                <p className="text-xs sm:text-sm font-bold text-white truncate">
+                  {companion.title}
+                </p>
+              </div>
+              <a
+                href={companion.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => onSponsorClick?.(companion)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[38px]"
+              >
+                <span>{companion.ctaLabel || 'Visit'}</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            </div>
+          );
+        })()}
 
         {/* 2. Apple 5-Column Horizontal Metrics Strip */}
         <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto no-scrollbar divide-x divide-white/[0.08] py-4 border-b border-white/[0.08] text-center">

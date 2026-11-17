@@ -19,6 +19,7 @@ import {
   getAppLocalApkUrl,
   getLocalPublishedApps,
   mergeCatalogApps,
+  pickContextualSponsor,
 } from './data/catalog';
 import {
   Search,
@@ -33,6 +34,7 @@ import {
   LayoutGrid,
   ListOrdered,
   UserCheck,
+  ExternalLink,
 } from 'lucide-react';
 
 const CATEGORIES = ['All', ...APP_STORE_CATEGORIES];
@@ -79,7 +81,7 @@ export default function App() {
         fetch('./api/sponsors').catch(() => null),
       ]);
 
-      const localPublished = getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai');
+      const localPublished = getLocalPublishedApps();
       const appsContentType = appsRes?.headers.get('content-type') || '';
       if (appsRes && appsRes.ok && appsContentType.includes('application/json')) {
         const appsData = await appsRes.json();
@@ -110,7 +112,7 @@ export default function App() {
     } catch (err) {
       console.warn('Falling back to static catalog:', err);
       setHasBackend(false);
-      setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps().filter((a) => a.id !== 'camellia-ai')));
+      setApps(mergeCatalogApps(DEFAULT_APPS, getLocalPublishedApps()));
       setSiteMeta(getDefaultSiteMeta());
       setSponsors(DEFAULT_SPONSOR_LINKS);
     } finally {
@@ -351,12 +353,49 @@ export default function App() {
 
       <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
         {featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All' && (
-          <HeroFeatured
-            app={featuredApp}
-            onSelectApp={handleSelectApp}
-            onDirectDownload={handleDirectDownload}
-            hasBackend={hasBackend}
-          />
+          <>
+            <HeroFeatured
+              app={featuredApp}
+              onSelectApp={handleSelectApp}
+              onDirectDownload={handleDirectDownload}
+              hasBackend={hasBackend}
+            />
+            {(() => {
+              const todayPartner = sponsors.find((s) => s.placement === 'featured') || sponsors[0];
+              if (!todayPartner) return null;
+              return (
+                <div className="mb-4 rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                      <Tv className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-zinc-400 truncate">
+                        <span className="text-[#0a84ff]">Sponsored</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>{todayPartner.category}</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>External Partner</span>
+                      </p>
+                      <p className="text-xs sm:text-sm font-bold text-white truncate">
+                        {todayPartner.title}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={todayPartner.url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                    onClick={() => handleSponsorClick(todayPartner)}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#0a84ff] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[38px]"
+                  >
+                    <span>{todayPartner.ctaLabel || 'Open'}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+              );
+            })()}
+          </>
         )}
 
         {/* Apple App Store Catalog Section */}
@@ -624,6 +663,48 @@ export default function App() {
               ))}
             </div>
           )}
+
+          {/* Contextual In-Catalog Sponsored Partner Placement */}
+          {(() => {
+            const contextual = pickContextualSponsor(sponsors, {
+              platform: selectedPlatform === 'All' ? undefined : selectedPlatform,
+              category: selectedCategory === 'All' ? undefined : selectedCategory,
+              excludeIds:
+                featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All'
+                  ? ['sponsor-11226634']
+                  : [],
+            });
+            if (!contextual) return null;
+            return (
+              <div className="rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                  <div className="text-[11px] font-medium text-zinc-400 truncate">
+                    <span className="text-[#0a84ff]">Sponsored</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{contextual.platformHint}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{contextual.category}</span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-white truncate">
+                    {contextual.title}
+                  </p>
+                  <p className="text-xs text-zinc-400 truncate">
+                    {contextual.subtitle}
+                  </p>
+                </div>
+                <a
+                  href={contextual.url}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => handleSponsorClick(contextual)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
+                >
+                  <span>{contextual.ctaLabel || 'Visit'}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
+              </div>
+            );
+          })()}
         </section>
 
         <SponsoredSpotlight

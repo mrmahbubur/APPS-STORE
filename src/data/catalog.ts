@@ -36,6 +36,7 @@ export function getAppLocalApkFile(appId: string): string {
   const apkMap: Record<string, string> = {
     'm-r-s-iptv': 'M_R_S_IPTV.apk',
     'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
+    'camellia-ai': 'Camillia_Ai.apk',
   };
   return apkMap[appId] || `${appId}.apk`;
 }
@@ -245,6 +246,60 @@ export const DEFAULT_APPS: AppItem[] = [
     featured: false,
     editorChoice: false,
   },
+  {
+    id: 'camellia-ai',
+    title: 'Camillia Ai',
+    fileName: 'Camillia Ai.apk',
+    tagline: 'Intelligent AI chat & productivity assistant Android APK hosted directly on MRS App Store.',
+    category: 'AI & Virtual Assistant',
+    platform: 'Android Mobile',
+    version: '1.0.0',
+    updatedAt: '2026-11-17',
+    size: '7.68 MB',
+    rating: 0,
+    reviewsCount: 0,
+    downloads: 0,
+    minAndroid: 'Android 8.0+ (API 26)',
+    ageRating: 'Everyone',
+    languages: 'Android System Locale',
+    chartRank: 'v1.0.0',
+    icon: './assets/aistudio/camellia-logo_e7fcb198.png',
+    banner: './assets/aistudio/camellia-logo_e7fcb198.png',
+    developer: 'M R S',
+    developerEmail: 'mr216873@gmail.com',
+    ownerName: 'M R S',
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
+    packageId: 'co.median.android.krqrjbd',
+    sha256: '6ebf12098208a31dbb00a15864d95e966aae11b441975fb240b8ce78a35676cd',
+    directDownloadUrl: './apks/Camillia_Ai.apk',
+    downloadUrl: './apks/Camillia_Ai.apk',
+    shareUrl: './?app=camellia-ai',
+    localApkPath: './apks/Camillia_Ai.apk',
+    description:
+      'Camillia Ai (Camillia Ai.apk) is an Android AI & Virtual Assistant application imported from upload-apk.com (aOOQ4KXgicyfICc) and distributed directly by M R S on MRS App Store with instant APK delivery and SHA-256 checksum verification.',
+    whatsNew: [
+      'Direct in-house APK hosting from MRS App Store (7.68 MB)',
+      'Package co.median.android.krqrjbd (Version 1.0.0) for Android 8.0+ (API 26)',
+      'Custom uploaded Camillia app icon and verified SHA-256 binary signature',
+    ],
+    features: [
+      'Instant direct APK download without countdown timers or redirects',
+      'Supports Android 8.0 (API 26) and above',
+      'Verified binary imported from https://www.upload-apk.com/aOOQ4KXgicyfICc',
+      'Listed and maintained by M R S',
+    ],
+    permissions: [
+      'android.permission.INTERNET',
+      'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.READ_PHONE_STATE',
+      'android.permission.VIBRATE',
+      'android.permission.DUMP',
+      'com.google.android.c2dm.permission.RECEIVE',
+    ],
+    screenshots: ['./assets/aistudio/camellia-logo_e7fcb198.png'],
+    featured: false,
+    editorChoice: true,
+  },
 ];
 
 // No fabricated seeded reviews — starts empty and populates strictly from real user submissions
@@ -285,7 +340,7 @@ export function getLocalPublishedApps(): AppItem[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((app: any) => app && typeof app === 'object' && app.id && app.id !== 'camellia-ai')
+      .filter((app: any) => app && typeof app === 'object' && app.id)
       .map((app: AppItem) => ({
         ...app,
         title: app.title || 'Untitled App',
@@ -349,7 +404,7 @@ export function saveLocalSubmission(
 }
 
 export function mergeCatalogApps(primaryApps: AppItem[], localApps: AppItem[]): AppItem[] {
-  const seen = new Set<string>(['camellia-ai']);
+  const seen = new Set<string>();
   const merged: AppItem[] = [];
 
   for (const app of primaryApps) {
@@ -624,3 +679,46 @@ export const DEFAULT_SPONSOR_LINKS: SponsorAdLink[] = [
     ctaLabel: 'Visit',
   },
 ];
+
+export function pickContextualSponsor(
+  sponsors: SponsorAdLink[],
+  opts: { platform?: string; category?: string; excludeIds?: string[] }
+): SponsorAdLink | null {
+  const pool = (sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS).filter(
+    (item) => !(opts.excludeIds || []).includes(item.id)
+  );
+  if (pool.length === 0) return null;
+
+  const plat = (opts.platform || '').toLowerCase();
+  const cat = (opts.category || '').toLowerCase();
+
+  const findById = (id: string) => pool.find((s) => s.id === id);
+
+  if (cat.includes('game')) {
+    return findById('sponsor-11683560') || pool[0];
+  }
+  if (cat.includes('developer')) {
+    return findById('sponsor-9912130') || pool[0];
+  }
+  if (cat.includes('productivity') || cat.includes('business')) {
+    return findById('sponsor-11230440') || pool[0];
+  }
+  if (cat.includes('utilit') && plat.includes('windows')) {
+    return findById('sponsor-11242742') || findById('sponsor-11683565') || pool[0];
+  }
+  if (cat.includes('utilit')) {
+    return findById('sponsor-11242067') || findById('sponsor-11242744') || pool[0];
+  }
+  if (plat.includes('windows')) {
+    return findById('sponsor-11683565') || findById('sponsor-11242742') || pool[0];
+  }
+  if (plat.includes('smart tv') || plat.includes('tv') || cat.includes('iptv') || cat.includes('stream')) {
+    return findById('sponsor-11242069') || findById('sponsor-11226634') || pool[0];
+  }
+  if (plat.includes('android')) {
+    return findById('sponsor-11242067') || findById('sponsor-11226634') || pool[0];
+  }
+
+  return findById('sponsor-11242745') || pool[0];
+}
+

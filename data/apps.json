@@ -7,7 +7,7 @@
     "category": "IPTV & Streaming",
     "platform": "Android Mobile & Smart TV",
     "version": "1.0.0",
-    "updatedAt": "2026-11-15",
+    "updatedAt": "2026-11-17",
     "size": "9.33 MB",
     "rating": 0,
     "reviewsCount": 0,
@@ -23,8 +23,8 @@
     "ownerName": "M R S",
     "ownerProfile": {
       "displayName": "M R S",
-      "username": "mrxshahin",
-      "profileUrl": "https://gravatar.com/mrxshahin",
+      "username": "",
+      "profileUrl": "",
       "avatarUrl": "https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256",
       "email": ""
     },
@@ -67,7 +67,7 @@
     "category": "Smart TV & Video",
     "platform": "Smart TV & Android Mobile",
     "version": "1.0",
-    "updatedAt": "2026-11-15",
+    "updatedAt": "2026-11-17",
     "size": "31.93 MB",
     "rating": 0,
     "reviewsCount": 0,
@@ -83,8 +83,8 @@
     "ownerName": "M R S",
     "ownerProfile": {
       "displayName": "M R S",
-      "username": "mrxshahin",
-      "profileUrl": "https://gravatar.com/mrxshahin",
+      "username": "",
+      "profileUrl": "",
       "avatarUrl": "https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256",
       "email": ""
     },
@@ -135,5 +135,66 @@
     ],
     "featured": false,
     "editorChoice": false
+  },
+  {
+    "id": "camellia-ai",
+    "title": "Camillia Ai",
+    "fileName": "Camillia Ai.apk",
+    "tagline": "Intelligent AI chat & productivity assistant Android APK hosted directly on MRS App Store.",
+    "category": "AI & Virtual Assistant",
+    "platform": "Android Mobile",
+    "version": "1.0.0",
+    "updatedAt": "2026-11-17",
+    "size": "7.68 MB",
+    "rating": 0,
+    "reviewsCount": 0,
+    "downloads": 1,
+    "minAndroid": "Android 8.0+ (API 26)",
+    "ageRating": "Everyone",
+    "languages": "Android System Locale",
+    "chartRank": "v1.0.0",
+    "icon": "/assets/aistudio/camellia-logo_e7fcb198.png",
+    "banner": "/assets/aistudio/camellia-logo_e7fcb198.png",
+    "developer": "M R S",
+    "developerEmail": "mr216873@gmail.com",
+    "ownerName": "M R S",
+    "ownerProfile": {
+      "displayName": "M R S",
+      "username": "",
+      "profileUrl": "",
+      "avatarUrl": "https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256",
+      "email": ""
+    },
+    "packageId": "co.median.android.krqrjbd",
+    "sha256": "6ebf12098208a31dbb00a15864d95e966aae11b441975fb240b8ce78a35676cd",
+    "directDownloadUrl": "/api/download/camellia-ai",
+    "downloadUrl": "/api/download/camellia-ai",
+    "shareUrl": "/?app=camellia-ai",
+    "localApkPath": "/apks/Camillia_Ai.apk",
+    "description": "Camillia Ai (Camillia Ai.apk) is an Android AI & Virtual Assistant application imported from upload-apk.com (aOOQ4KXgicyfICc) and distributed directly by M R S on MRS App Store with instant APK delivery and SHA-256 checksum verification.",
+    "whatsNew": [
+      "Direct in-house APK hosting from MRS App Store (7.68 MB)",
+      "Package co.median.android.krqrjbd (Version 1.0.0) for Android 8.0+ (API 26)",
+      "Custom uploaded Camillia app icon and verified SHA-256 binary signature"
+    ],
+    "features": [
+      "Instant direct APK download without countdown timers or redirects",
+      "Supports Android 8.0 (API 26) and above",
+      "Verified binary imported from https://www.upload-apk.com/aOOQ4KXgicyfICc",
+      "Listed and maintained by M R S"
+    ],
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.VIBRATE",
+      "android.permission.DUMP",
+      "com.google.android.c2dm.permission.RECEIVE"
+    ],
+    "screenshots": [
+      "/assets/aistudio/camellia-logo_e7fcb198.png"
+    ],
+    "featured": false,
+    "editorChoice": true
   }
 ]

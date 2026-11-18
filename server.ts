@@ -1,4 +1,5 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -778,9 +779,19 @@ app.use('/api', (err: any, _req: Request, res: Response, _next: NextFunction) =>
   });
 });
 
+app.use('/api', (_req: Request, res: Response) => {
+  return res.status(404).json({
+    success: false,
+    message: 'API endpoint not found.',
+  });
+});
+
 // Start dev or production server
 async function startServer() {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.RENDER === 'true' ||
+    process.argv.includes('--prod');
 
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');

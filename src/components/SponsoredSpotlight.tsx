@@ -11,12 +11,14 @@ import { SponsorIcon } from './SponsorIcon';
 interface SponsoredSpotlightProps {
   sponsors: SponsorAdLink[];
   activePlatform?: StorePlatformFilter;
+  deviceContext?: StorePlatformFilter | string;
   onSponsorClick?: (sponsor: SponsorAdLink) => void;
 }
 
 export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
   sponsors,
   activePlatform = 'All',
+  deviceContext,
   onSponsorClick,
 }) => {
   const [filterTab, setFilterTab] = useState<SponsorFilterTab>(() =>
@@ -36,8 +38,9 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
       groupSponsorsForSpotlight(sponsors, {
         tab: filterTab,
         platform: activePlatform,
+        preferredDevice: deviceContext,
       }),
-    [sponsors, filterTab, activePlatform]
+    [sponsors, filterTab, activePlatform, deviceContext]
   );
 
   if (!sponsors || sponsors.length === 0) return null;

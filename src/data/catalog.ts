@@ -1,4 +1,11 @@
-import type { AppItem, DeveloperSubmission, ReviewItem, SiteMeta, SponsorAdLink } from '../types';
+import type {
+  AppItem,
+  DeveloperSubmission,
+  ReviewItem,
+  SiteMeta,
+  SponsorAdLink,
+  StorePlatformFilter,
+} from '../types';
 import {
   SUPPORTED_WINDOWS_EXTENSIONS,
   SUPPORTED_PACKAGE_EXTENSIONS,
@@ -34,7 +41,9 @@ import {
   buildSiteMeta,
   computeReviewStats,
   SPONSOR_FILTER_TABS,
+  DEVICE_PLATFORM_HEADER,
   resolveSpotlightDevice,
+  resolveDeviceContext,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
@@ -86,7 +95,9 @@ export {
   isWindowsPackage,
   matchesPlatformFilter,
   computeReviewStats,
+  DEVICE_PLATFORM_HEADER,
   resolveSpotlightDevice,
+  resolveDeviceContext,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
@@ -95,6 +106,24 @@ export {
   getDetailPageSponsors,
   pickContextualSponsor,
 };
+
+export function detectClientDevicePlatform(
+  platformOverride?: StorePlatformFilter | string
+): StorePlatformFilter {
+  const nav = typeof navigator !== 'undefined' ? (navigator as any) : undefined;
+  return resolveDeviceContext({
+    platform: platformOverride,
+    chPlatform: nav?.userAgentData?.platform || nav?.platform,
+    userAgent: nav?.userAgent,
+  });
+}
+
+export function buildClientDeviceHeaders(
+  platformOverride?: StorePlatformFilter | string
+): Record<string, string> {
+  const resolved = detectClientDevicePlatform(platformOverride);
+  return resolved && resolved !== 'All' ? { [DEVICE_PLATFORM_HEADER]: resolved } : {};
+}
 
 export function isGitHubRootStaticMode(): boolean {
   return typeof window !== 'undefined' && Boolean((window as any).__MRS_GH_ROOT_MODE__);

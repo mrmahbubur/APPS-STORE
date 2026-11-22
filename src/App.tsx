@@ -31,6 +31,9 @@ import {
   matchesPlatformFilter,
   getLocalPublishedApps,
   mergeCatalogApps,
+  resolveDeviceContext,
+  detectClientDevicePlatform,
+  buildClientDeviceHeaders,
   groupSponsorsForSpotlight,
   pickContextualSponsor,
 } from './data/catalog';
@@ -91,7 +94,9 @@ export default function App() {
       const [appsRes, metaRes, sponsorsRes] = await Promise.all([
         fetch('./api/apps').catch(() => null),
         fetch('./api/meta').catch(() => null),
-        fetch('./api/sponsors').catch(() => null),
+        fetch('./api/sponsors', {
+          headers: buildClientDeviceHeaders(),
+        }).catch(() => null),
       ]);
 
       const localPublished = getLocalPublishedApps();
@@ -193,17 +198,29 @@ export default function App() {
     });
   }, [apps, selectedCategory, selectedPlatform, searchQuery, sortBy]);
 
+  const browserDevice = useMemo(() => detectClientDevicePlatform(), []);
+
   const featuredApp = useMemo(() => {
     return apps.find((a) => a.featured) || apps[0];
   }, [apps]);
+
+  const effectiveDeviceContext = useMemo(
+    () =>
+      resolveDeviceContext({
+        platform: selectedPlatform,
+        preferredDevice: featuredApp?.platform,
+        fallbackDevice: browserDevice,
+      }),
+    [selectedPlatform, featuredApp, browserDevice]
+  );
 
   const todaySpotlight = useMemo(
     () =>
       groupSponsorsForSpotlight(sponsors, {
         platform: selectedPlatform,
-        preferredDevice: featuredApp?.platform,
+        preferredDevice: effectiveDeviceContext,
       }).primaryFeatured,
-    [sponsors, selectedPlatform, featuredApp]
+    [sponsors, selectedPlatform, effectiveDeviceContext]
   );
 
   const categories = useMemo(() => {
@@ -330,7 +347,7 @@ export default function App() {
                   <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
                     <SponsorIcon
                       sponsor={todaySpotlight}
-                      devicePlatform={selectedPlatform !== 'All' ? selectedPlatform : featuredApp?.platform}
+                      devicePlatform={effectiveDeviceContext}
                       className="w-4 h-4"
                     />
                   </div>
@@ -632,6 +649,8 @@ export default function App() {
           {(() => {
             const contextual = pickContextualSponsor(sponsors, {
               platform: selectedPlatform === 'All' ? undefined : selectedPlatform,
+              preferredDevice: effectiveDeviceContext,
+              fallbackDevice: browserDevice,
               category: selectedCategory === 'All' ? undefined : selectedCategory,
               excludeIds:
                 featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All' && todaySpotlight
@@ -645,7 +664,7 @@ export default function App() {
                   <div className="w-10 h-10 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
                     <SponsorIcon
                       sponsor={contextual}
-                      devicePlatform={selectedPlatform}
+                      devicePlatform={effectiveDeviceContext}
                       className="w-4 h-4"
                     />
                   </div>
@@ -683,6 +702,7 @@ export default function App() {
         <SponsoredSpotlight
           sponsors={sponsors}
           activePlatform={selectedPlatform}
+          deviceContext={effectiveDeviceContext}
           onSponsorClick={handleSponsorClick}
         />
 

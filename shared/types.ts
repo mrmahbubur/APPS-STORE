@@ -19,11 +19,17 @@ export type SponsorIconKey =
   | 'shield';
 export type PublishingPaymentMethod = 'USDT (BEP-20)' | 'Binance Pay';
 
-export interface SponsorGroupingOptions {
+export interface DeviceContextInput {
   tab?: SponsorFilterTab | string;
   platform?: StorePlatformFilter | string;
   preferredDevice?: StorePlatformFilter | string;
+  headerDevice?: string;
+  chPlatform?: string;
+  userAgent?: string;
+  fallbackDevice?: StorePlatformFilter | string;
 }
+
+export interface SponsorGroupingOptions extends DeviceContextInput {}
 
 export interface SponsorSpotlightGroup {
   activeTab: SponsorFilterTab;

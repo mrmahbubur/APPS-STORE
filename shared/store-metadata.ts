@@ -3,6 +3,7 @@ import type {
   AppOwnerProfile,
   BinaryMetaOverride,
   BuildBuiltinAppsOptions,
+  DeviceContextInput,
   PackageMetadataInput,
   ReviewItem,
   ReviewStats,
@@ -514,6 +515,8 @@ export function createDefaultSponsorLinks(): SponsorAdLink[] {
   return DEFAULT_SPONSOR_LINKS.map((item) => ({ ...item }));
 }
 
+export const DEVICE_PLATFORM_HEADER = 'X-Device-Platform' as const;
+
 export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
   'All Partners',
   'Android & TV',
@@ -523,11 +526,46 @@ export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
 export function resolveSpotlightDevice(
   platform?: StorePlatformFilter | string
 ): StorePlatformFilter {
-  const clean = (platform || '').trim().toLowerCase();
-  if (!clean || clean === 'all' || clean === 'all partners') return 'All';
-  if (/windows/.test(clean)) return 'Windows';
-  if (/smart tv|\btv\b|firestick|google tv|android tv/.test(clean)) return 'Smart TV';
+  const clean = (platform || '')
+    .trim()
+    .replace(/^["']+|["']+$/g, '')
+    .toLowerCase();
+  if (!clean || clean === 'all' || clean === 'all partners' || clean === 'all platforms') {
+    return 'All';
+  }
+  if (/windows|win32|win64/.test(clean)) return 'Windows';
+  if (
+    /smart[\s_-]?tv|\btv\b|fire\s?tv|firestick|google\s?tv|android\s?tv|tizen|webos|bravia|\baft[a-z0-9]*/.test(
+      clean
+    )
+  ) {
+    return 'Smart TV';
+  }
   if (/android|mobile/.test(clean)) return 'Android';
+  return 'All';
+}
+
+export function resolveDeviceContext(
+  input?: DeviceContextInput | StorePlatformFilter | string
+): StorePlatformFilter {
+  if (!input) return 'All';
+  if (typeof input === 'string') return resolveSpotlightDevice(input);
+
+  const candidates: Array<string | undefined> = [
+    input.platform,
+    input.tab,
+    input.preferredDevice,
+    input.headerDevice,
+    input.chPlatform,
+    input.userAgent,
+    input.fallbackDevice,
+  ];
+
+  for (const candidate of candidates) {
+    const resolved = resolveSpotlightDevice(candidate);
+    if (resolved !== 'All') return resolved;
+  }
+
   return 'All';
 }
 
@@ -626,11 +664,7 @@ export function groupSponsorsForSpotlight(
     typeof tabOrOptions === 'string' ? { tab: tabOrOptions } : tabOrOptions || {};
 
   const activeTab = normalizeSponsorFilterTab(options.tab, options.platform);
-  const resolvedFromPlatform = resolveSpotlightDevice(options.platform || options.tab);
-  const resolvedDevice =
-    resolvedFromPlatform !== 'All'
-      ? resolvedFromPlatform
-      : resolveSpotlightDevice(options.preferredDevice);
+  const resolvedDevice = resolveDeviceContext(options);
 
   const filteredBase = filterSponsorsByTab(sponsors, activeTab);
   const filtered =
@@ -688,17 +722,15 @@ export function getDetailPageSponsors(
 
 export function pickContextualSponsor(
   sponsors: readonly SponsorAdLink[],
-  opts: { platform?: string; category?: string; excludeIds?: string[] }
+  opts: DeviceContextInput & { category?: string; excludeIds?: string[] }
 ): SponsorAdLink | null {
   const rawPool = (sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS).filter(
     (item) => !(opts.excludeIds || []).includes(item.id)
   );
   if (rawPool.length === 0) return null;
 
-  const resolvedDevice = resolveSpotlightDevice(opts.platform);
-  const grouped = groupSponsorsForSpotlight(rawPool, {
-    preferredDevice: resolvedDevice,
-  });
+  const grouped = groupSponsorsForSpotlight(rawPool, opts);
+  const resolvedDevice = grouped.resolvedDevice;
   const pool = grouped.filtered;
   const cat = (opts.category || '').toLowerCase();
 
@@ -714,19 +746,44 @@ export function pickContextualSponsor(
     return findById('sponsor-11230440') || grouped.primaryFeatured || pool[0];
   }
   if (cat.includes('utilit') && resolvedDevice === 'Windows') {
-    return findById('sponsor-11242742') || findById('sponsor-11683565') || grouped.primaryFeatured || pool[0];
+    return (
+      findById('sponsor-11242742') ||
+      findById('sponsor-11683565') ||
+      grouped.primaryFeatured ||
+      pool[0]
+    );
   }
   if (cat.includes('utilit')) {
-    return findById('sponsor-11242067') || findById('sponsor-11242744') || grouped.primaryFeatured || pool[0];
+    return (
+      findById('sponsor-11242067') ||
+      findById('sponsor-11242744') ||
+      grouped.primaryFeatured ||
+      pool[0]
+    );
   }
   if (resolvedDevice === 'Windows') {
-    return findById('sponsor-11683565') || findById('sponsor-11242742') || grouped.primaryFeatured || pool[0];
+    return (
+      findById('sponsor-11683565') ||
+      findById('sponsor-11242742') ||
+      grouped.primaryFeatured ||
+      pool[0]
+    );
   }
   if (resolvedDevice === 'Smart TV' || cat.includes('iptv') || cat.includes('stream')) {
-    return findById('sponsor-11242069') || findById('sponsor-11226634') || grouped.primaryFeatured || pool[0];
+    return (
+      findById('sponsor-11242069') ||
+      findById('sponsor-11226634') ||
+      grouped.primaryFeatured ||
+      pool[0]
+    );
   }
   if (resolvedDevice === 'Android') {
-    return findById('sponsor-11242067') || findById('sponsor-11226634') || grouped.primaryFeatured || pool[0];
+    return (
+      findById('sponsor-11242067') ||
+      findById('sponsor-11226634') ||
+      grouped.primaryFeatured ||
+      pool[0]
+    );
   }
 
   return findById('sponsor-11242745') || grouped.primaryFeatured || pool[0];

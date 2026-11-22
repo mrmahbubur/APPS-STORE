@@ -21,7 +21,35 @@ import {
   getPackageExtension,
   getPackageMimeType,
 } from './shared/package-utils.ts';
-import { groupSponsorsForSpotlight } from './shared/store-metadata.ts';
+import {
+  DEVICE_PLATFORM_HEADER,
+  groupSponsorsForSpotlight,
+  pickContextualSponsor,
+} from './shared/store-metadata.ts';
+import type { SponsorGroupingOptions } from './shared/types.ts';
+
+function readHeaderString(req: Request, name: string): string | undefined {
+  const value = req.headers[name.toLowerCase()];
+  if (Array.isArray(value)) return value[0];
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function getRequestSponsorGroupingOptions(req: Request): SponsorGroupingOptions {
+  const { tab, platform, device, preferredDevice } = req.query;
+  return {
+    tab: typeof tab === 'string' ? tab : undefined,
+    platform: typeof platform === 'string' ? platform : undefined,
+    preferredDevice:
+      typeof device === 'string'
+        ? device
+        : typeof preferredDevice === 'string'
+        ? preferredDevice
+        : undefined,
+    headerDevice: readHeaderString(req, DEVICE_PLATFORM_HEADER),
+    chPlatform: readHeaderString(req, 'sec-ch-ua-platform'),
+    userAgent: readHeaderString(req, 'user-agent'),
+  };
+}
 
 function getCliFlagValue(flags: string[]): string | undefined {
   const args = process.argv.slice(2);
@@ -733,24 +761,27 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 });
 
 app.get('/api/sponsors', (req: Request, res: Response) => {
-  const { tab, platform, device, preferredDevice } = req.query;
-  const headerDevice = req.headers['x-device-platform'];
-  const deviceContext =
-    typeof device === 'string'
-      ? device
-      : typeof preferredDevice === 'string'
-      ? preferredDevice
-      : typeof headerDevice === 'string'
-      ? headerDevice
+  const groupingOptions = getRequestSponsorGroupingOptions(req);
+  const allSponsors = AppDatabase.getSponsors();
+  const grouped = groupSponsorsForSpotlight(allSponsors, groupingOptions);
+  const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+  const excludeIds =
+    typeof req.query.excludeIds === 'string'
+      ? req.query.excludeIds
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
       : undefined;
 
-  const grouped = groupSponsorsForSpotlight(AppDatabase.getSponsors(), {
-    tab: typeof tab === 'string' ? tab : undefined,
-    platform: typeof platform === 'string' ? platform : undefined,
-    preferredDevice: deviceContext,
+  const contextual = pickContextualSponsor(grouped.filtered, {
+    ...groupingOptions,
+    category,
+    excludeIds,
   });
+
   res.setHeader('Cache-Control', 'public, max-age=30');
-  res.setHeader('Vary', 'X-Device-Platform');
+  res.setHeader('Vary', `${DEVICE_PLATFORM_HEADER}, Sec-CH-UA-Platform, User-Agent`);
+  res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
   res.json({
     success: true,
     activeTab: grouped.activeTab,
@@ -761,6 +792,7 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     list: grouped.list,
     detail: grouped.detail,
     primaryFeatured: grouped.primaryFeatured,
+    contextual,
   });
 });
 

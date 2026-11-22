@@ -8,6 +8,7 @@ export type {
   SponsorPlacement,
   SponsorFilterTab,
   SponsorIconKey,
+  DeviceContextInput,
   SponsorGroupingOptions,
   SponsorSpotlightGroup,
   PublishingPaymentMethod,

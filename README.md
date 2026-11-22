@@ -87,7 +87,7 @@ npm run build
 | `GET` | `/api/download/:id` | Streams built-in or uploaded `.apk` / Windows binary with download tracking & MIME type |
 | `GET` | `/download/:filename` | Direct file download from `public/apks/` |
 | `GET` | `/api/meta` | Store metadata, owner profile (`M R S`), 28 store categories, and policies |
-| `GET` | `/api/sponsors` | Sponsored placements & `POST /api/sponsors/:id/click` click counter |
+| `GET` | `/api/sponsors` | Sponsored placements with optional `?platform=` / `?tab=` grouping & `POST /api/sponsors/:id/click` click counter |
 | `GET/POST` | `/api/reviews/:appId` | Persistent ratings & device reviews (`Windows 11 PC`, `Android Mobile`, `Android TV`, etc.) |
 | `POST` | `/api/publish/verify-payment` | Verifies `$25.00 USD` BEP-20 USDT transfer on BNB Smart Chain or records Binance Pay Order ID |
 | `POST` | `/api/publish/upload-apk` / `/api/publish/upload-package` | Accepts `.apk`, `.exe`, `.msi`, `.msix`, `.msixbundle`, `.appx`, `.appxbundle`, or `.zip` binaries up to 150 MB |

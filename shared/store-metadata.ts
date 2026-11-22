@@ -517,6 +517,20 @@ export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
   'Windows PC',
 ] as const;
 
+export function normalizeSponsorFilterTab(
+  raw?: string,
+  platform?: StorePlatformFilter | string
+): SponsorFilterTab {
+  const clean = (raw || '').trim().toLowerCase();
+  if (clean === 'windows' || clean === 'windows pc') return 'Windows PC';
+  if (clean === 'android & tv' || clean === 'android' || clean === 'smart tv' || clean === 'tv') {
+    return 'Android & TV';
+  }
+  if (clean === 'all' || clean === 'all partners') return 'All Partners';
+  if (platform) return mapPlatformToSponsorTab(platform);
+  return 'All Partners';
+}
+
 export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
   if (platform === 'Windows') return 'Windows PC';
   if (platform === 'Android' || platform === 'Smart TV') return 'Android & TV';
@@ -534,14 +548,22 @@ export function filterSponsorsByTab(
 
 export function groupSponsorsForSpotlight(
   sponsors: readonly SponsorAdLink[],
-  tab: SponsorFilterTab
+  tabOrOptions:
+    | SponsorFilterTab
+    | { tab?: SponsorFilterTab | string; platform?: StorePlatformFilter | string } = 'All Partners'
 ): {
+  activeTab: SponsorFilterTab;
   filtered: SponsorAdLink[];
   featured: SponsorAdLink[];
   list: SponsorAdLink[];
 } {
-  const filtered = filterSponsorsByTab(sponsors, tab);
+  const activeTab =
+    typeof tabOrOptions === 'string'
+      ? normalizeSponsorFilterTab(tabOrOptions)
+      : normalizeSponsorFilterTab(tabOrOptions.tab, tabOrOptions.platform);
+  const filtered = filterSponsorsByTab(sponsors, activeTab);
   return {
+    activeTab,
     filtered,
     featured: filtered.filter((item) => item.placement === 'featured'),
     list: filtered.filter((item) => item.placement !== 'featured'),

@@ -152,7 +152,12 @@ function ensureDatabase() {
 
     if (fs.existsSync(REVIEWS_FILE)) {
       const revContent = fs.readFileSync(REVIEWS_FILE, 'utf-8');
-      reviewsStore = JSON.parse(revContent);
+      const parsedReviews = JSON.parse(revContent) as Record<string, ReviewItem[]>;
+      const normalizedReviews: Record<string, ReviewItem[]> = {};
+      for (const [appId, thread] of Object.entries(parsedReviews || {})) {
+        normalizedReviews[appId] = sortReviewsByDate(Array.isArray(thread) ? thread : []);
+      }
+      reviewsStore = normalizedReviews;
     } else {
       reviewsStore = {};
       writeJsonAtomic(REVIEWS_FILE, reviewsStore);

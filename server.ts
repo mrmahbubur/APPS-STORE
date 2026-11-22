@@ -21,6 +21,7 @@ import {
   getPackageExtension,
   getPackageMimeType,
 } from './shared/package-utils.ts';
+import { groupSponsorsForSpotlight } from './shared/store-metadata.ts';
 
 function getCliFlagValue(flags: string[]): string | undefined {
   const args = process.argv.slice(2);
@@ -731,13 +732,20 @@ app.get('/api/categories', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/sponsors', (_req: Request, res: Response) => {
-  const sponsors = AppDatabase.getSponsors();
+app.get('/api/sponsors', (req: Request, res: Response) => {
+  const { tab, platform } = req.query;
+  const grouped = groupSponsorsForSpotlight(AppDatabase.getSponsors(), {
+    tab: typeof tab === 'string' ? tab : undefined,
+    platform: typeof platform === 'string' ? platform : undefined,
+  });
   res.setHeader('Cache-Control', 'public, max-age=30');
   res.json({
     success: true,
-    total: sponsors.length,
-    sponsors,
+    activeTab: grouped.activeTab,
+    total: grouped.filtered.length,
+    sponsors: grouped.filtered,
+    featured: grouped.featured,
+    list: grouped.list,
   });
 });
 

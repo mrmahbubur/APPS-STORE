@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Star, Check, Share2, UserCheck, Smartphone, Monitor } from 'lucide-react';
 import { AppItem } from '../types';
-import { copyToClipboard, getAppPackageFormatLabel, getAppShareTitle, isWindowsPackage, normalizeAssetPath } from '../data/catalog';
+import { copyToClipboard, getAppPackageFormatLabel, getAppShareText, getAppShareTitle, getPackageFormatCode, isWindowsPackage, normalizeAssetPath } from '../data/catalog';
 
 interface AppCardProps {
   app: AppItem;
@@ -27,6 +27,7 @@ export const AppCard: React.FC<AppCardProps> = ({
 
   const appOwner = app.ownerName || app.developer;
   const isWindowsApp = isWindowsPackage(app);
+  const formatCode = getPackageFormatCode(app);
   const formatLabel = getAppPackageFormatLabel(app);
 
   const handleDownloadClick = (e: React.MouseEvent) => {
@@ -43,7 +44,7 @@ export const AppCard: React.FC<AppCardProps> = ({
       navigator
         .share({
           title: getAppShareTitle(app),
-          text: `Download ${app.title} (${app.fileName} · ${app.size} · ${formatLabel}) directly from MRS App Store.`,
+          text: getAppShareText(app),
           url: shareUrl,
         })
         .catch(() => {});
@@ -97,9 +98,12 @@ export const AppCard: React.FC<AppCardProps> = ({
                 {app.title}
               </h3>
               {isWindowsApp && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0">
+                <span
+                  title={formatLabel}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0"
+                >
                   <Monitor className="w-2.5 h-2.5" />
-                  <span>Windows</span>
+                  <span>{formatCode !== 'PACKAGE' && formatCode !== 'APK' ? `Windows · ${formatCode}` : 'Windows'}</span>
                 </span>
               )}
             </div>
@@ -197,9 +201,12 @@ export const AppCard: React.FC<AppCardProps> = ({
               {app.title}
             </h3>
             {isWindowsApp && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0">
+              <span
+                title={formatLabel}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 text-[#0a84ff] text-[10px] font-bold shrink-0"
+              >
                 <Monitor className="w-2.5 h-2.5" />
-                <span>Win</span>
+                <span>{formatCode !== 'PACKAGE' && formatCode !== 'APK' ? `Win · ${formatCode}` : 'Win'}</span>
               </span>
             )}
           </div>

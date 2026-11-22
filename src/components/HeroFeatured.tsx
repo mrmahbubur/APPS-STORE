@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Star, ArrowRight, Share2, Check, UserCheck, Tv } from 'lucide-react';
 import { AppItem } from '../types';
-import { copyToClipboard, getAppLocalPackageUrl, getAppShareTitle, normalizeAssetPath } from '../data/catalog';
+import { copyToClipboard, getAppLocalPackageUrl, getAppPackageFormatLabel, getAppShareText, getAppShareTitle, normalizeAssetPath } from '../data/catalog';
 
 interface HeroFeaturedProps {
   app: AppItem;
@@ -33,7 +33,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
       navigator
         .share({
           title: getAppShareTitle(app),
-          text: `Download ${app.title} (${app.fileName} · ${app.size}) directly from MRS App Store.`,
+          text: getAppShareText(app),
           url: shareUrl,
         })
         .catch(() => {});
@@ -119,6 +119,8 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
               )}
               <span aria-hidden="true" className="text-zinc-600">·</span>
               <span className="font-mono">{app.size}</span>
+              <span aria-hidden="true" className="text-zinc-600">·</span>
+              <span>{getAppPackageFormatLabel(app)}</span>
               <span aria-hidden="true" className="text-zinc-600">·</span>
               <span>{app.platform}</span>
             </div>

@@ -29,6 +29,7 @@ import {
   copyToClipboard,
   getAppLocalPackageUrl,
   getAppPackageFormatLabel,
+  getAppShareText,
   getAppShareTitle,
   isHybridPackage,
   isWindowsPackage,
@@ -181,7 +182,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     if (navigator.share) {
       navigator.share({
         title: getAppShareTitle(app),
-        text: `Download ${app.title} (${app.fileName} · ${app.size} · ${packageFormatLabel}) directly from MRS App Store.`,
+        text: getAppShareText(app),
         url: shareUrl,
       }).catch(() => {});
     } else {
@@ -284,9 +285,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   const displayRating = reviews.length > 0 ? reviewStats.averageRating : app.rating;
   const displayReviewsCount = reviews.length > 0 ? reviewStats.totalReviews : app.reviewsCount;
 
-  const shareText = encodeURIComponent(
-    `Download ${app.title} (${app.fileName} · ${packageFormatLabel}) directly from MRS App Store`
-  );
+  const shareText = encodeURIComponent(getAppShareText(app));
   const encodedShareUrl = encodeURIComponent(shareUrl);
 
   return (
@@ -397,7 +396,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 {downloadStarted ? (
                   <>
                     <Check className="w-4 h-4" />
-                    <span>{isWindowsApp ? 'Downloading Package' : 'Downloading APK'}</span>
+                    <span>{isHybridApp ? 'Downloading Package' : isWindowsApp ? 'Downloading Windows Package' : 'Downloading APK'}</span>
                   </>
                 ) : (
                   <>

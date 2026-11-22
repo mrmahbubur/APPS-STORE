@@ -25,9 +25,14 @@ import {
 import { AppItem, AppOwnerProfile, DeveloperSubmission } from '../types';
 import {
   APP_STORE_CATEGORIES,
+  SUPPORTED_WINDOWS_EXTENSIONS,
   copyToClipboard,
   getAppLocalPackageUrl,
+  getAppMinOsLabel,
   getLocalPublishedApps,
+  getPackageExtension,
+  getPackageFormatCode,
+  isHybridPackage,
   isWindowsPackage,
   saveLocalPublishedApp,
   getLocalSubmissions,
@@ -683,26 +688,20 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     }
   };
 
-  const isWindowsPlatform = /windows/i.test(platform);
-  const isWindowsOnlyPlatform = isWindowsPlatform && !/android|smart tv/i.test(platform);
-  const isHybridPlatform = isWindowsPlatform && /android|smart tv/i.test(platform);
+  const isWindowsPlatform = isWindowsPackage({ platform });
+  const isHybridPlatform = isHybridPackage({ platform });
+  const isWindowsOnlyPlatform = isWindowsPlatform && !isHybridPlatform;
 
   const handleApkSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormError(null);
 
-    const lowerName = file.name.toLowerCase();
-    const isApkFile = lowerName.endsWith('.apk');
-    const isExeFile = lowerName.endsWith('.exe');
-    const isMsiFile = lowerName.endsWith('.msi');
-    const isWinStorePkg =
-      lowerName.endsWith('.msix') ||
-      lowerName.endsWith('.msixbundle') ||
-      lowerName.endsWith('.appx') ||
-      lowerName.endsWith('.appxbundle');
-    const isZipFile = lowerName.endsWith('.zip');
-    const isWinFile = isExeFile || isMsiFile || isWinStorePkg || isZipFile;
+    const ext = getPackageExtension(file.name);
+    const isApkFile = ext === '.apk';
+    const isExeFile = ext === '.exe';
+    const isMsiFile = ext === '.msi';
+    const isWinFile = (SUPPORTED_WINDOWS_EXTENSIONS as readonly string[]).includes(ext);
 
     if (isWindowsOnlyPlatform && !isWinFile) {
       setFormError('Select a valid Windows binary (.exe, .msi, .msix, .appx, or .zip).');
@@ -738,7 +737,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           return;
         }
       } else if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
-        setFormError('Selected archive does not have a valid APK / MSIX / ZIP signature.');
+        setFormError('Selected archive does not have a valid APK / MSIX / APPX / ZIP signature.');
         return;
       }
 
@@ -749,7 +748,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           return;
         }
 
-        const res = await fetch('./api/publish/upload-apk', {
+        const res = await fetch('./api/publish/upload-package', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -789,20 +788,18 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       } else {
         const mbSize = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
         const shaHex = await computeFileSha256Hex(arrayBuf);
+        const detectedCode = getPackageFormatCode({ fileName: file.name, platform });
         setUploadedApk({
           fileName: file.name,
           directDownloadUrl: apkDownloadUrl.trim(),
           size: mbSize,
           sha256: shaHex,
-          packageType: isExeFile
-            ? 'EXE'
-            : isMsiFile
-            ? 'MSI'
-            : isWinStorePkg
-            ? 'MSIX'
-            : isZipFile
-            ? 'ZIP'
-            : 'APK',
+          platformKind: isWinFile ? 'windows' : 'android',
+          packageType: detectedCode === 'PACKAGE' ? 'EXE' : detectedCode,
+          isPeExecutable: detectedCode === 'EXE',
+          isMsiInstaller: detectedCode === 'MSI',
+          hasWindowsManifest: detectedCode === 'MSIX' || detectedCode === 'APPX',
+          hasManifest: !isWinFile,
         });
       }
     } catch (err: any) {
@@ -825,7 +822,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     const cleanUrl = apkDownloadUrl.trim();
     if (hasBackend && apkSourceMode === 'upload' && !uploadedApk?.localApkPath) {
       setFormError(
-        `Upload your verified ${isWindowsOnlyPlatform ? 'Windows binary (.exe, .msi, .msix, .zip)' : 'app package'} in Step 3 before publishing.`
+        `Upload your verified ${isWindowsOnlyPlatform ? 'Windows binary (.exe, .msi, .msix, .appx, .zip)' : 'app package'} in Step 3 before publishing.`
       );
       return;
     }
@@ -906,11 +903,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       const pkg = packageId.trim() || `com.mrs.${slug.replace(/-/g, '')}`;
       const finalIcon = normalizeAssetPath(iconUrl || './assets/site-logo-icon.jpg');
 
-      const minOsOffline = isHybridPlatform
-        ? 'Windows 10/11 · Android 8.0+'
-        : isWindowsOnlyPlatform
-        ? 'Windows 10 / 11 (x64 / ARM64)'
-        : 'Android 8.0+ (API 26)';
+      const minOsOffline = getAppMinOsLabel({ platform, fileName: resolvedFileName });
       const permissionsOffline = isWindowsOnlyPlatform
         ? ['Windows Desktop Runtime', 'Direct Installer / Executable']
         : ['android.permission.INTERNET'];
@@ -2003,7 +1996,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         <span className="text-xs font-bold text-white">
                           {uploadingApk
                             ? isWindowsOnlyPlatform
-                              ? 'Inspecting Windows PE/MSI/MSIX header & computing SHA-256...'
+                              ? 'Inspecting Windows PE/MSI/MSIX/APPX header & computing SHA-256...'
                               : 'Inspecting package manifest & computing SHA-256...'
                             : uploadedApk
                             ? `Verified: ${uploadedApk.fileName} (${uploadedApk.size})`
@@ -2016,7 +2009,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         <span className="text-[11px] text-zinc-400">
                           {hasBackend
                             ? isWindowsOnlyPlatform
-                              ? 'Validates Windows PE/MSI/MSIX signature, detects x64/x86/ARM64, computes SHA-256, and hosts package on store server.'
+                              ? 'Validates Windows PE/MSI/MSIX/APPX/ZIP signature, detects x64/x86/ARM64, computes SHA-256, and hosts package on store server.'
                               : 'Validates binary signature & manifest, computes SHA-256, and hosts package on store server.'
                             : 'Computes exact MB size & SHA-256 locally in-browser (enter your direct HTTPS package URL below).'}
                         </span>

@@ -14,15 +14,12 @@ import {
   verifyPaymentVerificationToken,
 } from './server/publish-service.ts';
 
-function getPackageMimeType(fileName: string): string {
-  const lower = (fileName || '').toLowerCase();
-  if (lower.endsWith('.exe')) return 'application/vnd.microsoft.portable-executable';
-  if (lower.endsWith('.msi')) return 'application/x-msi';
-  if (lower.endsWith('.msix') || lower.endsWith('.msixbundle')) return 'application/msix';
-  if (lower.endsWith('.appx') || lower.endsWith('.appxbundle')) return 'application/appx';
-  if (lower.endsWith('.zip')) return 'application/zip';
-  return 'application/vnd.android.package-archive';
-}
+import {
+  SUPPORTED_PACKAGE_EXTENSIONS,
+  getPackageExtension,
+  getPackageMimeType,
+  matchesPlatformFilter,
+} from './shared/package-utils.ts';
 
 function getCliFlagValue(flags: string[]): string | undefined {
   const args = process.argv.slice(2);
@@ -115,21 +112,7 @@ app.get('/api/apps', (req: Request, res: Response) => {
   }
 
   if (platform && typeof platform === 'string' && platform !== 'All') {
-    const platFilter = platform.toLowerCase();
-    if (platFilter === 'windows') {
-      apps = apps.filter(
-        (app) =>
-          app.platform.toLowerCase().includes('windows') ||
-          /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '') ||
-          (/\.zip$/i.test(app.fileName || '') && !app.platform.toLowerCase().includes('android'))
-      );
-    } else {
-      apps = apps.filter(
-        (app) =>
-          app.platform.toLowerCase().includes(platFilter) ||
-          (platFilter === 'android' && /\.apk$/i.test(app.fileName || ''))
-      );
-    }
+    apps = apps.filter((app) => matchesPlatformFilter(app, platform));
   }
 
   if (search && typeof search === 'string' && search.trim() !== '') {
@@ -456,8 +439,8 @@ app.post(
         });
       }
 
-      const extMatch = path.extname(decodedName).toLowerCase();
-      const allowedExts = new Set(['.apk', '.exe', '.msi', '.msix', '.msixbundle', '.appx', '.appxbundle', '.zip']);
+      const extMatch = getPackageExtension(decodedName) || path.extname(decodedName).toLowerCase();
+      const allowedExts = new Set<string>(SUPPORTED_PACKAGE_EXTENSIONS);
       const fallbackExt =
         inspection.packageType === 'EXE'
           ? '.exe'

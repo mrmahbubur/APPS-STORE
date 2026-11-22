@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import {
+  getAppMinOsLabel,
+  isHybridPackage,
+  isWindowsPackage,
+} from '../shared/package-utils.ts';
 
 export interface AppOwnerAccount {
   name: string;
@@ -742,14 +747,13 @@ export const AppDatabase = {
 
     const rawPlatform = input.platform.trim() || 'Smart TV & Android Mobile';
     const isWindowsTarget = /windows/i.test(rawPlatform);
-    const isHybridTarget = isWindowsTarget && /android|smart tv/i.test(rawPlatform);
     const cleanLocalPath = input.localApkPath ? input.localApkPath.trim() : '';
 
     const rawOrLocalName =
       input.fileName?.trim() || (cleanLocalPath ? path.basename(cleanLocalPath) : '');
-    const isWindowsBinary =
-      /\.(exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i.test(rawOrLocalName) ||
-      (isWindowsTarget && !/\.apk$/i.test(rawOrLocalName));
+    const pkgMeta = { platform: rawPlatform, fileName: rawOrLocalName };
+    const isWindowsBinary = isWindowsPackage(pkgMeta);
+    const isHybridTarget = isHybridPackage(pkgMeta);
 
     const diskFacts =
       cleanLocalPath && cleanLocalPath.startsWith('/apks/')
@@ -774,11 +778,7 @@ export const AppDatabase = {
         ? `${archLabel}: ${input.architectures.join(', ')}`
         : `Target platform: ${rawPlatform}`;
 
-    const minOsLabel = isHybridTarget
-      ? 'Windows 10/11 · Android 8.0+'
-      : isWindowsBinary || isWindowsTarget
-      ? 'Windows 10 / 11 (x64 / ARM64)'
-      : 'Android 8.0+ (API 26)';
+    const minOsLabel = getAppMinOsLabel({ platform: rawPlatform, fileName: resolvedFileName });
 
     const defaultPermissions =
       isWindowsBinary && !isHybridTarget

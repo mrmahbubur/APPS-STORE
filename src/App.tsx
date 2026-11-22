@@ -17,7 +17,7 @@ import {
   getDefaultSiteMeta,
   normalizeAssetPath,
   getAppLocalPackageUrl,
-  isWindowsPackage,
+  matchesPlatformFilter,
   getLocalPublishedApps,
   mergeCatalogApps,
   pickContextualSponsor,
@@ -170,22 +170,6 @@ export default function App() {
     setSelectedApp((prev) =>
       prev && prev.id === appId ? { ...prev, rating, reviewsCount } : prev
     );
-  };
-
-  const matchesPlatformFilter = (app: AppItem, plat: StorePlatformFilter): boolean => {
-    if (plat === 'All') return true;
-    const rawPlat = (app.platform || '').toLowerCase();
-    const rawFile = (app.fileName || '').toLowerCase();
-    if (plat === 'Windows') {
-      return isWindowsPackage(app);
-    }
-    if (plat === 'Smart TV') {
-      return rawPlat.includes('smart tv') || rawPlat.includes('firestick') || rawPlat.includes('android tv');
-    }
-    if (plat === 'Android') {
-      return rawPlat.includes('android') || rawPlat.includes('mobile') || rawFile.endsWith('.apk');
-    }
-    return true;
   };
 
   const filteredApps = useMemo(() => {

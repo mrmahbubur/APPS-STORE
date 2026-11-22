@@ -1,4 +1,39 @@
 import { AppItem, AppOwnerProfile, ReviewItem, ReviewStats, SiteMeta, SponsorAdLink } from '../types';
+import {
+  SUPPORTED_WINDOWS_EXTENSIONS,
+  SUPPORTED_PACKAGE_EXTENSIONS,
+  getPackageExtension,
+  getPackageFormatCode,
+  getAppPackageFormatLabel,
+  getAppShareTitle,
+  getAppShareText,
+  getAppMinOsLabel,
+  getPackageMimeType,
+  isAndroidPackage,
+  isHybridPackage,
+  isSmartTvPackage,
+  isWindowsPackage,
+  matchesPlatformFilter,
+} from '../../shared/package-utils.ts';
+
+export type { PackageFormatCode, StorePlatformCategory, PackageMetadataInput } from '../../shared/package-utils.ts';
+
+export {
+  SUPPORTED_WINDOWS_EXTENSIONS,
+  SUPPORTED_PACKAGE_EXTENSIONS,
+  getPackageExtension,
+  getPackageFormatCode,
+  getAppPackageFormatLabel,
+  getAppShareTitle,
+  getAppShareText,
+  getAppMinOsLabel,
+  getPackageMimeType,
+  isAndroidPackage,
+  isHybridPackage,
+  isSmartTvPackage,
+  isWindowsPackage,
+  matchesPlatformFilter,
+};
 
 export function isGitHubRootStaticMode(): boolean {
   return typeof window !== 'undefined' && Boolean((window as any).__MRS_GH_ROOT_MODE__);
@@ -32,62 +67,11 @@ export function normalizeAssetPath(url: string | undefined): string {
   return normalized;
 }
 
-export const SUPPORTED_WINDOWS_EXTENSIONS = [
-  '.exe',
-  '.msi',
-  '.msix',
-  '.msixbundle',
-  '.appx',
-  '.appxbundle',
-  '.zip',
-] as const;
-
 export const LOCAL_PACKAGE_FILE_MAP: Record<string, string> = {
   'm-r-s-iptv': 'M_R_S_IPTV.apk',
   'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
   'camellia-ai': 'Camillia_Ai.apk',
 };
-
-const ALL_PACKAGE_EXTENSION_RE = /\.(apk|exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i;
-const WINDOWS_ONLY_EXT_RE = /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i;
-
-export function isWindowsPackage(app: { platform?: string; fileName?: string }): boolean {
-  const platform = app.platform || '';
-  const fileName = app.fileName || '';
-  if (/windows/i.test(platform)) return true;
-  if (WINDOWS_ONLY_EXT_RE.test(fileName)) return true;
-  if (/\.zip$/i.test(fileName) && !/android/i.test(platform)) return true;
-  return false;
-}
-
-export function isHybridPackage(app: { platform?: string; fileName?: string }): boolean {
-  return isWindowsPackage(app) && /android|smart tv/i.test(app.platform || '');
-}
-
-export function getAppPackageFormatLabel(app: { platform?: string; fileName?: string }): string {
-  const lower = (app.fileName || '').toLowerCase();
-  if (lower.endsWith('.exe')) return 'Direct EXE';
-  if (lower.endsWith('.msi')) return 'Direct MSI';
-  if (lower.endsWith('.msix') || lower.endsWith('.msixbundle')) return 'Direct MSIX';
-  if (lower.endsWith('.appx') || lower.endsWith('.appxbundle')) return 'Direct APPX';
-  if (lower.endsWith('.zip')) return 'Direct ZIP';
-  if (lower.endsWith('.apk')) return 'Direct APK';
-  return isWindowsPackage(app) ? 'Direct Package' : 'Direct APK';
-}
-
-export function getAppShareTitle(app: {
-  title: string;
-  platform?: string;
-  fileName?: string;
-}): string {
-  if (isHybridPackage(app)) {
-    return `${app.title} — Official Windows & Android Package`;
-  }
-  if (isWindowsPackage(app)) {
-    return `${app.title} — Official Windows Package`;
-  }
-  return `${app.title} — Official APK`;
-}
 
 export function getAppLocalPackageFile(
   appOrId: string | { id: string; fileName?: string; platform?: string }
@@ -97,9 +81,9 @@ export function getAppLocalPackageFile(
     return LOCAL_PACKAGE_FILE_MAP[appId];
   }
   if (typeof appOrId !== 'string') {
-    const extMatch = (appOrId.fileName || '').match(ALL_PACKAGE_EXTENSION_RE);
-    if (extMatch) {
-      return `${appId}${extMatch[0].toLowerCase()}`;
+    const ext = getPackageExtension(appOrId.fileName);
+    if (ext) {
+      return `${appId}${ext}`;
     }
     if (isWindowsPackage(appOrId) && !isHybridPackage(appOrId)) {
       return `${appId}.exe`;
@@ -425,22 +409,21 @@ export function getLocalPublishedApps(): AppItem[] {
     return parsed
       .filter((app: any) => app && typeof app === 'object' && app.id)
       .map((app: AppItem) => {
-        const isWin =
-          /windows/i.test(app.platform || '') ||
-          /\.(exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i.test(app.fileName || '');
+        const isWin = isWindowsPackage(app);
+        const isHyb = isHybridPackage(app);
         return {
           ...app,
           title: app.title || 'Untitled App',
-          fileName: app.fileName || (isWin ? 'app.exe' : 'app.apk'),
+          fileName: app.fileName || (isWin && !isHyb ? 'app.exe' : 'app.apk'),
           tagline: app.tagline || '',
           category: app.category || 'Entertainment',
-          platform: app.platform || 'Android Mobile',
+          platform: app.platform || (isWin ? 'Windows PC (10 / 11)' : 'Android Mobile'),
           version: app.version || '1.0.0',
           size: app.size || (isWin ? 'Windows Package' : 'APK'),
           rating: typeof app.rating === 'number' ? app.rating : 0,
           reviewsCount: typeof app.reviewsCount === 'number' ? app.reviewsCount : 0,
           downloads: typeof app.downloads === 'number' ? app.downloads : 0,
-          minAndroid: app.minAndroid || (isWin ? 'Windows 10 / 11 (x64 / ARM64)' : 'Android 8.0+ (API 26)'),
+          minAndroid: app.minAndroid || getAppMinOsLabel(app),
           developer: app.developer || 'Developer',
           developerEmail: app.developerEmail || '',
           packageId: app.packageId || 'com.mrs.app',

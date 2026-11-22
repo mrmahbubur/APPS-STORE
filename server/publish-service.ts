@@ -4,6 +4,12 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import type { AppOwnerAccount, AppOwnerProfile } from './db.ts';
+import {
+  getPackageExtension,
+  isAndroidPackage,
+  isSmartTvPackage,
+  isWindowsPackage,
+} from '../shared/package-utils.ts';
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
 const REQUIRED_FEE_USD = 25.0;
@@ -556,11 +562,30 @@ export function inspectPackageBinary(
   fileName = '',
   platform = ''
 ): PackageInspectionResult {
-  const ext = path.extname(fileName || '').toLowerCase();
-  const isWindowsTarget = /windows/i.test(platform || '');
-  const isWindowsExt = ['.exe', '.msi', '.msix', '.msixbundle', '.appx', '.appxbundle'].includes(ext);
+  const ext = getPackageExtension(fileName) || path.extname(fileName || '').toLowerCase();
+  const isWinTarget = /windows/i.test(platform || '');
+  const isWinBinary = isWindowsPackage({ platform, fileName });
+  const isWinInstallerExt = ['.exe', '.msi', '.msix', '.msixbundle', '.appx', '.appxbundle'].includes(ext);
 
-  if (isWindowsExt || (ext === '.zip' && isWindowsTarget) || (isWindowsTarget && ext !== '.apk')) {
+  if (ext === '.zip' && !isWinTarget && (isAndroidPackage({ platform }) || isSmartTvPackage({ platform }))) {
+    return {
+      isValid: false,
+      platformKind: 'android',
+      packageType: 'ZIP',
+      totalEntries: 0,
+      hasManifest: false,
+      hasAndroidManifest: false,
+      hasClassesDex: false,
+      hasResources: false,
+      hasWindowsManifest: false,
+      isPeExecutable: false,
+      isMsiInstaller: false,
+      architectures: [],
+      reason: 'Portable .zip archives are supported for Windows targets; upload a valid .apk file for Android & Smart TV.',
+    };
+  }
+
+  if (isWinInstallerExt || (ext === '.zip' && isWinBinary) || (isWinTarget && ext !== '.apk')) {
     return inspectWindowsPackage(buf, fileName);
   }
 

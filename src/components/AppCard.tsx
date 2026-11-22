@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Star, Check, Share2, UserCheck, Smartphone, Monitor } from 'lucide-react';
 import { AppItem } from '../types';
-import { copyToClipboard, normalizeAssetPath } from '../data/catalog';
+import { copyToClipboard, getAppPackageFormatLabel, getAppShareTitle, isWindowsPackage, normalizeAssetPath } from '../data/catalog';
 
 interface AppCardProps {
   app: AppItem;
@@ -26,9 +26,8 @@ export const AppCard: React.FC<AppCardProps> = ({
   const [avatarError, setAvatarError] = useState(false);
 
   const appOwner = app.ownerName || app.developer;
-  const isWindowsApp =
-    /windows/i.test(app.platform || '') ||
-    /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
+  const isWindowsApp = isWindowsPackage(app);
+  const formatLabel = getAppPackageFormatLabel(app);
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,8 +42,8 @@ export const AppCard: React.FC<AppCardProps> = ({
     if (navigator.share) {
       navigator
         .share({
-          title: `${app.title} — Official ${isWindowsApp ? 'Package' : 'APK'}`,
-          text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
+          title: getAppShareTitle(app),
+          text: `Download ${app.title} (${app.fileName} · ${app.size} · ${formatLabel}) directly from MRS App Store.`,
           url: shareUrl,
         })
         .catch(() => {});

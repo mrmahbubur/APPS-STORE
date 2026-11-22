@@ -27,7 +27,11 @@ import {
 import { AppItem, ReviewItem, ReviewStats, SponsorAdLink } from '../types';
 import {
   copyToClipboard,
-  getAppLocalApkUrl,
+  getAppLocalPackageUrl,
+  getAppPackageFormatLabel,
+  getAppShareTitle,
+  isHybridPackage,
+  isWindowsPackage,
   normalizeAssetPath,
   computeReviewStats,
   getLocalReviews,
@@ -88,10 +92,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   useEffect(() => {
     if (!app) return;
-    const isWin =
-      /windows/i.test(app.platform || '') ||
-      /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
-    const isHyb = isWin && /android|smart tv/i.test(app.platform || '');
+    const isWin = isWindowsPackage(app);
+    const isHyb = isHybridPackage(app);
     setReviewDevice(isWin && !isHyb ? 'Windows 11 PC' : 'Android Mobile');
     setShowQrCode(false);
     setShowSharePanel(false);
@@ -143,12 +145,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     : pathname.split('/').pop()?.includes('.')
     ? pathname.replace(/\/[^/]*$/, '/')
     : `${pathname}/`;
-  const staticApkRel = getAppLocalApkUrl(app);
+  const staticPackageRel = getAppLocalPackageUrl(app);
   const directDownloadUrl = hasBackend
     ? `${window.location.origin}${basePath}api/download/${app.id}`
-    : staticApkRel.startsWith('http://') || staticApkRel.startsWith('https://')
-    ? staticApkRel
-    : `${window.location.origin}${basePath}${staticApkRel.replace(/^\.\//, '')}`;
+    : staticPackageRel.startsWith('http://') || staticPackageRel.startsWith('https://')
+    ? staticPackageRel
+    : `${window.location.origin}${basePath}${staticPackageRel.replace(/^\.\//, '')}`;
   const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
 
   const handleCopyDownloadLink = async () => {
@@ -171,14 +173,15 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     setTimeout(() => setCopiedSha(false), 2000);
   };
 
+  const isWindowsApp = isWindowsPackage(app);
+  const isHybridApp = isHybridPackage(app);
+  const packageFormatLabel = getAppPackageFormatLabel(app);
+
   const handleNativeShare = () => {
-    const isWinShare =
-      /windows/i.test(app.platform || '') ||
-      /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
     if (navigator.share) {
       navigator.share({
-        title: `${app.title} — ${isWinShare ? 'Official Windows Package' : 'Official APK'}`,
-        text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
+        title: getAppShareTitle(app),
+        text: `Download ${app.title} (${app.fileName} · ${app.size} · ${packageFormatLabel}) directly from MRS App Store.`,
         url: shareUrl,
       }).catch(() => {});
     } else {
@@ -280,26 +283,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   const displayRating = reviews.length > 0 ? reviewStats.averageRating : app.rating;
   const displayReviewsCount = reviews.length > 0 ? reviewStats.totalReviews : app.reviewsCount;
-  const isWindowsApp =
-    /windows/i.test(app.platform || '') ||
-    /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
-  const isHybridApp = isWindowsApp && /android|smart tv/i.test(app.platform || '');
-  const lowerFile = (app.fileName || '').toLowerCase();
-  const packageFormatLabel = lowerFile.endsWith('.exe')
-    ? 'Direct EXE'
-    : lowerFile.endsWith('.msi')
-    ? 'Direct MSI'
-    : lowerFile.endsWith('.msix') || lowerFile.endsWith('.msixbundle')
-    ? 'Direct MSIX'
-    : lowerFile.endsWith('.appx') || lowerFile.endsWith('.appxbundle')
-    ? 'Direct APPX'
-    : lowerFile.endsWith('.zip')
-    ? 'Direct ZIP'
-    : isWindowsApp
-    ? 'Direct Package'
-    : 'Direct APK';
 
-  const shareText = encodeURIComponent(`Download ${app.title} (${app.fileName}) directly from MRS App Store`);
+  const shareText = encodeURIComponent(
+    `Download ${app.title} (${app.fileName} · ${packageFormatLabel}) directly from MRS App Store`
+  );
   const encodedShareUrl = encodeURIComponent(shareUrl);
 
   return (
@@ -561,8 +548,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                   <span>
                     {copiedDownloadLink
                       ? 'Download Link Copied'
-                      : isWindowsApp
+                      : isHybridApp
                       ? 'Copy Direct Package Link'
+                      : isWindowsApp
+                      ? 'Copy Direct Windows Package Link'
                       : 'Copy Direct APK Link'}
                   </span>
                 </button>
@@ -620,7 +609,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-white">
-                    {isWindowsApp ? 'Direct Package Download Link' : 'Direct APK Download Link'}
+                    {isHybridApp
+                      ? 'Direct Package Download Link'
+                      : isWindowsApp
+                      ? 'Direct Windows Package Download Link'
+                      : 'Direct APK Download Link'}
                   </p>
                   <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">{directDownloadUrl}</p>
                 </div>
@@ -1091,9 +1084,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         {/* Contextual Sponsored Partners */}
         {(() => {
           const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
-          const isWindowsPkg =
-            /windows/i.test(app.platform || '') ||
-            /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
+          const isWindowsPkg = isWindowsPackage(app);
           const detailFirst = pool.filter((item) => item.placement === 'detail');
           const prioritized = isWindowsPkg
             ? [

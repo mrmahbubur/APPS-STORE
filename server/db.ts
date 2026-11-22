@@ -987,7 +987,7 @@ export const AppDatabase = {
             {
               heading: '1. Direct Package Distribution',
               content:
-                'Android APK and Windows (.exe, .msi, .msix, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
+                'Android (.apk) and Windows (.exe, .msi, .msix, .appx, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
             },
             {
               heading: '2. Submitted Reviews',

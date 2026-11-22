@@ -26,8 +26,9 @@ import { AppItem, AppOwnerProfile, DeveloperSubmission } from '../types';
 import {
   APP_STORE_CATEGORIES,
   copyToClipboard,
-  getAppLocalApkUrl,
+  getAppLocalPackageUrl,
   getLocalPublishedApps,
+  isWindowsPackage,
   saveLocalPublishedApp,
   getLocalSubmissions,
   saveLocalSubmission,
@@ -561,7 +562,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         category: effectiveCategory,
         platform,
         version: version.trim() || '1.0.0',
-        description: description.trim() || `${appTitle.trim()} Android application.`,
+        description: description.trim() || `${appTitle.trim()} (${platform}) application.`,
         developerName: developerName.trim(),
         ownerName: ownerName.trim(),
         developerEmail: developerEmail.trim(),
@@ -642,11 +643,11 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           id: `sub-${now}`,
           appTitle: appTitle.trim(),
           packageId: packageId.trim() || undefined,
-          apkDownloadUrl: 'Awaiting owner payment confirmation before APK upload',
+          apkDownloadUrl: 'Awaiting owner payment confirmation before package upload',
           category: effectiveCategory,
           platform,
           version: version.trim() || '1.0.0',
-          description: description.trim() || `${appTitle.trim()} Android application.`,
+          description: description.trim() || `${appTitle.trim()} (${platform}) application.`,
           developerName: developerName.trim(),
           developerEmail: developerEmail.trim(),
           targetAdminEmail: adminEmail,
@@ -666,13 +667,13 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(
           `[Binance Pay Verification] ${sub.appTitle} (${sub.invoiceNumber})`
         )}&body=${encodeURIComponent(
-          `Dear Store Owner (${adminEmail}),\n\nBinance Pay Order ID: ${cleanTx}\nInvoice: ${sub.invoiceNumber}\nApp Name: ${sub.appTitle}\nOwner: ${ownerName.trim()} (${sub.developerEmail})`
+          `Dear Store Owner (${adminEmail}),\n\nBinance Pay Order ID: ${cleanTx}\nInvoice: ${sub.invoiceNumber}\nApp Name: ${sub.appTitle}\nPlatform: ${sub.platform}\nOwner: ${ownerName.trim()} (${sub.developerEmail})`
         )}`;
         setPendingBinanceReceipt({
           submission: sub,
           mailtoUrl,
           message:
-            'Binance Pay Order ID recorded under review. Personal Binance Pay orders require manual confirmation by M R S (mr216873@gmail.com); or pay via USDT (BEP-20) for instant automated verification and APK upload.',
+            'Binance Pay Order ID recorded under review. Personal Binance Pay orders require manual confirmation by M R S (mr216873@gmail.com); or pay via USDT (BEP-20) for instant automated verification and package upload.',
         });
       }
     } catch (err: any) {
@@ -993,7 +994,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(
         `[App Published] ${newSub.appTitle} (${newSub.transactionId})`
       )}&body=${encodeURIComponent(
-        `Dear Store Owner (${adminEmail}),\n\nApplication verified on BNB Smart Chain and published.\n\nInvoice: ${newSub.invoiceNumber}\nTxHash: ${verifiedPaymentInfo.txHash}\nApp: ${newApp.title} (${newApp.packageId})\nOwner: ${newApp.ownerName} (${newApp.developerEmail})\nAPK URL: ${newApp.directDownloadUrl}`
+        `Dear Store Owner (${adminEmail}),\n\nApplication verified on BNB Smart Chain and published.\n\nInvoice: ${newSub.invoiceNumber}\nTxHash: ${verifiedPaymentInfo.txHash}\nApp: ${newApp.title} (${newApp.packageId})\nPlatform: ${newApp.platform}\nPackage File: ${newApp.fileName}\nOwner: ${newApp.ownerName} (${newApp.developerEmail})\nPackage URL: ${newApp.directDownloadUrl}`
       )}`;
 
       setReceiptResult({
@@ -1268,18 +1269,24 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       : pathname.split('/').pop()?.includes('.')
                       ? pathname.replace(/\/[^/]*$/, '/')
                       : `${pathname}/`;
-                    const staticApkRel = getAppLocalApkUrl(receiptResult.app);
+                    const staticPkgRel = getAppLocalPackageUrl(receiptResult.app);
                     const directUrl = hasBackend
                       ? `${window.location.origin}${basePath}api/download/${receiptResult.app.id}`
-                      : staticApkRel.startsWith('http://') || staticApkRel.startsWith('https://')
-                      ? staticApkRel
-                      : `${window.location.origin}${basePath}${staticApkRel.replace(/^\.\//, '')}`;
+                      : staticPkgRel.startsWith('http://') || staticPkgRel.startsWith('https://')
+                      ? staticPkgRel
+                      : `${window.location.origin}${basePath}${staticPkgRel.replace(/^\.\//, '')}`;
                     copyText('apk', directUrl);
                   }}
                   className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   {copiedKey === 'apk' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedKey === 'apk' ? 'Download Link Copied' : 'Copy Direct Package Link'}</span>
+                  <span>
+                    {copiedKey === 'apk'
+                      ? 'Download Link Copied'
+                      : isWindowsPackage(receiptResult.app)
+                      ? 'Copy Direct Windows Package Link'
+                      : 'Copy Direct APK Link'}
+                  </span>
                 </button>
 
                 <button
@@ -1950,7 +1957,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       </span>
                       <p className="text-sm font-bold text-white">
                         {isWindowsOnlyPlatform
-                          ? 'Upload Verified .exe / .msi / .msix / .zip Binary'
+                          ? 'Upload Verified .exe / .msi / .msix / .appx / .zip Binary'
                           : isHybridPlatform
                           ? 'Upload Verified Windows or Android Binary'
                           : 'Upload Verified .apk Binary'}
@@ -2003,7 +2010,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                             : isWindowsOnlyPlatform
                             ? 'Choose .exe, .msi, .msix, .appx, or .zip file'
                             : isHybridPlatform
-                            ? 'Choose .exe, .msi, .msix, .zip, or .apk file'
+                            ? 'Choose .apk, .exe, .msi, .msix, .appx, or .zip file'
                             : 'Choose .apk file from your device'}
                         </span>
                         <span className="text-[11px] text-zinc-400">

@@ -16,7 +16,8 @@ import {
   MRS_GRAVATAR_OWNER_PROFILE,
   getDefaultSiteMeta,
   normalizeAssetPath,
-  getAppLocalApkUrl,
+  getAppLocalPackageUrl,
+  isWindowsPackage,
   getLocalPublishedApps,
   mergeCatalogApps,
   pickContextualSponsor,
@@ -176,10 +177,7 @@ export default function App() {
     const rawPlat = (app.platform || '').toLowerCase();
     const rawFile = (app.fileName || '').toLowerCase();
     if (plat === 'Windows') {
-      return (
-        rawPlat.includes('windows') ||
-        /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(rawFile)
-      );
+      return isWindowsPackage(app);
     }
     if (plat === 'Smart TV') {
       return rawPlat.includes('smart tv') || rawPlat.includes('firestick') || rawPlat.includes('android tv');
@@ -276,7 +274,7 @@ export default function App() {
     setActiveDownloadNotification(`Downloading ${app.fileName} directly from MRS App Store...`);
     setTimeout(() => setActiveDownloadNotification(null), 4000);
 
-    const staticUrl = getAppLocalApkUrl(app);
+    const staticUrl = getAppLocalPackageUrl(app);
 
     const link = document.createElement('a');
     link.href = hasBackend ? `./api/download/${app.id}` : staticUrl;
@@ -412,7 +410,7 @@ export default function App() {
                   : selectedCategory}
               </h2>
               <p className="text-xs text-zinc-400 mt-1">
-                Direct APK &amp; Windows (.exe / .msi / .msix / .zip) releases with SHA-256 checksums, real user reviews, and verified owner profiles.
+                Direct APK &amp; Windows (.exe / .msi / .msix / .appx / .zip) releases with SHA-256 checksums, real user reviews, and verified owner profiles.
               </p>
             </div>
 
@@ -591,7 +589,7 @@ export default function App() {
                 </h3>
                 <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
                   {selectedPlatform === 'Windows' && !searchQuery
-                    ? `Every listing in MRS App Store is a verified package submission. Publish the first Windows (.exe, .msi, .msix, .zip) app${
+                    ? `Every listing in MRS App Store is a verified package submission. Publish the first Windows (.exe, .msi, .msix, .appx, .zip) app${
                         selectedCategory !== 'All' ? ` in ${selectedCategory}` : ''
                       } directly with on-chain BEP-20 verification.`
                     : (selectedCategory !== 'All' || selectedPlatform !== 'All') && !searchQuery
@@ -770,7 +768,7 @@ export default function App() {
                       Publish your Android, Smart TV &amp; Windows app across any category
                     </h3>
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature (.apk, .exe, .msi, .msix, .zip), and publish live with direct downloads.
+                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature (.apk, .exe, .msi, .msix, .appx, .zip), and publish live with direct downloads.
                     </p>
                   </div>
 

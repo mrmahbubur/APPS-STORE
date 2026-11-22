@@ -115,7 +115,21 @@ app.get('/api/apps', (req: Request, res: Response) => {
   }
 
   if (platform && typeof platform === 'string' && platform !== 'All') {
-    apps = apps.filter((app) => app.platform.toLowerCase().includes(platform.toLowerCase()));
+    const platFilter = platform.toLowerCase();
+    if (platFilter === 'windows') {
+      apps = apps.filter(
+        (app) =>
+          app.platform.toLowerCase().includes('windows') ||
+          /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '') ||
+          (/\.zip$/i.test(app.fileName || '') && !app.platform.toLowerCase().includes('android'))
+      );
+    } else {
+      apps = apps.filter(
+        (app) =>
+          app.platform.toLowerCase().includes(platFilter) ||
+          (platFilter === 'android' && /\.apk$/i.test(app.fileName || ''))
+      );
+    }
   }
 
   if (search && typeof search === 'string' && search.trim() !== '') {
@@ -157,16 +171,16 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
   // Increment download counter
   AppDatabase.incrementDownload(appItem.id);
 
-  const apkMap: Record<string, string> = {
+  const builtinPackageMap: Record<string, string> = {
     'm-r-s-iptv': 'M_R_S_IPTV.apk',
     'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
     'camellia-ai': 'Camillia_Ai.apk',
   };
 
-  if (apkMap[appItem.id]) {
-    const filePath = path.resolve(process.cwd(), 'public/apks', apkMap[appItem.id]);
+  if (builtinPackageMap[appItem.id]) {
+    const filePath = path.resolve(process.cwd(), 'public/apks', builtinPackageMap[appItem.id]);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath);
     }
@@ -211,7 +225,7 @@ app.get('/download/:filename', (req: Request, res: Response) => {
   return res.status(404).send('Application package file not found.');
 });
 
-// 3. Real Inbuilt App Publishing Pipeline: Details -> Payment Verification -> APK Upload -> Publish Live
+// 3. Real Inbuilt App Publishing Pipeline: Details -> Payment Verification -> Binary Upload -> Publish Live
 
 // 3a-0. Lookup optional Gravatar profile for app owner
 app.get('/api/publish/gravatar/:handle', async (req: Request, res: Response) => {
@@ -304,11 +318,11 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
       {
         appTitle,
         packageId: appDetails?.packageId ? String(appDetails.packageId).trim() : undefined,
-        apkDownloadUrl: 'Awaiting owner payment confirmation before APK upload',
+        apkDownloadUrl: 'Awaiting owner payment confirmation before package upload',
         category: appDetails?.category ? String(appDetails.category).trim() : 'Entertainment',
         platform: appDetails?.platform ? String(appDetails.platform).trim() : 'Smart TV & Android Mobile',
         version: appDetails?.version ? String(appDetails.version).trim() : '1.0.0',
-        description: appDetails?.description ? String(appDetails.description).trim() : `${appTitle} Android package.`,
+        description: appDetails?.description ? String(appDetails.description).trim() : `${appTitle} application package.`,
         developerName: developerName || appTitle,
         developerEmail,
         targetAdminEmail: 'mr216873@gmail.com',
@@ -326,7 +340,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[Binance Pay Verification] ${submission.appTitle} (${submission.invoiceNumber})`
     )}&body=${encodeURIComponent(
-      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nPlatform: ${submission.platform}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.json({
@@ -336,7 +350,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
       submission,
       mailtoUrl,
       message:
-        'Binance Pay Order ID recorded under review. Personal Binance Pay orders require manual confirmation by M R S (mr216873@gmail.com); for instant automated on-chain verification and immediate APK upload, pay with USDT (BEP-20).',
+        'Binance Pay Order ID recorded under review. Personal Binance Pay orders require manual confirmation by M R S (mr216873@gmail.com); for instant automated on-chain verification and immediate package upload (.apk, .exe, .msi, .msix, .appx, .zip), pay with USDT (BEP-20).',
     });
   } catch (err: any) {
     return res.status(500).json({
@@ -438,7 +452,7 @@ app.post(
           success: false,
           message:
             inspection.reason ||
-            'Invalid binary package signature. Upload a valid Android .apk or Windows .exe/.msi/.msix/.zip file.',
+            'Invalid binary package signature. Upload a valid Android .apk or Windows (.exe, .msi, .msix, .appx, .zip) file.',
         });
       }
 
@@ -553,7 +567,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
     if (!cleanLocalPath && !cleanUrl) {
       return res.status(400).json({
         success: false,
-        message: 'Upload your app package (.apk, .exe, .msi, .msix, or .zip) in Step 3 or provide a valid direct download URL.',
+        message: 'Upload your app package (.apk, .exe, .msi, .msix, .appx, or .zip) in Step 3 or provide a valid direct download URL.',
       });
     }
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -707,7 +721,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[App Published] ${submission.appTitle} (${submission.transactionId})`
     )}&body=${encodeURIComponent(
-      `Dear MRS App Store Owner (mr216873@gmail.com),\n\nA new application has been verified on-chain, uploaded, and published via MRS App Store.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nFee Verified: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Method: ${submission.paymentMethod}\nNetwork: ${submission.paymentDetails.cryptoNetwork || ''}\nTxHash: ${txHash}\nExplorer: ${tokenCheck.payload.explorerUrl || ''}\n\nApp Name: ${publishedApp.title}\nPackage ID: ${publishedApp.packageId}\nVersion: ${publishedApp.version}\nSize: ${publishedApp.size}\nSHA-256: ${publishedApp.sha256}\nDownload URL: ${publishedApp.directDownloadUrl}\nOwner: ${publishedApp.ownerName} (${publishedApp.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear MRS App Store Owner (mr216873@gmail.com),\n\nA new application has been verified on-chain, uploaded, and published via MRS App Store.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nFee Verified: $${submission.amountPaidUsd.toFixed(2)} USD\nPayment Method: ${submission.paymentMethod}\nNetwork: ${submission.paymentDetails.cryptoNetwork || ''}\nTxHash: ${txHash}\nExplorer: ${tokenCheck.payload.explorerUrl || ''}\n\nApp Name: ${publishedApp.title}\nPlatform: ${publishedApp.platform}\nPackage File: ${publishedApp.fileName}\nPackage ID: ${publishedApp.packageId}\nVersion: ${publishedApp.version}\nSize: ${publishedApp.size}\nSHA-256: ${publishedApp.sha256}\nDownload URL: ${publishedApp.directDownloadUrl}\nOwner: ${publishedApp.ownerName} (${publishedApp.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.status(201).json({

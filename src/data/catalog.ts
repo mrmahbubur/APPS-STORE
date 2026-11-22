@@ -32,17 +32,86 @@ export function normalizeAssetPath(url: string | undefined): string {
   return normalized;
 }
 
-export function getAppLocalApkFile(appId: string): string {
-  const apkMap: Record<string, string> = {
-    'm-r-s-iptv': 'M_R_S_IPTV.apk',
-    'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
-    'camellia-ai': 'Camillia_Ai.apk',
-  };
-  return apkMap[appId] || `${appId}.apk`;
+export const SUPPORTED_WINDOWS_EXTENSIONS = [
+  '.exe',
+  '.msi',
+  '.msix',
+  '.msixbundle',
+  '.appx',
+  '.appxbundle',
+  '.zip',
+] as const;
+
+export const LOCAL_PACKAGE_FILE_MAP: Record<string, string> = {
+  'm-r-s-iptv': 'M_R_S_IPTV.apk',
+  'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
+  'camellia-ai': 'Camillia_Ai.apk',
+};
+
+const ALL_PACKAGE_EXTENSION_RE = /\.(apk|exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i;
+const WINDOWS_ONLY_EXT_RE = /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i;
+
+export function isWindowsPackage(app: { platform?: string; fileName?: string }): boolean {
+  const platform = app.platform || '';
+  const fileName = app.fileName || '';
+  if (/windows/i.test(platform)) return true;
+  if (WINDOWS_ONLY_EXT_RE.test(fileName)) return true;
+  if (/\.zip$/i.test(fileName) && !/android/i.test(platform)) return true;
+  return false;
 }
 
-export function getAppLocalApkUrl(app: {
+export function isHybridPackage(app: { platform?: string; fileName?: string }): boolean {
+  return isWindowsPackage(app) && /android|smart tv/i.test(app.platform || '');
+}
+
+export function getAppPackageFormatLabel(app: { platform?: string; fileName?: string }): string {
+  const lower = (app.fileName || '').toLowerCase();
+  if (lower.endsWith('.exe')) return 'Direct EXE';
+  if (lower.endsWith('.msi')) return 'Direct MSI';
+  if (lower.endsWith('.msix') || lower.endsWith('.msixbundle')) return 'Direct MSIX';
+  if (lower.endsWith('.appx') || lower.endsWith('.appxbundle')) return 'Direct APPX';
+  if (lower.endsWith('.zip')) return 'Direct ZIP';
+  if (lower.endsWith('.apk')) return 'Direct APK';
+  return isWindowsPackage(app) ? 'Direct Package' : 'Direct APK';
+}
+
+export function getAppShareTitle(app: {
+  title: string;
+  platform?: string;
+  fileName?: string;
+}): string {
+  if (isHybridPackage(app)) {
+    return `${app.title} — Official Windows & Android Package`;
+  }
+  if (isWindowsPackage(app)) {
+    return `${app.title} — Official Windows Package`;
+  }
+  return `${app.title} — Official APK`;
+}
+
+export function getAppLocalPackageFile(
+  appOrId: string | { id: string; fileName?: string; platform?: string }
+): string {
+  const appId = typeof appOrId === 'string' ? appOrId : appOrId.id;
+  if (LOCAL_PACKAGE_FILE_MAP[appId]) {
+    return LOCAL_PACKAGE_FILE_MAP[appId];
+  }
+  if (typeof appOrId !== 'string') {
+    const extMatch = (appOrId.fileName || '').match(ALL_PACKAGE_EXTENSION_RE);
+    if (extMatch) {
+      return `${appId}${extMatch[0].toLowerCase()}`;
+    }
+    if (isWindowsPackage(appOrId) && !isHybridPackage(appOrId)) {
+      return `${appId}.exe`;
+    }
+  }
+  return `${appId}.apk`;
+}
+
+export function getAppLocalPackageUrl(app: {
   id: string;
+  fileName?: string;
+  platform?: string;
   localApkPath?: string;
   directDownloadUrl?: string;
 }): string {
@@ -55,7 +124,21 @@ export function getAppLocalApkUrl(app: {
   if (app.localApkPath && (app.localApkPath.startsWith('/apks/') || app.localApkPath.startsWith('./apks/'))) {
     return normalizeAssetPath(app.localApkPath);
   }
-  return normalizeAssetPath(`./apks/${getAppLocalApkFile(app.id)}`);
+  return normalizeAssetPath(`./apks/${getAppLocalPackageFile(app)}`);
+}
+
+export function getAppLocalApkFile(appId: string): string {
+  return getAppLocalPackageFile(appId);
+}
+
+export function getAppLocalApkUrl(app: {
+  id: string;
+  fileName?: string;
+  platform?: string;
+  localApkPath?: string;
+  directDownloadUrl?: string;
+}): string {
+  return getAppLocalPackageUrl(app);
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -511,7 +594,7 @@ export function getDefaultSiteMeta(): SiteMeta {
           {
             heading: '1. Direct Package Distribution',
             content:
-              'Android APK and Windows (.exe, .msi, .msix, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
+              'Android (.apk) and Windows (.exe, .msi, .msix, .appx, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
           },
           {
             heading: '2. Submitted Reviews',

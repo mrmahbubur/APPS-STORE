@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Star, ArrowRight, Share2, Check, UserCheck, Tv } from 'lucide-react';
 import { AppItem } from '../types';
-import { copyToClipboard, getAppLocalApkUrl, normalizeAssetPath } from '../data/catalog';
+import { copyToClipboard, getAppLocalPackageUrl, getAppShareTitle, normalizeAssetPath } from '../data/catalog';
 
 interface HeroFeaturedProps {
   app: AppItem;
@@ -27,17 +27,13 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
     day: 'numeric',
   }).format(new Date());
 
-  const isHeroWindows =
-    /windows/i.test(app.platform || '') ||
-    /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
-
   const handleShareHero = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?app=${app.id}`;
     if (navigator.share) {
       navigator
         .share({
-          title: `${app.title} — ${isHeroWindows ? 'Official Windows Package' : 'Official APK'}`,
-          text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
+          title: getAppShareTitle(app),
+          text: `Download ${app.title} (${app.fileName} · ${app.size}) directly from MRS App Store.`,
           url: shareUrl,
         })
         .catch(() => {});
@@ -213,7 +209,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({
                 <span className="truncate">{app.ownerName || app.developer}</span>
                 <span aria-hidden="true" className="hidden sm:inline text-zinc-600">·</span>
                 <span className="hidden sm:inline font-mono text-zinc-300 truncate">
-                  {hasBackend ? `./api/download/${app.id}` : getAppLocalApkUrl(app)}
+                  {hasBackend ? `./api/download/${app.id}` : getAppLocalPackageUrl(app)}
                 </span>
               </div>
             </div>

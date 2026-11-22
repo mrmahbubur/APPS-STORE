@@ -42,6 +42,8 @@ import {
   computeReviewStats,
   SPONSOR_FILTER_TABS,
   DEVICE_PLATFORM_HEADER,
+  DEVICE_MOBILE_HEADER,
+  parseSecChUaMobile,
   resolveSpotlightDevice,
   detectDeviceFromUserAgent,
   resolveDeviceContext,
@@ -97,6 +99,8 @@ export {
   matchesPlatformFilter,
   computeReviewStats,
   DEVICE_PLATFORM_HEADER,
+  DEVICE_MOBILE_HEADER,
+  parseSecChUaMobile,
   resolveSpotlightDevice,
   detectDeviceFromUserAgent,
   resolveDeviceContext,
@@ -124,8 +128,23 @@ export function detectClientDevicePlatform(
 export function buildClientDeviceHeaders(
   platformOverride?: StorePlatformFilter | string
 ): Record<string, string> {
+  const nav = typeof navigator !== 'undefined' ? (navigator as any) : undefined;
   const resolved = detectClientDevicePlatform(platformOverride);
-  return resolved && resolved !== 'All' ? { [DEVICE_PLATFORM_HEADER]: resolved } : {};
+  const mobileHint = parseSecChUaMobile(nav?.userAgentData?.mobile);
+  const headers: Record<string, string> = {};
+
+  if (resolved && resolved !== 'All') {
+    headers[DEVICE_PLATFORM_HEADER] = resolved;
+  }
+  if (typeof mobileHint === 'boolean') {
+    headers[DEVICE_MOBILE_HEADER] = mobileHint ? '?1' : '?0';
+  } else if (resolved === 'Android') {
+    headers[DEVICE_MOBILE_HEADER] = '?1';
+  } else if (resolved === 'Windows' || resolved === 'Smart TV') {
+    headers[DEVICE_MOBILE_HEADER] = '?0';
+  }
+
+  return headers;
 }
 
 export function isGitHubRootStaticMode(): boolean {

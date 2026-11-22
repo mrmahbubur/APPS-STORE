@@ -22,8 +22,10 @@ import {
   getPackageMimeType,
 } from './shared/package-utils.ts';
 import {
+  DEVICE_MOBILE_HEADER,
   DEVICE_PLATFORM_HEADER,
   groupSponsorsForSpotlight,
+  parseSecChUaMobile,
   pickContextualSponsor,
 } from './shared/store-metadata.ts';
 import type { SponsorGroupingOptions } from './shared/types.ts';
@@ -46,6 +48,7 @@ function getRequestSponsorGroupingOptions(req: Request): SponsorGroupingOptions 
         ? preferredDevice
         : undefined,
     headerDevice: readHeaderString(req, DEVICE_PLATFORM_HEADER),
+    headerMobile: readHeaderString(req, DEVICE_MOBILE_HEADER),
     chPlatform: readHeaderString(req, 'sec-ch-ua-platform'),
     chMobile: readHeaderString(req, 'sec-ch-ua-mobile'),
     userAgent: readHeaderString(req, 'user-agent'),
@@ -781,16 +784,23 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     excludeIds,
   });
 
+  const resolvedMobile =
+    parseSecChUaMobile(groupingOptions.chMobile) ??
+    parseSecChUaMobile(groupingOptions.headerMobile) ??
+    grouped.resolvedDevice === 'Android';
+
   res.setHeader('Cache-Control', 'public, max-age=30');
   res.setHeader(
     'Vary',
-    `${DEVICE_PLATFORM_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
+    `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
   );
   res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
+  res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   res.json({
     success: true,
     activeTab: grouped.activeTab,
     resolvedDevice: grouped.resolvedDevice,
+    isMobile: resolvedMobile,
     total: grouped.filtered.length,
     sponsors: grouped.filtered,
     featured: grouped.featured,

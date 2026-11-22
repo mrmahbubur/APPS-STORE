@@ -516,12 +516,22 @@ export function createDefaultSponsorLinks(): SponsorAdLink[] {
 }
 
 export const DEVICE_PLATFORM_HEADER = 'X-Device-Platform' as const;
+export const DEVICE_MOBILE_HEADER = 'X-Device-Mobile' as const;
 
 export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
   'All Partners',
   'Android & TV',
   'Windows PC',
 ] as const;
+
+export function parseSecChUaMobile(value?: boolean | string | null): boolean | undefined {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return undefined;
+  const clean = value.trim().replace(/^["']+|["']+$/g, '').toLowerCase();
+  if (clean === '?1' || clean === '1' || clean === 'true') return true;
+  if (clean === '?0' || clean === '0' || clean === 'false') return false;
+  return undefined;
+}
 
 export function resolveSpotlightDevice(
   platform?: StorePlatformFilter | string
@@ -554,14 +564,23 @@ export function detectDeviceFromUserAgent(
   if (fromUa === 'Smart TV') return 'Smart TV';
 
   const fromCh = resolveSpotlightDevice(chPlatform);
-  if (fromCh !== 'All') return fromCh;
+  const mobileHint = parseSecChUaMobile(chMobile);
 
-  if (fromUa !== 'All') return fromUa;
+  if (fromCh !== 'All') {
+    if (fromCh === 'Windows') return 'Windows';
+    if (fromCh === 'Smart TV') return 'Smart TV';
+    if (fromCh === 'Android') return 'Android';
+  }
 
-  const isMobileHint =
-    chMobile === true ||
-    (typeof chMobile === 'string' && /^(?:\?1|1|true)$/i.test(chMobile.trim()));
-  if (isMobileHint) return 'Android';
+  if (fromUa !== 'All') {
+    if (fromUa === 'Android' && mobileHint === false) {
+      // Non-mobile Chrome desktop/tablet UA spoofed or desktop-mode check still keeps Smart TV caught above
+      return 'Android';
+    }
+    return fromUa;
+  }
+
+  if (mobileHint === true) return 'Android';
 
   return 'All';
 }
@@ -584,10 +603,13 @@ export function resolveDeviceContext(
     if (resolved !== 'All') return resolved;
   }
 
+  const resolvedMobileHint =
+    parseSecChUaMobile(input.chMobile) ?? parseSecChUaMobile(input.headerMobile);
+
   const fromHeaders = detectDeviceFromUserAgent(
     input.userAgent,
     input.chPlatform,
-    input.chMobile
+    resolvedMobileHint
   );
   if (fromHeaders !== 'All') return fromHeaders;
 

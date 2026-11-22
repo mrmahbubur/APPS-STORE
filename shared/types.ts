@@ -24,6 +24,7 @@ export interface DeviceContextInput {
   platform?: StorePlatformFilter | string;
   preferredDevice?: StorePlatformFilter | string;
   headerDevice?: string;
+  headerMobile?: boolean | string;
   chPlatform?: string;
   chMobile?: boolean | string;
   userAgent?: string;

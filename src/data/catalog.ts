@@ -341,32 +341,37 @@ export function getLocalPublishedApps(): AppItem[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((app: any) => app && typeof app === 'object' && app.id)
-      .map((app: AppItem) => ({
-        ...app,
-        title: app.title || 'Untitled App',
-        fileName: app.fileName || 'app.apk',
-        tagline: app.tagline || '',
-        category: app.category || 'Entertainment',
-        platform: app.platform || 'Android Mobile',
-        version: app.version || '1.0.0',
-        size: app.size || 'APK',
-        rating: typeof app.rating === 'number' ? app.rating : 0,
-        reviewsCount: typeof app.reviewsCount === 'number' ? app.reviewsCount : 0,
-        downloads: typeof app.downloads === 'number' ? app.downloads : 0,
-        minAndroid: app.minAndroid || 'Android 8.0+ (API 26)',
-        developer: app.developer || 'Developer',
-        developerEmail: app.developerEmail || '',
-        packageId: app.packageId || 'com.mrs.app',
-        sha256: app.sha256 || '',
-        directDownloadUrl: app.directDownloadUrl || '',
-        description: app.description || '',
-        whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
-        features: Array.isArray(app.features) ? app.features : [],
-        permissions: Array.isArray(app.permissions) ? app.permissions : [],
-        icon: normalizeAssetPath(app.icon) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
-        banner: normalizeAssetPath(app.banner) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
-        screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
-      }));
+      .map((app: AppItem) => {
+        const isWin =
+          /windows/i.test(app.platform || '') ||
+          /\.(exe|msi|msix|msixbundle|appx|appxbundle|zip)$/i.test(app.fileName || '');
+        return {
+          ...app,
+          title: app.title || 'Untitled App',
+          fileName: app.fileName || (isWin ? 'app.exe' : 'app.apk'),
+          tagline: app.tagline || '',
+          category: app.category || 'Entertainment',
+          platform: app.platform || 'Android Mobile',
+          version: app.version || '1.0.0',
+          size: app.size || (isWin ? 'Windows Package' : 'APK'),
+          rating: typeof app.rating === 'number' ? app.rating : 0,
+          reviewsCount: typeof app.reviewsCount === 'number' ? app.reviewsCount : 0,
+          downloads: typeof app.downloads === 'number' ? app.downloads : 0,
+          minAndroid: app.minAndroid || (isWin ? 'Windows 10 / 11 (x64 / ARM64)' : 'Android 8.0+ (API 26)'),
+          developer: app.developer || 'Developer',
+          developerEmail: app.developerEmail || '',
+          packageId: app.packageId || 'com.mrs.app',
+          sha256: app.sha256 || '',
+          directDownloadUrl: app.directDownloadUrl || '',
+          description: app.description || '',
+          whatsNew: Array.isArray(app.whatsNew) ? app.whatsNew : [],
+          features: Array.isArray(app.features) ? app.features : [],
+          permissions: Array.isArray(app.permissions) ? app.permissions : [],
+          icon: normalizeAssetPath(app.icon) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
+          banner: normalizeAssetPath(app.banner) || normalizeAssetPath('./assets/site-logo-icon.jpg'),
+          screenshots: (Array.isArray(app.screenshots) ? app.screenshots : ['./assets/site-logo-icon.jpg']).map(normalizeAssetPath),
+        };
+      });
   } catch {
     return [];
   }
@@ -537,7 +542,7 @@ export function getDefaultSiteMeta(): SiteMeta {
         title: 'Developer Publishing & Review Agreement',
         lastRenewed: `January 1, ${currentYear}`,
         summary:
-          'Developers may submit applications for review at mr216873@gmail.com after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
+          'Developers may publish Android APKs, Smart TV apps, and Windows (.exe, .msi, .msix, .appx, .zip) packages across all 28 categories after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
         sections: [
           {
             heading: '1. Submission Fee & Payment Options ($25 USD)',
@@ -545,21 +550,21 @@ export function getDefaultSiteMeta(): SiteMeta {
               'A one-time publishing fee of $25.00 USD is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
           },
           {
-            heading: '2. Submission Dispatch',
+            heading: '2. Supported Packages & Binary Inspection',
             content:
-              'Send your APK link and payment transaction proof to mr216873@gmail.com for review.',
+              'Upload verified Android (.apk) binaries or Windows installers and portable executables (.exe PE, .msi MSI, .msix/.appx, .zip) for automatic header inspection and SHA-256 checksum generation, or dispatch external package links and payment proof to mr216873@gmail.com for review.',
           },
         ],
       },
       dmca: {
         title: 'DMCA & Intellectual Property Compliance',
         lastRenewed: `January 1, ${currentYear}`,
-        summary: 'Intellectual property and takedown contact information.',
+        summary: 'Intellectual property and package takedown compliance for Android, Smart TV, and Windows releases.',
         sections: [
           {
             heading: '1. Contact',
             content:
-              'Direct any copyright or package verification queries to mr216873@gmail.com.',
+              'Direct any copyright or package verification queries for Android or Windows binaries to mr216873@gmail.com.',
           },
         ],
       },

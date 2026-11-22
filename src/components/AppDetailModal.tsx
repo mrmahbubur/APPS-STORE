@@ -172,9 +172,12 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   };
 
   const handleNativeShare = () => {
+    const isWinShare =
+      /windows/i.test(app.platform || '') ||
+      /\.(exe|msi|msix|msixbundle|appx|appxbundle)$/i.test(app.fileName || '');
     if (navigator.share) {
       navigator.share({
-        title: `${app.title} — Official APK`,
+        title: `${app.title} — ${isWinShare ? 'Official Windows Package' : 'Official APK'}`,
         text: `Download ${app.title} (${app.fileName}) directly from MRS App Store.`,
         url: shareUrl,
       }).catch(() => {});

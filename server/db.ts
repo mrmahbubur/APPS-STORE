@@ -1017,7 +1017,7 @@ export const AppDatabase = {
           title: 'Developer Publishing & Review Agreement',
           lastRenewed: `January 1, ${currentYear}`,
           summary:
-            'Developers may submit applications for review at mr216873@gmail.com after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
+            'Developers may publish Android APKs, Smart TV apps, and Windows (.exe, .msi, .msix, .appx, .zip) packages across all 28 categories after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
           sections: [
             {
               heading: '1. Submission Fee & Payment Options ($25 USD)',
@@ -1025,20 +1025,20 @@ export const AppDatabase = {
                 'A one-time publishing fee of $25.00 USD is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
             },
             {
-              heading: '2. Submission Dispatch',
+              heading: '2. Supported Packages & Binary Inspection',
               content:
-                'Send your APK link and payment transaction proof to mr216873@gmail.com for review.',
+                'Upload verified Android (.apk) binaries or Windows installers and portable executables (.exe PE, .msi MSI, .msix/.appx, .zip) for automatic header inspection and SHA-256 checksum generation, or dispatch external package links and payment proof to mr216873@gmail.com for review.',
             },
           ],
         },
         dmca: {
           title: 'DMCA & Intellectual Property Compliance',
           lastRenewed: `January 1, ${currentYear}`,
-          summary: 'Intellectual property and takedown contact information.',
+          summary: 'Intellectual property and package takedown compliance for Android, Smart TV, and Windows releases.',
           sections: [
             {
               heading: '1. Contact',
-              content: 'Direct any copyright or package verification queries to mr216873@gmail.com.',
+              content: 'Direct any copyright or package verification queries for Android or Windows binaries to mr216873@gmail.com.',
             },
           ],
         },

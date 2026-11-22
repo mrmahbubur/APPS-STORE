@@ -13,7 +13,11 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { SponsorAdLink, SponsorFilterTab, StorePlatformFilter } from '../types';
-import { filterSponsorsByTab, mapPlatformToSponsorTab } from '../data/catalog';
+import {
+  SPONSOR_FILTER_TABS,
+  groupSponsorsForSpotlight,
+  mapPlatformToSponsorTab,
+} from '../data/catalog';
 
 interface SponsoredSpotlightProps {
   sponsors: SponsorAdLink[];
@@ -60,19 +64,9 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
     setFilterTab(mapPlatformToSponsorTab(activePlatform));
   }, [activePlatform]);
 
-  const filteredSponsors = useMemo(
-    () => filterSponsorsByTab(sponsors, filterTab),
+  const { featured: featuredSponsors, list: listSponsors } = useMemo(
+    () => groupSponsorsForSpotlight(sponsors, filterTab),
     [sponsors, filterTab]
-  );
-
-  const featuredSponsors = useMemo(
-    () => filteredSponsors.filter((item) => item.placement === 'featured'),
-    [filteredSponsors]
-  );
-
-  const listSponsors = useMemo(
-    () => filteredSponsors.filter((item) => item.placement !== 'featured'),
-    [filteredSponsors]
   );
 
   if (!sponsors || sponsors.length === 0) return null;
@@ -94,7 +88,7 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
           role="group"
           aria-label="Filter sponsored partners"
         >
-          {(['All Partners', 'Android & TV', 'Windows PC'] as const).map((tab) => {
+          {SPONSOR_FILTER_TABS.map((tab) => {
             const isActive = filterTab === tab;
             return (
               <button

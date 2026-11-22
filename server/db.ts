@@ -313,8 +313,8 @@ export const AppDatabase = {
       createdAt: new Date().toISOString().split('T')[0],
     };
 
-    list.unshift(newReview);
-    reviewsStore[appId] = list;
+    const sortedList = sortReviewsByDate([newReview, ...list]);
+    reviewsStore[appId] = sortedList;
 
     try {
       writeJsonAtomic(REVIEWS_FILE, reviewsStore);
@@ -322,7 +322,7 @@ export const AppDatabase = {
       console.error('Failed to save review:', err);
     }
 
-    const stats = computeReviewStats(list);
+    const stats = computeReviewStats(sortedList);
     if (app) {
       app.rating = stats.averageRating;
       app.reviewsCount = stats.totalReviews;
@@ -331,7 +331,7 @@ export const AppDatabase = {
       } catch (e) {}
     }
 
-    return { review: newReview, reviews: list, stats };
+    return { review: newReview, reviews: sortedList, stats };
   },
 
   markReviewHelpful(appId: string, reviewId: string) {

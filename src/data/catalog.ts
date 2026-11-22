@@ -33,8 +33,10 @@ import {
   buildBuiltinApps,
   buildSiteMeta,
   computeReviewStats,
+  SPONSOR_FILTER_TABS,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
+  groupSponsorsForSpotlight,
   getDetailPageSponsors,
   pickContextualSponsor,
 } from '../../shared/store-metadata.ts';
@@ -58,6 +60,7 @@ export {
   APP_STORE_CATEGORIES,
   MRS_GRAVATAR_OWNER_PROFILE,
   DEFAULT_SPONSOR_LINKS,
+  SPONSOR_FILTER_TABS,
   getPackageExtension,
   getPackageFormatCode,
   getAppPackageFormatLabel,
@@ -82,6 +85,7 @@ export {
   computeReviewStats,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
+  groupSponsorsForSpotlight,
   getDetailPageSponsors,
   pickContextualSponsor,
 };
@@ -308,7 +312,7 @@ export function getLocalReviews(appId: string): ReviewItem[] {
 
 export function saveLocalReview(appId: string, review: ReviewItem): ReviewItem[] {
   const existing = getLocalReviews(appId);
-  const updated = [review, ...existing];
+  const updated = sortReviewsByDate([review, ...existing]);
   try {
     localStorage.setItem(`mrs_reviews_${appId}`, JSON.stringify(updated));
   } catch {}
@@ -317,8 +321,10 @@ export function saveLocalReview(appId: string, review: ReviewItem): ReviewItem[]
 
 export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewItem[] {
   const existing = getLocalReviews(appId);
-  const updated = existing.map((r) =>
-    r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+  const updated = sortReviewsByDate(
+    existing.map((r) =>
+      r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+    )
   );
   try {
     localStorage.setItem(`mrs_reviews_${appId}`, JSON.stringify(updated));
@@ -329,5 +335,3 @@ export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewI
 export function getDefaultSiteMeta(): SiteMeta {
   return buildSiteMeta({ ownerProfile: MRS_GRAVATAR_OWNER_PROFILE });
 }
-
-export type { SponsorAdLink };

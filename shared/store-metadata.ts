@@ -511,6 +511,12 @@ export function createDefaultSponsorLinks(): SponsorAdLink[] {
   return DEFAULT_SPONSOR_LINKS.map((item) => ({ ...item }));
 }
 
+export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
+  'All Partners',
+  'Android & TV',
+  'Windows PC',
+] as const;
+
 export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
   if (platform === 'Windows') return 'Windows PC';
   if (platform === 'Android' || platform === 'Smart TV') return 'Android & TV';
@@ -524,6 +530,22 @@ export function filterSponsorsByTab(
   const pool = sponsors && sponsors.length > 0 ? [...sponsors] : DEFAULT_SPONSOR_LINKS;
   if (tab === 'All Partners') return pool;
   return pool.filter((item) => item.platformHint === tab || item.platformHint === 'All Devices');
+}
+
+export function groupSponsorsForSpotlight(
+  sponsors: readonly SponsorAdLink[],
+  tab: SponsorFilterTab
+): {
+  filtered: SponsorAdLink[];
+  featured: SponsorAdLink[];
+  list: SponsorAdLink[];
+} {
+  const filtered = filterSponsorsByTab(sponsors, tab);
+  return {
+    filtered,
+    featured: filtered.filter((item) => item.placement === 'featured'),
+    list: filtered.filter((item) => item.placement !== 'featured'),
+  };
 }
 
 export function getDetailPageSponsors(

@@ -196,13 +196,26 @@ export function filterCatalogApps<T extends CatalogFilterableApp>(
   return options.sortBy ? sortCatalogApps(filtered, options.sortBy) : filtered;
 }
 
+function extractReviewIdTimestamp(id?: string): number {
+  if (!id) return 0;
+  const match = id.match(/^rev-(?:local-)?(\d{10,15})/);
+  return match ? Number(match[1]) : 0;
+}
+
 export function sortReviewsByDate<
-  T extends { createdAt?: string; helpfulCount?: number }
+  T extends { id?: string; createdAt?: string; helpfulCount?: number }
 >(reviews: readonly T[]): T[] {
   return [...reviews].sort((a, b) => {
-    const dateDiff =
-      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-    if (!Number.isNaN(dateDiff) && dateDiff !== 0) return dateDiff;
+    const timeA = Date.parse(a.createdAt || '');
+    const timeB = Date.parse(b.createdAt || '');
+    const validA = Number.isNaN(timeA) ? 0 : timeA;
+    const validB = Number.isNaN(timeB) ? 0 : timeB;
+    const dateDiff = validB - validA;
+    if (dateDiff !== 0) return dateDiff;
+
+    const idTsDiff = extractReviewIdTimestamp(b.id) - extractReviewIdTimestamp(a.id);
+    if (idTsDiff !== 0) return idTsDiff;
+
     return (b.helpfulCount || 0) - (a.helpfulCount || 0);
   });
 }

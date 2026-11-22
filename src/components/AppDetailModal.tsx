@@ -38,7 +38,7 @@ import {
   getLocalReviews,
   saveLocalReview,
   markLocalReviewHelpful,
-  DEFAULT_SPONSOR_LINKS,
+  sortReviewsByDate,
   getDetailPageSponsors,
   pickContextualSponsor,
 } from '../data/catalog';
@@ -113,8 +113,9 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           if (res.ok && ct.includes('application/json')) {
             const data = await res.json();
             if (Array.isArray(data.reviews)) {
-              setReviews(data.reviews);
-              setReviewStats(data.stats || computeReviewStats(data.reviews));
+              const sorted = sortReviewsByDate<ReviewItem>(data.reviews);
+              setReviews(sorted);
+              setReviewStats(data.stats || computeReviewStats(sorted));
               return;
             }
           }
@@ -218,7 +219,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         });
         if (res.ok) {
           const data = await res.json();
-          setReviews(data.reviews);
+          setReviews(sortReviewsByDate<ReviewItem>(data.reviews || []));
           setReviewStats(data.stats);
           if (onReviewStatsUpdated) {
             onReviewStatsUpdated(app.id, data.stats.averageRating, data.stats.totalReviews);
@@ -274,7 +275,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
         const res = await fetch(`./api/reviews/${app.id}/${reviewId}/helpful`, { method: 'POST' });
         if (res.ok) {
           const data = await res.json();
-          setReviews(data.reviews);
+          setReviews(sortReviewsByDate<ReviewItem>(data.reviews || []));
           return;
         }
       } catch {}
@@ -441,10 +442,10 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
         {/* Compact Contextual Companion Partner Row */}
         {(() => {
-          const companion = pickContextualSponsor(
-            sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS,
-            { platform: app.platform, category: app.category }
-          );
+          const companion = pickContextualSponsor(sponsors || [], {
+            platform: app.platform,
+            category: app.category,
+          });
           if (!companion) return null;
           return (
             <div className="my-5 rounded-2xl bg-zinc-900/80 border border-white/[0.08] px-4 py-3 flex items-center justify-between gap-3">

@@ -733,13 +733,24 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 });
 
 app.get('/api/sponsors', (req: Request, res: Response) => {
-  const { tab, platform, device } = req.query;
+  const { tab, platform, device, preferredDevice } = req.query;
+  const headerDevice = req.headers['x-device-platform'];
+  const deviceContext =
+    typeof device === 'string'
+      ? device
+      : typeof preferredDevice === 'string'
+      ? preferredDevice
+      : typeof headerDevice === 'string'
+      ? headerDevice
+      : undefined;
+
   const grouped = groupSponsorsForSpotlight(AppDatabase.getSponsors(), {
     tab: typeof tab === 'string' ? tab : undefined,
     platform: typeof platform === 'string' ? platform : undefined,
-    preferredDevice: typeof device === 'string' ? device : undefined,
+    preferredDevice: deviceContext,
   });
   res.setHeader('Cache-Control', 'public, max-age=30');
+  res.setHeader('Vary', 'X-Device-Platform');
   res.json({
     success: true,
     activeTab: grouped.activeTab,

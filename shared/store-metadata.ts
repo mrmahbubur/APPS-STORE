@@ -687,50 +687,49 @@ export function getDetailPageSponsors(
 }
 
 export function pickContextualSponsor(
-  sponsors: SponsorAdLink[],
+  sponsors: readonly SponsorAdLink[],
   opts: { platform?: string; category?: string; excludeIds?: string[] }
 ): SponsorAdLink | null {
-  const pool = (sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS).filter(
+  const rawPool = (sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS).filter(
     (item) => !(opts.excludeIds || []).includes(item.id)
   );
-  if (pool.length === 0) return null;
+  if (rawPool.length === 0) return null;
 
-  const plat = (opts.platform || '').toLowerCase();
+  const resolvedDevice = resolveSpotlightDevice(opts.platform);
+  const grouped = groupSponsorsForSpotlight(rawPool, {
+    preferredDevice: resolvedDevice,
+  });
+  const pool = grouped.filtered;
   const cat = (opts.category || '').toLowerCase();
 
   const findById = (id: string) => pool.find((s) => s.id === id);
 
   if (cat.includes('game')) {
-    return findById('sponsor-11683560') || pool[0];
+    return findById('sponsor-11683560') || grouped.primaryFeatured || pool[0];
   }
   if (cat.includes('developer')) {
-    return findById('sponsor-9912130') || pool[0];
+    return findById('sponsor-9912130') || grouped.primaryFeatured || pool[0];
   }
   if (cat.includes('productivity') || cat.includes('business')) {
-    return findById('sponsor-11230440') || pool[0];
+    return findById('sponsor-11230440') || grouped.primaryFeatured || pool[0];
   }
-  if (cat.includes('utilit') && plat.includes('windows')) {
-    return findById('sponsor-11242742') || findById('sponsor-11683565') || pool[0];
+  if (cat.includes('utilit') && resolvedDevice === 'Windows') {
+    return findById('sponsor-11242742') || findById('sponsor-11683565') || grouped.primaryFeatured || pool[0];
   }
   if (cat.includes('utilit')) {
-    return findById('sponsor-11242067') || findById('sponsor-11242744') || pool[0];
+    return findById('sponsor-11242067') || findById('sponsor-11242744') || grouped.primaryFeatured || pool[0];
   }
-  if (plat.includes('windows')) {
-    return findById('sponsor-11683565') || findById('sponsor-11242742') || pool[0];
+  if (resolvedDevice === 'Windows') {
+    return findById('sponsor-11683565') || findById('sponsor-11242742') || grouped.primaryFeatured || pool[0];
   }
-  if (
-    plat.includes('smart tv') ||
-    plat.includes('tv') ||
-    cat.includes('iptv') ||
-    cat.includes('stream')
-  ) {
-    return findById('sponsor-11242069') || findById('sponsor-11226634') || pool[0];
+  if (resolvedDevice === 'Smart TV' || cat.includes('iptv') || cat.includes('stream')) {
+    return findById('sponsor-11242069') || findById('sponsor-11226634') || grouped.primaryFeatured || pool[0];
   }
-  if (plat.includes('android')) {
-    return findById('sponsor-11242067') || findById('sponsor-11226634') || pool[0];
+  if (resolvedDevice === 'Android') {
+    return findById('sponsor-11242067') || findById('sponsor-11226634') || grouped.primaryFeatured || pool[0];
   }
 
-  return findById('sponsor-11242745') || pool[0];
+  return findById('sponsor-11242745') || grouped.primaryFeatured || pool[0];
 }
 
 export function computeReviewStats(reviews: ReviewItem[]): ReviewStats {

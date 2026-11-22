@@ -746,6 +746,7 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     sponsors: grouped.filtered,
     featured: grouped.featured,
     list: grouped.list,
+    detail: grouped.detail,
   });
 });
 

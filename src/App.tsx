@@ -30,6 +30,7 @@ import {
   matchesPlatformFilter,
   getLocalPublishedApps,
   mergeCatalogApps,
+  groupSponsorsForSpotlight,
   pickContextualSponsor,
 } from './data/catalog';
 import {
@@ -314,13 +315,19 @@ export default function App() {
               hasBackend={hasBackend}
             />
             {(() => {
-              const todayPartner = sponsors.find((s) => s.placement === 'featured') || sponsors[0];
+              const todayPartner = groupSponsorsForSpotlight(sponsors, {
+                platform: selectedPlatform,
+              }).primaryFeatured;
               if (!todayPartner) return null;
               return (
                 <div className="mb-4 rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
-                      <Tv className="w-4 h-4" />
+                      {todayPartner.platformHint === 'Windows PC' ? (
+                        <Monitor className="w-4 h-4" />
+                      ) : (
+                        <Tv className="w-4 h-4" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium text-zinc-400 truncate">

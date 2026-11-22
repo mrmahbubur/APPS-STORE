@@ -517,6 +517,13 @@ export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
   'Windows PC',
 ] as const;
 
+export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
+  const clean = (platform || '').trim().toLowerCase();
+  if (/windows/.test(clean)) return 'Windows PC';
+  if (/android|smart tv|\btv\b|mobile/.test(clean)) return 'Android & TV';
+  return 'All Partners';
+}
+
 export function normalizeSponsorFilterTab(
   raw?: string,
   platform?: StorePlatformFilter | string
@@ -528,12 +535,6 @@ export function normalizeSponsorFilterTab(
   }
   if (clean === 'all' || clean === 'all partners') return 'All Partners';
   if (platform) return mapPlatformToSponsorTab(platform);
-  return 'All Partners';
-}
-
-export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
-  if (platform === 'Windows') return 'Windows PC';
-  if (platform === 'Android' || platform === 'Smart TV') return 'Android & TV';
   return 'All Partners';
 }
 
@@ -556,17 +557,24 @@ export function groupSponsorsForSpotlight(
   filtered: SponsorAdLink[];
   featured: SponsorAdLink[];
   list: SponsorAdLink[];
+  detail: SponsorAdLink[];
+  primaryFeatured: SponsorAdLink | null;
 } {
   const activeTab =
     typeof tabOrOptions === 'string'
       ? normalizeSponsorFilterTab(tabOrOptions)
       : normalizeSponsorFilterTab(tabOrOptions.tab, tabOrOptions.platform);
   const filtered = filterSponsorsByTab(sponsors, activeTab);
+  const featured = filtered.filter((item) => item.placement === 'featured');
+  const list = filtered.filter((item) => item.placement !== 'featured');
+  const detail = filtered.filter((item) => item.placement === 'detail');
   return {
     activeTab,
     filtered,
-    featured: filtered.filter((item) => item.placement === 'featured'),
-    list: filtered.filter((item) => item.placement !== 'featured'),
+    featured,
+    list,
+    detail,
+    primaryFeatured: featured[0] || filtered[0] || null,
   };
 }
 
@@ -577,10 +585,12 @@ export function getDetailPageSponsors(
 ): SponsorAdLink[] {
   const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
   const isWindowsPkg = isWindowsPackage(app);
-  const detailFirst = pool.filter((item) => item.placement === 'detail');
+  const targetTab: SponsorFilterTab = isWindowsPkg ? 'Windows PC' : 'Android & TV';
+  const grouped = groupSponsorsForSpotlight(pool, targetTab);
+  const platformSpecific = grouped.filtered.filter((item) => item.platformHint === targetTab);
   const prioritized = isWindowsPkg
-    ? [...pool.filter((item) => item.platformHint === 'Windows PC'), ...detailFirst, ...pool]
-    : [...detailFirst, ...pool.filter((item) => item.platformHint === 'Android & TV'), ...pool];
+    ? [...platformSpecific, ...grouped.detail, ...pool]
+    : [...grouped.detail, ...platformSpecific, ...pool];
 
   const selected: SponsorAdLink[] = [];
   const seen = new Set<string>();

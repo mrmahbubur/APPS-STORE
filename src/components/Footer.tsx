@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { SiteMeta } from '../types';
+import type { LegalPolicyTab, SiteMeta } from '../types';
 import { ShieldCheck, UploadCloud, AppWindow } from 'lucide-react';
 import { MRS_GRAVATAR_OWNER_PROFILE, normalizeAssetPath } from '../data/catalog';
 
 interface FooterProps {
   siteMeta: SiteMeta | null;
-  onOpenLegal: (tab: 'privacy' | 'terms' | 'developer' | 'dmca') => void;
+  onOpenLegal: (tab: LegalPolicyTab) => void;
   onOpenPublish: () => void;
 }
 

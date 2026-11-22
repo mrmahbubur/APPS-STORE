@@ -39,6 +39,7 @@ import {
   saveLocalReview,
   markLocalReviewHelpful,
   DEFAULT_SPONSOR_LINKS,
+  getDetailPageSponsors,
   pickContextualSponsor,
 } from '../data/catalog';
 
@@ -1082,29 +1083,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
         {/* Contextual Sponsored Partners */}
         {(() => {
-          const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
-          const isWindowsPkg = isWindowsPackage(app);
-          const detailFirst = pool.filter((item) => item.placement === 'detail');
-          const prioritized = isWindowsPkg
-            ? [
-                ...pool.filter((item) => item.platformHint === 'Windows PC'),
-                ...detailFirst,
-                ...pool,
-              ]
-            : [
-                ...detailFirst,
-                ...pool.filter((item) => item.platformHint === 'Android & TV'),
-                ...pool,
-              ];
-          const uniqueTwo: SponsorAdLink[] = [];
-          const seen = new Set<string>();
-          for (const item of prioritized) {
-            if (!seen.has(item.id)) {
-              seen.add(item.id);
-              uniqueTwo.push(item);
-            }
-            if (uniqueTwo.length === 2) break;
-          }
+          const uniqueTwo = getDetailPageSponsors(sponsors || [], app, 2);
           if (uniqueTwo.length === 0) return null;
 
           return (

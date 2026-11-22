@@ -1,3 +1,57 @@
+export type PackageFormatCode = 'APK' | 'EXE' | 'MSI' | 'MSIX' | 'APPX' | 'ZIP' | 'PACKAGE';
+export type StorePlatformFilter = 'All' | 'Android' | 'Smart TV' | 'Windows';
+export type StorePlatformCategory = StorePlatformFilter;
+export type CatalogSortOption = 'popular' | 'rating' | 'newest';
+export type LegalPolicyTab = 'privacy' | 'terms' | 'developer' | 'dmca';
+export type SponsorPlatformHint = 'Android & TV' | 'Windows PC' | 'All Devices';
+export type SponsorPlacement = 'featured' | 'catalog' | 'detail';
+export type SponsorFilterTab = 'All Partners' | 'Android & TV' | 'Windows PC';
+export type PublishingPaymentMethod = 'USDT (BEP-20)' | 'Binance Pay';
+
+export interface PackageMetadataInput {
+  platform?: string;
+  fileName?: string;
+}
+
+export interface CatalogFilterableApp extends PackageMetadataInput {
+  title: string;
+  tagline?: string;
+  description?: string;
+  developer?: string;
+  category?: string;
+  updatedAt?: string;
+  downloads?: number;
+  rating?: number;
+  reviewsCount?: number;
+  featured?: boolean;
+}
+
+export interface CatalogFilterOptions {
+  category?: string;
+  platform?: StorePlatformFilter | string;
+  search?: string;
+  sortBy?: CatalogSortOption | string;
+}
+
+export interface PlatformCounts {
+  All: number;
+  Android: number;
+  'Smart TV': number;
+  Windows: number;
+}
+
+export interface BinaryMetaOverride {
+  size?: string;
+  sha256?: string;
+  updatedAt?: string;
+}
+
+export interface BuildBuiltinAppsOptions {
+  relativePaths?: boolean;
+  ownerProfile?: AppOwnerProfile;
+  binaryOverrides?: Record<string, BinaryMetaOverride>;
+}
+
 export interface ReviewItem {
   id: string;
   appId: string;
@@ -142,6 +196,18 @@ export interface DeveloperSubmission {
   submittedAt: string;
 }
 
+export interface PolicySection {
+  heading: string;
+  content: string;
+}
+
+export interface PolicyDocument {
+  title: string;
+  lastRenewed: string;
+  summary: string;
+  sections: PolicySection[];
+}
+
 export interface SiteMeta {
   appName: string;
   tagline: string;
@@ -153,32 +219,7 @@ export interface SiteMeta {
   categories?: string[];
   submissionFeeUsd: number;
   lastUpdated: string;
-  policies: {
-    privacy: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    terms: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    developer: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    dmca: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-  };
+  policies: Record<LegalPolicyTab, PolicyDocument>;
 }
 
 export interface SponsorAdLink {
@@ -187,9 +228,89 @@ export interface SponsorAdLink {
   title: string;
   subtitle: string;
   category: string;
-  platformHint: 'Android & TV' | 'Windows PC' | 'All Devices';
-  placement: 'featured' | 'catalog' | 'detail';
+  platformHint: SponsorPlatformHint;
+  placement: SponsorPlacement;
   url: string;
   ctaLabel: string;
   clicks?: number;
+}
+
+export interface VerifiedPaymentInfo {
+  tokenSymbol?: string;
+  amountPaidUsd?: number;
+  fromAddress?: string;
+  toAddress?: string;
+  blockNumber?: number;
+  confirmations?: number;
+  explorerUrl?: string;
+  txHash: string;
+  paymentMethod: PublishingPaymentMethod;
+}
+
+export interface PaymentVerificationTokenPayload {
+  txHash: string;
+  paymentMethod: string;
+  amountPaidUsd: number;
+  fromAddress?: string;
+  blockNumber?: number;
+  confirmations?: number;
+  explorerUrl?: string;
+  issuedAt: number;
+}
+
+export interface BscVerificationResult {
+  verified: boolean;
+  message: string;
+  tokenSymbol?: string;
+  amountPaidUsd?: number;
+  fromAddress?: string;
+  toAddress?: string;
+  blockNumber?: number;
+  confirmations?: number;
+  explorerUrl?: string;
+}
+
+export interface UploadedPackageTelemetry {
+  fileName: string;
+  localApkPath?: string;
+  directDownloadUrl: string;
+  size: string;
+  sha256: string;
+  platformKind?: string;
+  packageType?: string;
+  hasManifest?: boolean;
+  hasWindowsManifest?: boolean;
+  isPeExecutable?: boolean;
+  isMsiInstaller?: boolean;
+  hasClassesDex?: boolean;
+  hasResources?: boolean;
+  architectures?: string[];
+  entryCount?: number;
+}
+
+export type UploadedApkTelemetry = UploadedPackageTelemetry;
+
+export interface ApkInspectionResult {
+  isValidZip: boolean;
+  totalEntries: number;
+  hasAndroidManifest: boolean;
+  hasClassesDex: boolean;
+  hasResources: boolean;
+  architectures: string[];
+}
+
+export interface PackageInspectionResult {
+  isValid: boolean;
+  platformKind: 'android' | 'windows' | 'unknown';
+  packageType: 'APK' | 'EXE' | 'MSI' | 'MSIX' | 'APPX' | 'ZIP' | 'UNKNOWN';
+  totalEntries: number;
+  hasManifest: boolean;
+  hasAndroidManifest: boolean;
+  hasClassesDex: boolean;
+  hasResources: boolean;
+  hasWindowsManifest: boolean;
+  isPeExecutable: boolean;
+  isMsiInstaller: boolean;
+  architectures: string[];
+  reason?: string;
 }

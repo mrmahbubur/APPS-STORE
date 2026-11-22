@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { UploadCloud, AppWindow } from 'lucide-react';
 import { normalizeAssetPath } from '../data/catalog';
 
-export type StorePlatformFilter = 'All' | 'Android' | 'Smart TV' | 'Windows';
+import type { LegalPolicyTab, StorePlatformFilter } from '../types';
+
+export type { StorePlatformFilter };
 
 interface HeaderProps {
   onOpenPublish: () => void;
-  onOpenLegal: (tab?: 'privacy' | 'terms' | 'developer' | 'dmca') => void;
+  onOpenLegal: (tab?: LegalPolicyTab) => void;
   onSelectCategory: (category: string) => void;
   onSelectPlatform?: (platform: StorePlatformFilter) => void;
   onOpenCharts?: () => void;

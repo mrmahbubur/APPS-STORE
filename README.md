@@ -28,10 +28,10 @@ Platform classification, catalog search/filtering, store policies, sponsor defin
 - `SUPPORTED_WINDOWS_EXTENSIONS` & `SUPPORTED_PACKAGE_EXTENSIONS` — `.apk`, `.exe`, `.msi`, `.msix`, `.msixbundle`, `.appx`, `.appxbundle`, `.zip`
 - `LOCAL_PACKAGE_FILE_MAP` & `getBuiltinPackageFile(appId)` — canonical mapping of built-in catalog IDs to self-hosted files in `public/apks/`
 - `isWindowsPackage(app)` / `isSmartTvPackage(app)` / `isAndroidPackage(app)` / `isHybridPackage(app)` — unified OS and platform classification from `platform` and `fileName`
-- `matchesPlatformFilter(app, filter)`, `countAppsByPlatform(apps)`, and `filterCatalogApps(apps, opts)` — shared server/client catalog filtering, platform counting, and sorting (`popular`, `rating`, `newest`)
+- `matchesPlatformFilter(app, filter)`, `countAppsByPlatform(apps)`, `filterCatalogApps(apps, opts)`, `sortCatalogApps(apps, sortBy)`, and `sortReviewsByDate(reviews)` — shared server/client catalog filtering, platform counting, and deterministic sorting (`popular`, `rating`, `newest`)
 - `getPackageFormatCode(app)`, `getAppPackageFormatLabel(app)`, `getPackageMimeType(fileName)`, `getAppMinOsLabel(app)`, `getDefaultPackagePermissions(app)` — standardized binary format labels (`Direct EXE`, `Direct MSI`, `Direct MSIX`, `Direct APPX`, `Direct ZIP`, `Direct APK`), HTTP `Content-Type` headers, minimum OS strings, and permission defaults
 - `getAppShareTitle(app)` & `getAppShareText(app)` — standardized share titles (`Official Windows Package`, `Official Windows & Android Package`, or `Official APK`) used across `AppCard`, `HeroFeatured`, and `AppDetailModal`
-- `APP_STORE_CATEGORIES`, `MRS_GRAVATAR_OWNER_PROFILE`, `DEFAULT_SPONSOR_LINKS`, `buildBuiltinApps()`, and `buildSiteMeta()` — single source of truth for store categories, owner identity, built-in packages, legal policies, and sponsor placements (`src/data/catalog.ts` adds client asset normalization and static/localStorage fallback helpers)
+- `APP_STORE_CATEGORIES`, `MRS_GRAVATAR_OWNER_PROFILE`, `DEFAULT_SPONSOR_LINKS`, `filterSponsorsByTab()`, `getDetailPageSponsors()`, `buildBuiltinApps()`, and `buildSiteMeta()` — single source of truth for store categories, owner identity, built-in packages, legal policies, and sponsor placements, with all core domain/verification/filter types centralized in `shared/types.ts` (`src/types.ts` and `src/data/catalog.ts` re-export for frontend consumers)
 
 ---
 
@@ -83,7 +83,7 @@ npm run build
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/apps` | Filterable app catalog (`?search=`, `?category=`, `?platform=All\|Android\|Smart TV\|Windows`) |
+| `GET` | `/api/apps` | Filterable & sortable app catalog (`?search=`, `?category=`, `?platform=All\|Android\|Smart TV\|Windows`, `?sortBy=popular\|rating\|newest`) |
 | `GET` | `/api/download/:id` | Streams built-in or uploaded `.apk` / Windows binary with download tracking & MIME type |
 | `GET` | `/download/:filename` | Direct file download from `public/apks/` |
 | `GET` | `/api/meta` | Store metadata, owner profile (`M R S`), 28 store categories, and policies |

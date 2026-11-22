@@ -22,7 +22,13 @@ import {
   Cpu,
   Clock,
 } from 'lucide-react';
-import { AppItem, AppOwnerProfile, DeveloperSubmission } from '../types';
+import type {
+  AppItem,
+  AppOwnerProfile,
+  DeveloperSubmission,
+  UploadedApkTelemetry,
+  VerifiedPaymentInfo,
+} from '../types';
 import {
   APP_STORE_CATEGORIES,
   SUPPORTED_WINDOWS_EXTENSIONS,
@@ -54,36 +60,6 @@ interface PublishAppModalProps {
 }
 
 const CUSTOM_CATEGORY_VALUE = '__custom__';
-
-interface VerifiedPaymentInfo {
-  tokenSymbol?: string;
-  amountPaidUsd?: number;
-  fromAddress?: string;
-  toAddress?: string;
-  blockNumber?: number;
-  confirmations?: number;
-  explorerUrl?: string;
-  txHash: string;
-  paymentMethod: 'USDT (BEP-20)' | 'Binance Pay';
-}
-
-interface UploadedApkTelemetry {
-  fileName: string;
-  localApkPath?: string;
-  directDownloadUrl: string;
-  size: string;
-  sha256: string;
-  platformKind?: string;
-  packageType?: string;
-  hasManifest?: boolean;
-  hasWindowsManifest?: boolean;
-  isPeExecutable?: boolean;
-  isMsiInstaller?: boolean;
-  hasClassesDex?: boolean;
-  hasResources?: boolean;
-  architectures?: string[];
-  entryCount?: number;
-}
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
 const REQUIRED_FEE_USD = 25.0;

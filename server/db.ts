@@ -15,6 +15,7 @@ import {
   getDefaultPackagePermissions,
   isHybridPackage,
   isWindowsPackage,
+  sortReviewsByDate,
 } from '../shared/package-utils.ts';
 import {
   BUILTIN_APP_IDS,
@@ -285,7 +286,7 @@ export const AppDatabase = {
   },
 
   getReviewsByApp(appId: string) {
-    const list = reviewsStore[appId] || [];
+    const list = sortReviewsByDate(reviewsStore[appId] || []);
     return {
       reviews: list,
       stats: computeReviewStats(list),
@@ -335,8 +336,10 @@ export const AppDatabase = {
 
   markReviewHelpful(appId: string, reviewId: string) {
     const list = reviewsStore[appId] || [];
-    const updated = list.map((r) =>
-      r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+    const updated = sortReviewsByDate(
+      list.map((r) =>
+        r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+      )
     );
     reviewsStore[appId] = updated;
     try {

@@ -12,21 +12,13 @@ import {
   Lock,
   ExternalLink,
 } from 'lucide-react';
-import { SponsorAdLink } from '../types';
-import { StorePlatformFilter } from './Header';
-
-type SponsorFilterTab = 'All Partners' | 'Android & TV' | 'Windows PC';
+import type { SponsorAdLink, SponsorFilterTab, StorePlatformFilter } from '../types';
+import { filterSponsorsByTab, mapPlatformToSponsorTab } from '../data/catalog';
 
 interface SponsoredSpotlightProps {
   sponsors: SponsorAdLink[];
   activePlatform?: StorePlatformFilter;
   onSponsorClick?: (sponsor: SponsorAdLink) => void;
-}
-
-function mapPlatformToSponsorTab(platform?: StorePlatformFilter): SponsorFilterTab {
-  if (platform === 'Windows') return 'Windows PC';
-  if (platform === 'Android' || platform === 'Smart TV') return 'Android & TV';
-  return 'All Partners';
 }
 
 function getSponsorIcon(zoneId: string) {
@@ -68,12 +60,10 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
     setFilterTab(mapPlatformToSponsorTab(activePlatform));
   }, [activePlatform]);
 
-  const filteredSponsors = useMemo(() => {
-    if (filterTab === 'All Partners') return sponsors;
-    return sponsors.filter(
-      (item) => item.platformHint === filterTab || item.platformHint === 'All Devices'
-    );
-  }, [sponsors, filterTab]);
+  const filteredSponsors = useMemo(
+    () => filterSponsorsByTab(sponsors, filterTab),
+    [sponsors, filterTab]
+  );
 
   const featuredSponsors = useMemo(
     () => filteredSponsors.filter((item) => item.placement === 'featured'),

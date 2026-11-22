@@ -105,12 +105,19 @@ app.use((_req, res, next) => {
 
 // 1. Get apps catalog (exclusively genuine M R S apps)
 app.get('/api/apps', (req: Request, res: Response) => {
-  const { search, category, platform, sort } = req.query;
+  const { search, category, platform, sort, sortBy } = req.query;
+  const rawSort =
+    typeof sortBy === 'string'
+      ? sortBy
+      : typeof sort === 'string'
+      ? sort
+      : undefined;
+
   const apps = filterCatalogApps(AppDatabase.getAllApps(), {
     category: typeof category === 'string' ? category : undefined,
     platform: typeof platform === 'string' ? platform : undefined,
     search: typeof search === 'string' ? search : undefined,
-    sortBy: typeof sort === 'string' ? sort : undefined,
+    sortBy: rawSort,
   });
 
   res.setHeader('Cache-Control', 'public, max-age=5');

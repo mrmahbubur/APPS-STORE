@@ -3,13 +3,27 @@ import dns from 'node:dns/promises';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import type { AppOwnerAccount, AppOwnerProfile } from './db.ts';
+import type {
+  ApkInspectionResult,
+  AppOwnerAccount,
+  AppOwnerProfile,
+  BscVerificationResult,
+  PackageInspectionResult,
+  PaymentVerificationTokenPayload,
+} from '../shared/types.ts';
 import {
   getPackageExtension,
   isAndroidPackage,
   isSmartTvPackage,
   isWindowsPackage,
 } from '../shared/package-utils.ts';
+
+export type {
+  ApkInspectionResult,
+  BscVerificationResult,
+  PackageInspectionResult,
+  PaymentVerificationTokenPayload,
+};
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
 const REQUIRED_FEE_USD = 25.0;
@@ -54,16 +68,7 @@ function getHmacSecret(): string {
   }
 }
 
-export interface PaymentVerificationTokenPayload {
-  txHash: string;
-  paymentMethod: string;
-  amountPaidUsd: number;
-  fromAddress?: string;
-  blockNumber?: number;
-  confirmations?: number;
-  explorerUrl?: string;
-  issuedAt: number;
-}
+
 
 export function issuePaymentVerificationToken(
   payload: PaymentVerificationTokenPayload
@@ -156,18 +161,6 @@ interface BscReceipt {
   to?: string;
   blockNumber?: string;
   logs?: BscLog[];
-}
-
-export interface BscVerificationResult {
-  verified: boolean;
-  message: string;
-  tokenSymbol?: string;
-  amountPaidUsd?: number;
-  fromAddress?: string;
-  toAddress?: string;
-  blockNumber?: number;
-  confirmations?: number;
-  explorerUrl?: string;
 }
 
 export async function verifyBscUsdtPayment(txHashRaw: string): Promise<BscVerificationResult> {
@@ -264,30 +257,7 @@ export async function verifyBscUsdtPayment(txHashRaw: string): Promise<BscVerifi
   }
 }
 
-export interface ApkInspectionResult {
-  isValidZip: boolean;
-  totalEntries: number;
-  hasAndroidManifest: boolean;
-  hasClassesDex: boolean;
-  hasResources: boolean;
-  architectures: string[];
-}
 
-export interface PackageInspectionResult {
-  isValid: boolean;
-  platformKind: 'android' | 'windows' | 'unknown';
-  packageType: 'APK' | 'EXE' | 'MSI' | 'MSIX' | 'APPX' | 'ZIP' | 'UNKNOWN';
-  totalEntries: number;
-  hasManifest: boolean;
-  hasAndroidManifest: boolean;
-  hasClassesDex: boolean;
-  hasResources: boolean;
-  hasWindowsManifest: boolean;
-  isPeExecutable: boolean;
-  isMsiInstaller: boolean;
-  architectures: string[];
-  reason?: string;
-}
 
 export function inspectApkArchive(buf: Buffer): ApkInspectionResult {
   if (!Buffer.isBuffer(buf) || buf.length < 128 || buf[0] !== 0x50 || buf[1] !== 0x4b) {

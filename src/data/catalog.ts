@@ -16,6 +16,9 @@ import {
   getDefaultPlatformForFilter,
   countAppsByPlatform,
   filterCatalogApps,
+  sortCatalogApps,
+  normalizeCatalogSortOption,
+  sortReviewsByDate,
   isAndroidPackage,
   isHybridPackage,
   isSmartTvPackage,
@@ -30,16 +33,21 @@ import {
   buildBuiltinApps,
   buildSiteMeta,
   computeReviewStats,
+  mapPlatformToSponsorTab,
+  filterSponsorsByTab,
+  getDetailPageSponsors,
   pickContextualSponsor,
 } from '../../shared/store-metadata.ts';
 
 export type {
   PackageFormatCode,
+  StorePlatformFilter,
   StorePlatformCategory,
   CatalogSortOption,
   PackageMetadataInput,
   CatalogFilterableApp,
   CatalogFilterOptions,
+  PlatformCounts,
 } from '../../shared/package-utils.ts';
 
 export {
@@ -63,12 +71,18 @@ export {
   getDefaultPlatformForFilter,
   countAppsByPlatform,
   filterCatalogApps,
+  sortCatalogApps,
+  normalizeCatalogSortOption,
+  sortReviewsByDate,
   isAndroidPackage,
   isHybridPackage,
   isSmartTvPackage,
   isWindowsPackage,
   matchesPlatformFilter,
   computeReviewStats,
+  mapPlatformToSponsorTab,
+  filterSponsorsByTab,
+  getDetailPageSponsors,
   pickContextualSponsor,
 };
 
@@ -286,9 +300,7 @@ export function getLocalReviews(appId: string): ReviewItem[] {
     const raw = localStorage.getItem(`mrs_reviews_${appId}`);
     if (!raw) return [];
     const saved: ReviewItem[] = JSON.parse(raw);
-    return saved.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return sortReviewsByDate(Array.isArray(saved) ? saved : []);
   } catch {
     return [];
   }

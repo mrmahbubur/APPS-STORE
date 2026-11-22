@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Scale, DollarSign, UserCheck } from 'lucide-react';
-import { SiteMeta } from '../types';
+import type { LegalPolicyTab, SiteMeta } from '../types';
 import { MRS_GRAVATAR_OWNER_PROFILE } from '../data/catalog';
 
 interface LegalPoliciesModalProps {
   isOpen: boolean;
   onClose: () => void;
   siteMeta: SiteMeta | null;
-  initialTab?: 'privacy' | 'terms' | 'developer' | 'dmca';
+  initialTab?: LegalPolicyTab;
 }
 
 export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
@@ -16,7 +16,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   siteMeta,
   initialTab = 'privacy',
 }) => {
-  const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>(initialTab);
+  const [activeTab, setActiveTab] = useState<LegalPolicyTab>(initialTab);
   const [ownerAvatarFailed, setOwnerAvatarFailed] = useState(false);
 
   useEffect(() => {

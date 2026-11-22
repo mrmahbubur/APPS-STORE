@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Header, StorePlatformFilter } from './components/Header';
+import { Header } from './components/Header';
 import { HeroFeatured } from './components/HeroFeatured';
 import { AppCard } from './components/AppCard';
 import { AppDetailModal } from './components/AppDetailModal';
@@ -8,7 +8,14 @@ import { LegalPoliciesModal } from './components/LegalPoliciesModal';
 import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { SponsoredSpotlight } from './components/SponsoredSpotlight';
-import { AppItem, SiteMeta, SponsorAdLink } from './types';
+import type {
+  AppItem,
+  CatalogSortOption,
+  LegalPolicyTab,
+  SiteMeta,
+  SponsorAdLink,
+  StorePlatformFilter,
+} from './types';
 import {
   APP_STORE_CATEGORIES,
   DEFAULT_APPS,
@@ -55,7 +62,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedPlatform, setSelectedPlatform] = useState<StorePlatformFilter>('All');
-  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest'>('popular');
+  const [sortBy, setSortBy] = useState<CatalogSortOption>('popular');
   const [viewMode, setViewMode] = useState<'cards' | 'charts'>('cards');
   const [showcaseImgError, setShowcaseImgError] = useState(false);
 
@@ -65,7 +72,7 @@ export default function App() {
   const [publishInitialCategory, setPublishInitialCategory] = useState<string | undefined>(undefined);
   const [publishInitialPlatform, setPublishInitialPlatform] = useState<string | undefined>(undefined);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
-  const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer' | 'dmca'>('privacy');
+  const [legalTab, setLegalTab] = useState<LegalPolicyTab>('privacy');
   const [ownerAvatarError, setOwnerAvatarError] = useState(false);
 
   // Mobile navigation

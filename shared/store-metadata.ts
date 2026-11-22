@@ -1,11 +1,19 @@
 import type {
   AppItem,
   AppOwnerProfile,
+  BinaryMetaOverride,
+  BuildBuiltinAppsOptions,
+  PackageMetadataInput,
   ReviewItem,
   ReviewStats,
   SiteMeta,
   SponsorAdLink,
+  SponsorFilterTab,
+  StorePlatformFilter,
 } from './types.ts';
+import { isWindowsPackage } from './package-utils.ts';
+
+export type { BinaryMetaOverride, BuildBuiltinAppsOptions } from './types.ts';
 
 export const BUILTIN_APP_IDS = ['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai'] as const;
 
@@ -49,18 +57,6 @@ export const MRS_GRAVATAR_OWNER_PROFILE: AppOwnerProfile = {
     'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
   email: '',
 };
-
-export interface BinaryMetaOverride {
-  size?: string;
-  sha256?: string;
-  updatedAt?: string;
-}
-
-export interface BuildBuiltinAppsOptions {
-  relativePaths?: boolean;
-  ownerProfile?: AppOwnerProfile;
-  binaryOverrides?: Record<string, BinaryMetaOverride>;
-}
 
 export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem[] {
   const prefix = options.relativePaths ? '.' : '';
@@ -513,6 +509,45 @@ export const DEFAULT_SPONSOR_LINKS: SponsorAdLink[] = [
 
 export function createDefaultSponsorLinks(): SponsorAdLink[] {
   return DEFAULT_SPONSOR_LINKS.map((item) => ({ ...item }));
+}
+
+export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
+  if (platform === 'Windows') return 'Windows PC';
+  if (platform === 'Android' || platform === 'Smart TV') return 'Android & TV';
+  return 'All Partners';
+}
+
+export function filterSponsorsByTab(
+  sponsors: readonly SponsorAdLink[],
+  tab: SponsorFilterTab
+): SponsorAdLink[] {
+  const pool = sponsors && sponsors.length > 0 ? [...sponsors] : DEFAULT_SPONSOR_LINKS;
+  if (tab === 'All Partners') return pool;
+  return pool.filter((item) => item.platformHint === tab || item.platformHint === 'All Devices');
+}
+
+export function getDetailPageSponsors(
+  sponsors: readonly SponsorAdLink[],
+  app: PackageMetadataInput,
+  limit = 2
+): SponsorAdLink[] {
+  const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
+  const isWindowsPkg = isWindowsPackage(app);
+  const detailFirst = pool.filter((item) => item.placement === 'detail');
+  const prioritized = isWindowsPkg
+    ? [...pool.filter((item) => item.platformHint === 'Windows PC'), ...detailFirst, ...pool]
+    : [...detailFirst, ...pool.filter((item) => item.platformHint === 'Android & TV'), ...pool];
+
+  const selected: SponsorAdLink[] = [];
+  const seen = new Set<string>();
+  for (const item of prioritized) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      selected.push(item);
+    }
+    if (selected.length >= limit) break;
+  }
+  return selected;
 }
 
 export function pickContextualSponsor(

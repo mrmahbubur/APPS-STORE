@@ -25,10 +25,20 @@ function getPackageMimeType(fileName: string): string {
 }
 
 const app = express();
+const isProduction =
+  process.env.NODE_ENV === 'production' ||
+  process.env.RENDER === 'true' ||
+  process.argv.includes('--prod');
+
+const cliPortIdx = process.argv.indexOf('--port');
+const cliPort = cliPortIdx !== -1 ? process.argv[cliPortIdx + 1] : undefined;
 const rawPort =
-  process.env.PORT && process.env.PORT !== process.env.NGINX_PORT
+  cliPort ||
+  (!isProduction && process.env.DEFAULT_APP_PORT
+    ? process.env.DEFAULT_APP_PORT
+    : process.env.PORT && process.env.PORT !== process.env.NGINX_PORT
     ? process.env.PORT
-    : process.env.DEFAULT_APP_PORT || '3000';
+    : process.env.DEFAULT_APP_PORT || '3000');
 const PORT = parseInt(rawPort, 10) || 3000;
 
 // Security and performance middleware
@@ -788,12 +798,10 @@ app.use('/api', (_req: Request, res: Response) => {
 
 // Start dev or production server
 async function startServer() {
-  const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    process.env.RENDER === 'true' ||
-    process.argv.includes('--prod');
-
   if (!isProduction) {
+    if (!process.env.DISABLE_HMR) {
+      process.env.DISABLE_HMR = 'true';
+    }
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {

@@ -478,7 +478,7 @@ export function getDefaultSiteMeta(): SiteMeta {
   const ownerLabel = MRS_GRAVATAR_OWNER_PROFILE.displayName;
   return {
     appName: 'MRS App Store',
-    tagline: `Official Direct APK Storefront Owned by ${ownerLabel}`,
+    tagline: `Official Android, Smart TV & Windows App Store Owned by ${ownerLabel}`,
     currentYear,
     copyrightNotice: `© ${currentYear} ${ownerLabel}. All rights reserved.`,
     adminEmail: 'mr216873@gmail.com',
@@ -501,12 +501,12 @@ export function getDefaultSiteMeta(): SiteMeta {
         title: 'App Privacy Policy',
         lastRenewed: `January 1, ${currentYear}`,
         summary:
-          'MRS App Store serves direct APK files without third-party redirect walls or cross-site tracking.',
+          'MRS App Store serves direct Android APK and Windows installer files without third-party redirect walls or cross-site tracking.',
         sections: [
           {
-            heading: '1. Direct APK Distribution',
+            heading: '1. Direct Package Distribution',
             content:
-              'APK binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
+              'Android APK and Windows (.exe, .msi, .msix, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
           },
           {
             heading: '2. Submitted Reviews',
@@ -524,12 +524,12 @@ export function getDefaultSiteMeta(): SiteMeta {
         title: 'Terms & Conditions',
         lastRenewed: `January 1, ${currentYear}`,
         summary:
-          'Terms governing access to applications and APK binaries hosted on MRS App Store.',
+          'Terms governing access to Android, Smart TV, and Windows packages hosted on MRS App Store.',
         sections: [
           {
             heading: '1. Direct Package Downloads',
             content:
-              'Users can inspect APK file size, version, permissions, and SHA-256 hash prior to downloading.',
+              'Users can inspect package file size, version, permissions, and SHA-256 hash prior to downloading.',
           },
         ],
       },

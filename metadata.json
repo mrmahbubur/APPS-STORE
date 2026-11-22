@@ -1,6 +1,6 @@
 {
   "name": "MRS App Store",
-  "description": "Download verified M R S IPTV Android and M R S IPTV TV APKs directly with SHA-256 verification, real user reviews, and inbuilt developer app publishing.",
+  "description": "Official MRS App Store owned by M R S — direct Android APK (M R S IPTV, Camillia Ai), Smart TV, and Windows (.exe, .msi, .msix, .zip) downloads with SHA-256 verification, 28 app categories, real user reviews, and BEP-20 app publishing.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

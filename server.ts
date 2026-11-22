@@ -24,22 +24,73 @@ function getPackageMimeType(fileName: string): string {
   return 'application/vnd.android.package-archive';
 }
 
-const app = express();
-const isProduction =
-  process.env.NODE_ENV === 'production' ||
-  process.env.RENDER === 'true' ||
-  process.argv.includes('--prod');
+function getCliFlagValue(flags: string[]): string | undefined {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    for (const flag of flags) {
+      if (arg === flag && i + 1 < args.length) {
+        return args[i + 1];
+      }
+      if (arg.startsWith(`${flag}=`)) {
+        return arg.slice(flag.length + 1);
+      }
+    }
+  }
+  return undefined;
+}
 
-const cliPortIdx = process.argv.indexOf('--port');
-const cliPort = cliPortIdx !== -1 ? process.argv[cliPortIdx + 1] : undefined;
-const rawPort =
-  cliPort ||
-  (!isProduction && process.env.DEFAULT_APP_PORT
-    ? process.env.DEFAULT_APP_PORT
-    : process.env.PORT && process.env.PORT !== process.env.NGINX_PORT
-    ? process.env.PORT
-    : process.env.DEFAULT_APP_PORT || '3000');
-const PORT = parseInt(rawPort, 10) || 3000;
+function parseValidPort(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  const parsed = Number.parseInt(raw.trim(), 10);
+  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) {
+    return parsed;
+  }
+  return undefined;
+}
+
+function detectProductionMode(): boolean {
+  const args = process.argv.slice(2);
+  if (args.includes('--dev') || args.includes('--development')) return false;
+  if (args.includes('--prod') || args.includes('--production')) return true;
+
+  const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
+  if (nodeEnv === 'production') return true;
+  if (nodeEnv === 'development') return false;
+
+  if (
+    process.env.RENDER === 'true' ||
+    Boolean(process.env.RENDER_SERVICE_ID) ||
+    Boolean(process.env.K_SERVICE) ||
+    Boolean(process.env.RAILWAY_ENVIRONMENT)
+  ) {
+    return true;
+  }
+
+  if (
+    process.env.npm_lifecycle_event === 'start' &&
+    fs.existsSync(path.resolve(process.cwd(), 'dist/index.html'))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+const app = express();
+const isProduction = detectProductionMode();
+
+const cliPort = parseValidPort(getCliFlagValue(['--port', '-p']));
+const envPort =
+  !isProduction && process.env.DEFAULT_APP_PORT
+    ? parseValidPort(process.env.DEFAULT_APP_PORT)
+    : parseValidPort(
+        process.env.PORT && process.env.PORT !== process.env.NGINX_PORT
+          ? process.env.PORT
+          : process.env.DEFAULT_APP_PORT
+      );
+const PORT = cliPort ?? envPort ?? 3000;
+const HOST = getCliFlagValue(['--host', '-H']) || process.env.HOST || '0.0.0.0';
 
 // Security and performance middleware
 app.use(express.json({ limit: '10mb' }));
@@ -813,14 +864,20 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
+    const distIndex = path.join(distPath, 'index.html');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (!fs.existsSync(distIndex)) {
+        return res.status(503).send('Production bundle not found. Run npm run build first.');
+      }
+      return res.sendFile(distIndex);
     });
   }
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[MRS App Store] Server running on port ${PORT} (Node env: ${process.env.NODE_ENV || 'development'})`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(
+      `[MRS App Store] Server listening on http://${HOST}:${PORT} (mode: ${isProduction ? 'production' : 'development'})`
+    );
   });
 
   server.on('error', (err) => {

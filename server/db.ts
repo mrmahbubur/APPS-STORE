@@ -1,212 +1,42 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import type {
+  AppItem,
+  AppOwnerProfile,
+  DeveloperSubmission,
+  ReviewItem,
+  SiteMeta,
+  SponsorAdLink,
+} from '../shared/types.ts';
 import {
   getAppMinOsLabel,
+  getBuiltinPackageFile,
+  getDefaultPackagePermissions,
   isHybridPackage,
   isWindowsPackage,
 } from '../shared/package-utils.ts';
+import {
+  BUILTIN_APP_IDS,
+  APP_STORE_CATEGORIES,
+  MRS_GRAVATAR_OWNER_PROFILE,
+  buildBuiltinApps,
+  buildSiteMeta,
+  computeReviewStats,
+  createDefaultSponsorLinks,
+} from '../shared/store-metadata.ts';
 
-export interface AppOwnerAccount {
-  name: string;
-  username: string;
-  url: string;
-  verified?: boolean;
-}
-
-export interface AppOwnerProfile {
-  displayName: string;
-  username: string;
-  profileUrl: string;
-  avatarUrl: string;
-  email: string;
-  phone?: string;
-  headline?: string;
-  bio?: string;
-  calendarUrl?: string;
-  accounts?: AppOwnerAccount[];
-}
-
-export interface AppItem {
-  id: string;
-  title: string;
-  fileName: string;
-  tagline: string;
-  category: 'Entertainment' | 'IPTV & Streaming' | 'Smart TV & Video' | 'AI & Virtual Assistant' | string;
-  platform: 'Smart TV & Android Mobile' | 'Android Mobile & Smart TV' | 'Android Mobile' | string;
-  version: string;
-  updatedAt: string;
-  size: string;
-  rating: number;
-  reviewsCount: number;
-  downloads: number;
-  minAndroid: string;
-  ageRating?: string;
-  languages?: string;
-  chartRank?: string;
-  icon: string;
-  banner?: string;
-  developer: string;
-  developerEmail: string;
-  ownerName?: string;
-  ownerProfile?: AppOwnerProfile;
-  packageId: string;
-  sha256: string;
-  directDownloadUrl: string;
-  downloadUrl: string;
-  shareUrl: string;
-  localApkPath: string;
-  description: string;
-  whatsNew: string[];
-  features: string[];
-  permissions: string[];
-  screenshots: string[];
-  featured?: boolean;
-  editorChoice?: boolean;
-}
-
-export interface DeveloperSubmission {
-  id: string;
-  appTitle: string;
-  packageId?: string;
-  apkDownloadUrl: string;
-  size?: string;
-  sha256?: string;
-  publishedAppId?: string;
-  category: string;
-  platform: string;
-  version: string;
-  description: string;
-  developerName: string;
-  developerEmail: string;
-  targetAdminEmail: string;
-  tier: 'Standard' | 'Priority' | 'Enterprise';
-  amountPaidUsd: number;
-  paymentMethod: string;
-  paymentDetails: {
-    brand?: string;
-    last4?: string;
-    cardholderName?: string;
-    paypalEmail?: string;
-    cryptoTxHash?: string;
-    cryptoNetwork?: string;
-  };
-  invoiceNumber: string;
-  transactionId: string;
-  status: 'Payment Verified' | 'Under Review' | 'Live';
-  submittedAt: string;
-}
-
-export interface SponsorAdLink {
-  id: string;
-  zoneId: string;
-  title: string;
-  subtitle: string;
-  category: string;
-  platformHint: 'Android & TV' | 'Windows PC' | 'All Devices';
-  placement: 'featured' | 'catalog' | 'detail';
-  url: string;
-  ctaLabel: string;
-  clicks: number;
-}
-
-export const APP_STORE_CATEGORIES: string[] = [
-  'IPTV & Streaming',
-  'Smart TV & Video',
-  'Entertainment',
-  'AI & Virtual Assistant',
-  'Games',
-  'Productivity',
-  'Utilities',
-  'Social & Communication',
-  'Music & Audio',
-  'Photo & Video',
-  'Education',
-  'Developer Tools',
-  'News & Magazines',
-  'Finance & Crypto',
-  'Shopping',
-  'Health & Fitness',
-  'Travel & Navigation',
-  'Business',
-  'Sports',
-  'Lifestyle',
-  'Books & Reference',
-  'Weather',
-  'Food & Drink',
-  'Medical',
-  'Graphics & Design',
-  'Kids & Family',
-  'Personalization',
-  'Auto & Vehicles',
-];
-
-export interface OwnerInfo {
-  ownerName: string;
-  organization: string;
-  email: string;
-  role: string;
-  location: string;
-  supportResponseTime: string;
-  publishingFeeUsd: number;
-  verificationNote: string;
-}
-
-export interface SiteMeta {
-  appName: string;
-  tagline: string;
-  currentYear: number;
-  copyrightNotice: string;
-  adminEmail: string;
-  ownerInfo?: OwnerInfo;
-  ownerProfile?: AppOwnerProfile;
-  categories?: string[];
-  submissionFeeUsd: number;
-  lastUpdated: string;
-  policies: {
-    privacy: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    terms: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    developer: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-    dmca: {
-      title: string;
-      lastRenewed: string;
-      summary: string;
-      sections: { heading: string; content: string }[];
-    };
-  };
-}
-
-export interface ReviewItem {
-  id: string;
-  appId: string;
-  author: string;
-  title: string;
-  rating: number;
-  comment: string;
-  device: string;
-  helpfulCount: number;
-  createdAt: string;
-  developerReply?: {
-    author: string;
-    text: string;
-    date: string;
-  };
-}
+export type {
+  AppOwnerAccount,
+  AppOwnerProfile,
+  AppItem,
+  DeveloperSubmission,
+  SponsorAdLink,
+  OwnerInfo,
+  SiteMeta,
+  ReviewItem,
+} from '../shared/types.ts';
+export { APP_STORE_CATEGORIES };
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const APPS_FILE = path.join(DATA_DIR, 'apps.json');
@@ -230,7 +60,7 @@ function writeJsonAtomic(filePath: string, data: unknown) {
   }
 }
 
-/** Read real byte size, SHA-256 hash, and mtime directly from the APK binary on disk */
+/** Read real byte size, SHA-256 hash, and mtime directly from the package binary on disk */
 function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackSha256: string) {
   try {
     const cleanRel = relApkPath.replace(/^\//, '');
@@ -251,244 +81,43 @@ function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackS
 
 const GRAVATAR_PROFILE_ENDPOINT = 'https://gravatar.com/mrxshahin.json';
 
-let currentOwnerProfile: AppOwnerProfile = {
-  displayName: 'M R S',
-  username: '',
-  profileUrl: '',
-  avatarUrl:
-    'https://1.gravatar.com/avatar/79cb903b47ada0af52e9962551bab25e563cc0a515939789f348aaa0ca135946?s=256',
-  email: '',
-};
-
-function formatOwnerLabel(profile: AppOwnerProfile): string {
-  return profile.displayName;
-}
+let currentOwnerProfile: AppOwnerProfile = { ...MRS_GRAVATAR_OWNER_PROFILE };
 
 function buildGenuineApps(): AppItem[] {
+  const mrsFile = getBuiltinPackageFile('m-r-s-iptv') || 'M_R_S_IPTV.apk';
+  const mrsTvFile = getBuiltinPackageFile('m-r-s-iptv-pro') || 'M_R_S_IPTV_Pro.apk';
+  const camelliaFile = getBuiltinPackageFile('camellia-ai') || 'Camillia_Ai.apk';
+
   const mrsMeta = readRealApkFileMeta(
-    'apks/M_R_S_IPTV.apk',
+    `apks/${mrsFile}`,
     '9.33 MB',
     'd8358fae651e182a9dae7e098962b94afd9ddb8eb228923c76184250d7ccf28c'
   );
   const mrsTvMeta = readRealApkFileMeta(
-    'apks/M_R_S_IPTV_Pro.apk',
+    `apks/${mrsTvFile}`,
     '31.93 MB',
     'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92'
   );
   const camelliaMeta = readRealApkFileMeta(
-    'apks/Camillia_Ai.apk',
+    `apks/${camelliaFile}`,
     '7.68 MB',
     '6ebf12098208a31dbb00a15864d95e966aae11b441975fb240b8ce78a35676cd'
   );
 
-  const ownerLabel = formatOwnerLabel(currentOwnerProfile);
-
-  return [
-    {
-      id: 'm-r-s-iptv',
-      title: 'M R S IPTV Android',
-      fileName: 'M R S IPTV.apk',
-      tagline: 'Official M R S IPTV Android APK hosted directly on MRS App Store.',
-      category: 'IPTV & Streaming',
-      platform: 'Android Mobile & Smart TV',
-      version: '1.0.0',
-      updatedAt: mrsMeta.updatedAt,
-      size: mrsMeta.size,
-      rating: 0,
-      reviewsCount: 0,
-      downloads: 0,
-      minAndroid: 'Android 8.0+ (API 26)',
-      ageRating: 'Everyone',
-      languages: 'Android System Locale',
-      chartRank: 'v1.0.0',
-      icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-      banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-      developer: currentOwnerProfile.displayName,
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: ownerLabel,
-      ownerProfile: currentOwnerProfile,
-      packageId: 'co.median.android.rdalmaa',
-      sha256: mrsMeta.sha256,
-      directDownloadUrl: '/api/download/m-r-s-iptv',
-      downloadUrl: '/api/download/m-r-s-iptv',
-      shareUrl: '/?app=m-r-s-iptv',
-      localApkPath: '/apks/M_R_S_IPTV.apk',
-      description:
-        `M R S IPTV Android is the official Android application published by ${ownerLabel}. The APK binary (M R S IPTV.apk) is hosted directly in MRS App Store for one-click download and installation on Android 8.0+ devices.`,
-      whatsNew: [
-        `Direct in-house APK hosting from MRS App Store (${mrsMeta.size})`,
-        'Build 3 (Version 1.0.0) compiled for Android API 26+',
-        'Verified SHA-256 binary checksum published on product page',
-      ],
-      features: [
-        'Direct APK download with no third-party redirects',
-        'Supports Android 8.0 (API 26) and above',
-        `Published and maintained by ${ownerLabel}`,
-        'Shareable app page link and direct APK download URL',
-      ],
-      permissions: [
-        'android.permission.INTERNET',
-        'android.permission.ACCESS_NETWORK_STATE',
-        'android.permission.READ_PHONE_STATE',
-        'android.permission.VIBRATE',
-        'android.permission.DUMP',
-      ],
-      screenshots: ['/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'],
-      featured: true,
-      editorChoice: false,
+  return buildBuiltinApps({
+    relativePaths: false,
+    ownerProfile: currentOwnerProfile,
+    binaryOverrides: {
+      'm-r-s-iptv': mrsMeta,
+      'm-r-s-iptv-pro': mrsTvMeta,
+      'camellia-ai': camelliaMeta,
     },
-    {
-      id: 'm-r-s-iptv-pro',
-      title: 'M R S IPTV TV',
-      fileName: 'M_R_S_IPTV.apk',
-      tagline: 'Official M R S IPTV TV APK hosted directly on MRS App Store.',
-      category: 'Smart TV & Video',
-      platform: 'Smart TV & Android Mobile',
-      version: '1.0',
-      updatedAt: mrsTvMeta.updatedAt,
-      size: mrsTvMeta.size,
-      rating: 0,
-      reviewsCount: 0,
-      downloads: 0,
-      minAndroid: 'Android 8.0+ (API 26)',
-      ageRating: 'Everyone',
-      languages: 'Android System Locale',
-      chartRank: 'v1.0',
-      icon: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-      banner: '/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png',
-      developer: currentOwnerProfile.displayName,
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: ownerLabel,
-      ownerProfile: currentOwnerProfile,
-      packageId: 'com.wMRSIPTV_20119768',
-      sha256: mrsTvMeta.sha256,
-      directDownloadUrl: '/api/download/m-r-s-iptv-pro',
-      downloadUrl: '/api/download/m-r-s-iptv-pro',
-      shareUrl: '/?app=m-r-s-iptv-pro',
-      localApkPath: '/apks/M_R_S_IPTV_Pro.apk',
-      description:
-        `M R S IPTV TV (M_R_S_IPTV.apk) is the Smart TV and Android edition distributed directly by ${ownerLabel}. Hosted locally on MRS App Store for direct sideloading and mobile installation.`,
-      whatsNew: [
-        `Direct in-house APK hosting from MRS App Store (${mrsTvMeta.size})`,
-        'Package com.wMRSIPTV_20119768 (Version 1.0)',
-        'Verified SHA-256 binary checksum published on product page',
-      ],
-      features: [
-        'Direct APK download with no external hosting redirects',
-        'Supports Android 8.0 (API 26) and above',
-        `Published and maintained by ${ownerLabel}`,
-        'Shareable app link and direct binary URL',
-      ],
-      permissions: [
-        'android.permission.INTERNET',
-        'android.permission.ACCESS_NETWORK_STATE',
-        'android.permission.ACCESS_WIFI_STATE',
-        'android.permission.CHANGE_WIFI_STATE',
-        'android.permission.WAKE_LOCK',
-        'android.permission.FOREGROUND_SERVICE',
-        'android.permission.POST_NOTIFICATIONS',
-        'android.permission.READ_EXTERNAL_STORAGE',
-        'android.permission.WRITE_EXTERNAL_STORAGE',
-        'android.permission.CAMERA',
-        'android.permission.MODIFY_AUDIO_SETTINGS',
-        'android.permission.BLUETOOTH',
-        'android.permission.BLUETOOTH_ADMIN',
-        'android.permission.NFC',
-        'android.permission.VIBRATE',
-        'android.permission.RECEIVE_BOOT_COMPLETED',
-        'android.permission.SYSTEM_ALERT_WINDOW',
-        'android.permission.INSTALL_PACKAGES',
-        'android.permission.BIND_JOB_SERVICE',
-        'android.permission.QUICKBOOT_POWERON',
-        'android.permission.READ_APP_BADGE',
-        'android.permission.DUMP',
-      ],
-      screenshots: ['/assets/aistudio/MRS_TV_Neon_IPTV_Network_Logo_7f02d4fc.png'],
-      featured: false,
-      editorChoice: false,
-    },
-    {
-      id: 'camellia-ai',
-      title: 'Camillia Ai',
-      fileName: 'Camillia Ai.apk',
-      tagline: 'Intelligent AI chat & productivity assistant Android APK hosted directly on MRS App Store.',
-      category: 'AI & Virtual Assistant',
-      platform: 'Android Mobile',
-      version: '1.0.0',
-      updatedAt: camelliaMeta.updatedAt,
-      size: camelliaMeta.size,
-      rating: 0,
-      reviewsCount: 0,
-      downloads: 0,
-      minAndroid: 'Android 8.0+ (API 26)',
-      ageRating: 'Everyone',
-      languages: 'Android System Locale',
-      chartRank: 'v1.0.0',
-      icon: '/assets/aistudio/camellia-logo_e7fcb198.png',
-      banner: '/assets/aistudio/camellia-logo_e7fcb198.png',
-      developer: currentOwnerProfile.displayName,
-      developerEmail: 'mr216873@gmail.com',
-      ownerName: ownerLabel,
-      ownerProfile: currentOwnerProfile,
-      packageId: 'co.median.android.krqrjbd',
-      sha256: camelliaMeta.sha256,
-      directDownloadUrl: '/api/download/camellia-ai',
-      downloadUrl: '/api/download/camellia-ai',
-      shareUrl: '/?app=camellia-ai',
-      localApkPath: '/apks/Camillia_Ai.apk',
-      description:
-        `Camillia Ai (Camillia Ai.apk) is an Android AI & Virtual Assistant application imported from upload-apk.com (aOOQ4KXgicyfICc) and distributed directly by ${ownerLabel} on MRS App Store with instant APK delivery and SHA-256 checksum verification.`,
-      whatsNew: [
-        `Direct in-house APK hosting from MRS App Store (${camelliaMeta.size})`,
-        'Package co.median.android.krqrjbd (Version 1.0.0) for Android 8.0+ (API 26)',
-        'Custom uploaded Camillia app icon and verified SHA-256 binary signature',
-      ],
-      features: [
-        'Instant direct APK download without countdown timers or redirects',
-        'Supports Android 8.0 (API 26) and above',
-        'Verified binary imported from https://www.upload-apk.com/aOOQ4KXgicyfICc',
-        `Listed and maintained by ${ownerLabel}`,
-      ],
-      permissions: [
-        'android.permission.INTERNET',
-        'android.permission.ACCESS_NETWORK_STATE',
-        'android.permission.READ_PHONE_STATE',
-        'android.permission.VIBRATE',
-        'android.permission.DUMP',
-        'com.google.android.c2dm.permission.RECEIVE',
-      ],
-      screenshots: ['/assets/aistudio/camellia-logo_e7fcb198.png'],
-      featured: false,
-      editorChoice: true,
-    },
-  ];
+  });
 }
 
 let memoryStore: AppItem[] = [];
 let submissionsStore: DeveloperSubmission[] = [];
 let reviewsStore: Record<string, ReviewItem[]> = {};
-
-function computeStats(reviews: ReviewItem[]) {
-  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-  if (!reviews.length) {
-    return {
-      averageRating: 0,
-      totalReviews: 0,
-      breakdown,
-    };
-  }
-  let total = 0;
-  for (const r of reviews) {
-    const score = Math.min(5, Math.max(1, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5;
-    breakdown[score] += 1;
-    total += score;
-  }
-  return {
-    averageRating: Number((total / reviews.length).toFixed(1)),
-    totalReviews: reviews.length,
-    breakdown,
-  };
-}
 
 function ensureDatabase() {
   try {
@@ -496,16 +125,14 @@ function ensureDatabase() {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
 
-    // Preserve any real download counts and any developer-published custom apps from apps.json
     const existingDownloads: Record<string, number> = {};
     const customPublishedApps: AppItem[] = [];
-    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai']);
+    const builtInIds = new Set<string>(BUILTIN_APP_IDS);
 
     if (fs.existsSync(APPS_FILE)) {
       try {
         const oldApps: AppItem[] = JSON.parse(fs.readFileSync(APPS_FILE, 'utf-8'));
         for (const old of oldApps) {
-          // Discard previously seeded fake counts (14200, 12800, 21400)
           if (
             typeof old.downloads === 'number' &&
             old.downloads > 0 &&
@@ -532,7 +159,7 @@ function ensureDatabase() {
 
     const genuineApps = buildGenuineApps().map((app) => {
       const appReviews = reviewsStore[app.id] || [];
-      const stats = computeStats(appReviews);
+      const stats = computeReviewStats(appReviews);
       return {
         ...app,
         downloads: existingDownloads[app.id] || 0,
@@ -543,7 +170,7 @@ function ensureDatabase() {
 
     const refreshedCustomApps = customPublishedApps.map((app) => {
       const appReviews = reviewsStore[app.id] || [];
-      const stats = computeStats(appReviews);
+      const stats = computeReviewStats(appReviews);
       const localMeta =
         app.localApkPath && app.localApkPath.startsWith('/apks/')
           ? readRealApkFileMeta(app.localApkPath, app.size, app.sha256)
@@ -601,8 +228,8 @@ async function syncGravatarOwnerProfile() {
       email: '',
     };
 
-    const builtInIds = new Set(['m-r-s-iptv', 'm-r-s-iptv-pro', 'camellia-ai']);
-    const ownerLabel = formatOwnerLabel(currentOwnerProfile);
+    const builtInIds = new Set<string>(BUILTIN_APP_IDS);
+    const ownerLabel = currentOwnerProfile.displayName;
     memoryStore = memoryStore.map((app) =>
       builtInIds.has(app.id)
         ? {
@@ -616,11 +243,16 @@ async function syncGravatarOwnerProfile() {
     );
     writeJsonAtomic(APPS_FILE, memoryStore);
   } catch (err) {
-    console.warn('Using verified cached Gravatar owner profile:', err instanceof Error ? err.message : err);
+    console.warn(
+      'Using verified cached Gravatar owner profile:',
+      err instanceof Error ? err.message : err
+    );
   }
 }
 
 void syncGravatarOwnerProfile();
+
+const sponsorLinksStore: SponsorAdLink[] = createDefaultSponsorLinks();
 
 export const AppDatabase = {
   getAllApps(): AppItem[] {
@@ -656,7 +288,7 @@ export const AppDatabase = {
     const list = reviewsStore[appId] || [];
     return {
       reviews: list,
-      stats: computeStats(list),
+      stats: computeReviewStats(list),
     };
   },
 
@@ -689,7 +321,7 @@ export const AppDatabase = {
       console.error('Failed to save review:', err);
     }
 
-    const stats = computeStats(list);
+    const stats = computeReviewStats(list);
     if (app) {
       app.rating = stats.averageRating;
       app.reviewsCount = stats.totalReviews;
@@ -710,10 +342,14 @@ export const AppDatabase = {
     try {
       writeJsonAtomic(REVIEWS_FILE, reviewsStore);
     } catch (e) {}
-    return { reviews: updated, stats: computeStats(updated) };
+    return { reviews: updated, stats: computeReviewStats(updated) };
   },
 
-  readRealApkFileMeta(relApkPath: string, fallbackSize = 'External APK', fallbackSha256 = 'External URL (Not Self-Hosted)') {
+  readRealApkFileMeta(
+    relApkPath: string,
+    fallbackSize = 'External APK',
+    fallbackSha256 = 'External URL (Not Self-Hosted)'
+  ) {
     return readRealApkFileMeta(relApkPath, fallbackSize, fallbackSha256);
   },
 
@@ -736,17 +372,17 @@ export const AppDatabase = {
     sha256?: string;
     architectures?: string[];
   }): AppItem {
-    const slugBase = input.appTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'custom-app';
+    const slugBase =
+      input.appTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'custom-app';
     let uniqueId = slugBase;
     if (memoryStore.some((a) => a.id === uniqueId)) {
       uniqueId = `${slugBase}-${Date.now().toString().slice(-5)}`;
     }
 
     const rawPlatform = input.platform.trim() || 'Smart TV & Android Mobile';
-    const isWindowsTarget = /windows/i.test(rawPlatform);
     const cleanLocalPath = input.localApkPath ? input.localApkPath.trim() : '';
 
     const rawOrLocalName =
@@ -766,11 +402,15 @@ export const AppDatabase = {
 
     const resolvedFileName =
       rawOrLocalName ||
-      `${input.appTitle.replace(/\s+/g, '_')}${isWindowsTarget && !isHybridTarget ? '.exe' : '.apk'}`;
+      `${input.appTitle.replace(/\s+/g, '_')}${isWindowsBinary && !isHybridTarget ? '.exe' : '.apk'}`;
     const resolvedPkg =
       input.packageId?.trim() || `com.mrs.${slugBase.replace(/-/g, '')}`;
 
-    const resolvedOwner = (input.ownerName || input.ownerProfile?.displayName || input.developerName).trim();
+    const resolvedOwner = (
+      input.ownerName ||
+      input.ownerProfile?.displayName ||
+      input.developerName
+    ).trim();
     const resolvedIcon = input.iconUrl?.trim() || '/assets/site-logo-icon.jpg';
     const archLabel = isWindowsBinary ? 'Architectures' : 'Supported ABIs';
     const abiNote =
@@ -778,12 +418,9 @@ export const AppDatabase = {
         ? `${archLabel}: ${input.architectures.join(', ')}`
         : `Target platform: ${rawPlatform}`;
 
-    const minOsLabel = getAppMinOsLabel({ platform: rawPlatform, fileName: resolvedFileName });
-
-    const defaultPermissions =
-      isWindowsBinary && !isHybridTarget
-        ? ['Windows Desktop Runtime', 'Direct Installer / Executable']
-        : ['android.permission.INTERNET'];
+    const finalPkgMeta = { platform: rawPlatform, fileName: resolvedFileName };
+    const minOsLabel = getAppMinOsLabel(finalPkgMeta);
+    const defaultPermissions = getDefaultPackagePermissions(finalPkgMeta);
 
     const newApp: AppItem = {
       id: uniqueId,
@@ -840,7 +477,10 @@ export const AppDatabase = {
   },
 
   createSubmission(
-    submission: Omit<DeveloperSubmission, 'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'>,
+    submission: Omit<
+      DeveloperSubmission,
+      'id' | 'transactionId' | 'invoiceNumber' | 'status' | 'submittedAt'
+    >,
     statusOverride: DeveloperSubmission['status'] = 'Live'
   ): DeveloperSubmission {
     const timestamp = Date.now();
@@ -948,102 +588,10 @@ export const AppDatabase = {
   },
 
   getSiteMeta(): SiteMeta {
-    const currentYear = new Date().getFullYear();
-    const ownerLabel = formatOwnerLabel(currentOwnerProfile);
-    const dynamicCategories = Array.from(
-      new Set([
-        ...APP_STORE_CATEGORIES,
-        ...memoryStore.map((a) => (a.category || '').trim()).filter(Boolean),
-      ])
-    );
-
-    return {
-      appName: 'MRS App Store',
-      tagline: `Official Android, Smart TV & Windows App Store Owned by ${ownerLabel}`,
-      currentYear,
-      copyrightNotice: `© ${currentYear} ${ownerLabel}. All rights reserved.`,
-      adminEmail: 'mr216873@gmail.com',
-      ownerInfo: {
-        ownerName: ownerLabel,
-        organization: ownerLabel,
-        email: '',
-        role: 'Store Owner',
-        location: '',
-        supportResponseTime: '',
-        publishingFeeUsd: 25.0,
-        verificationNote: 'Store Owner',
-      },
+    return buildSiteMeta({
       ownerProfile: currentOwnerProfile,
-      categories: dynamicCategories,
-      submissionFeeUsd: 25.0,
-      lastUpdated: new Date().toISOString(),
-      policies: {
-        privacy: {
-          title: 'App Privacy Policy',
-          lastRenewed: `January 1, ${currentYear}`,
-          summary:
-            'MRS App Store serves direct Android APK and Windows installer files without third-party redirect walls or cross-site tracking.',
-          sections: [
-            {
-              heading: '1. Direct Package Distribution',
-              content:
-                'Android (.apk) and Windows (.exe, .msi, .msix, .appx, .zip) binaries listed in the store are hosted directly on MRS App Store storage with published SHA-256 hashes.',
-            },
-            {
-              heading: '2. Submitted Reviews',
-              content:
-                'User reviews submitted on app pages store only the name, device type, rating, and review text entered by the reviewer.',
-            },
-            {
-              heading: '3. Sponsored Partner Links',
-              content:
-                'Clearly labeled Sponsored partner placements link to external sponsor destinations (uplcm.com) in a separate tab and remain independent from direct APK and Windows installer downloads.',
-            },
-          ],
-        },
-        terms: {
-          title: 'Terms & Conditions',
-          lastRenewed: `January 1, ${currentYear}`,
-          summary: 'Terms governing access to Android, Smart TV, and Windows packages hosted on MRS App Store.',
-          sections: [
-            {
-              heading: '1. Direct Package Downloads',
-              content:
-                'Users can inspect package file size, version, permissions, and SHA-256 hash prior to downloading.',
-            },
-          ],
-        },
-        developer: {
-          title: 'Developer Publishing & Review Agreement',
-          lastRenewed: `January 1, ${currentYear}`,
-          summary:
-            'Developers may publish Android APKs, Smart TV apps, and Windows (.exe, .msi, .msix, .appx, .zip) packages across all 28 categories after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
-          sections: [
-            {
-              heading: '1. Submission Fee & Payment Options ($25 USD)',
-              content:
-                'A one-time publishing fee of $25.00 USD is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
-            },
-            {
-              heading: '2. Supported Packages & Binary Inspection',
-              content:
-                'Upload verified Android (.apk) binaries or Windows installers and portable executables (.exe PE, .msi MSI, .msix/.appx, .zip) for automatic header inspection and SHA-256 checksum generation, or dispatch external package links and payment proof to mr216873@gmail.com for review.',
-            },
-          ],
-        },
-        dmca: {
-          title: 'DMCA & Intellectual Property Compliance',
-          lastRenewed: `January 1, ${currentYear}`,
-          summary: 'Intellectual property and package takedown compliance for Android, Smart TV, and Windows releases.',
-          sections: [
-            {
-              heading: '1. Contact',
-              content: 'Direct any copyright or package verification queries for Android or Windows binaries to mr216873@gmail.com.',
-            },
-          ],
-        },
-      },
-    };
+      extraCategories: memoryStore.map((a) => (a.category || '').trim()).filter(Boolean),
+    });
   },
 
   getSponsors(): SponsorAdLink[] {
@@ -1059,126 +607,3 @@ export const AppDatabase = {
     return 0;
   },
 };
-
-const sponsorLinksStore: SponsorAdLink[] = [
-  {
-    id: 'sponsor-11226634',
-    zoneId: '11226634',
-    title: 'Streaming & Smart TV Partners',
-    subtitle: 'Live TV channels, smart player add-ons, and 4K streaming tools.',
-    category: 'Streaming & TV',
-    platformHint: 'Android & TV',
-    placement: 'featured',
-    url: 'https://uplcm.com/4/11226634',
-    ctaLabel: 'Open',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11683565',
-    zoneId: '11683565',
-    title: 'Windows PC Software Spotlight',
-    subtitle: 'Featured desktop utilities, media suites, and Windows 11 tools.',
-    category: 'Windows PC',
-    platformHint: 'Windows PC',
-    placement: 'featured',
-    url: 'https://uplcm.com/4/11683565',
-    ctaLabel: 'Open',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11242745',
-    zoneId: '11242745',
-    title: 'VPN & Network Privacy',
-    subtitle: 'Fast encrypted routing for Smart TV, Android, and desktop.',
-    category: 'Privacy & VPN',
-    platformHint: 'All Devices',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/11242745',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11242069',
-    zoneId: '11242069',
-    title: 'Smart TV Remote & Cast Tools',
-    subtitle: 'Companion casting helpers and playlist management utilities.',
-    category: 'Smart TV',
-    platformHint: 'Android & TV',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/11242069',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11242067',
-    zoneId: '11242067',
-    title: 'Android Device Optimizer',
-    subtitle: 'Storage cleanup, APK backup, and system performance tools.',
-    category: 'Android Utilities',
-    platformHint: 'Android & TV',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/11242067',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11242742',
-    zoneId: '11242742',
-    title: 'Windows Driver & Codec Pack',
-    subtitle: 'Essential desktop media codecs and hardware runtime helpers.',
-    category: 'Windows Utilities',
-    platformHint: 'Windows PC',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/11242742',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11230440',
-    zoneId: '11230440',
-    title: 'Cloud Storage & Fast Sync',
-    subtitle: 'Encrypted cross-device file transfers across PC and mobile.',
-    category: 'Productivity',
-    platformHint: 'All Devices',
-    placement: 'detail',
-    url: 'https://uplcm.com/4/11230440',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11683560',
-    zoneId: '11683560',
-    title: 'Games & Controller Hub',
-    subtitle: 'Featured casual games and gamepad mapping companions.',
-    category: 'Games',
-    platformHint: 'All Devices',
-    placement: 'detail',
-    url: 'https://uplcm.com/4/11683560',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-9912130',
-    zoneId: '9912130',
-    title: 'Cloud Hosting & CDN Suite',
-    subtitle: 'High-speed edge delivery and developer infrastructure.',
-    category: 'Developer Tools',
-    platformHint: 'All Devices',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/9912130',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-  {
-    id: 'sponsor-11242744',
-    zoneId: '11242744',
-    title: 'Security & Ad-Shield Pro',
-    subtitle: 'Web protection and anti-tracking shields for all screens.',
-    category: 'Security',
-    platformHint: 'All Devices',
-    placement: 'catalog',
-    url: 'https://uplcm.com/4/11242744',
-    ctaLabel: 'Visit',
-    clicks: 0,
-  },
-];

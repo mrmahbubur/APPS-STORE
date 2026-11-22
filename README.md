@@ -21,16 +21,17 @@ MRS App Store validates uploaded binaries on the server (`server/publish-service
 
 ---
 
-## Catalog Mapping & UI Share Helpers
+## Shared Platform Filtering, Package Metadata & Catalog Mapping
 
-Shared catalog mapping helpers live in `src/data/catalog.ts`:
+Platform classification, catalog search/filtering, store policies, sponsor definitions, and package labeling live in browser- and Node-22-safe shared modules under `shared/` (`shared/package-utils.ts`, `shared/store-metadata.ts`, and `shared/types.ts`), consumed by both Express (`server.ts`, `server/db.ts`, `server/publish-service.ts`) and React (`src/data/catalog.ts`, `src/App.tsx`):
 
-- `SUPPORTED_WINDOWS_EXTENSIONS` — `.exe`, `.msi`, `.msix`, `.msixbundle`, `.appx`, `.appxbundle`, `.zip`
-- `LOCAL_PACKAGE_FILE_MAP` — maps built-in catalog IDs to self-hosted files in `public/apks/`
-- `isWindowsPackage(app)` / `isHybridPackage(app)` — detects Windows or cross-platform Windows + Android/Smart TV builds from `platform` and `fileName` (`.exe`, `.msi`, `.msix`, `.appx`, `.zip`)
-- `getAppPackageFormatLabel(app)` — returns display labels (`Direct EXE`, `Direct MSI`, `Direct MSIX`, `Direct APPX`, `Direct ZIP`, `Direct APK`, or `Direct Package`)
-- `getAppShareTitle(app)` — standardized share titles (`Official Windows Package`, `Official Windows & Android Package`, or `Official APK`) used across `AppCard`, `HeroFeatured`, and `AppDetailModal`
-- `getAppLocalPackageFile(app)` & `getAppLocalPackageUrl(app)` — resolves local or external package download paths for both backend mode and GitHub Pages static fallback (`getAppLocalApkFile` / `getAppLocalApkUrl` remain exported aliases)
+- `SUPPORTED_WINDOWS_EXTENSIONS` & `SUPPORTED_PACKAGE_EXTENSIONS` — `.apk`, `.exe`, `.msi`, `.msix`, `.msixbundle`, `.appx`, `.appxbundle`, `.zip`
+- `LOCAL_PACKAGE_FILE_MAP` & `getBuiltinPackageFile(appId)` — canonical mapping of built-in catalog IDs to self-hosted files in `public/apks/`
+- `isWindowsPackage(app)` / `isSmartTvPackage(app)` / `isAndroidPackage(app)` / `isHybridPackage(app)` — unified OS and platform classification from `platform` and `fileName`
+- `matchesPlatformFilter(app, filter)`, `countAppsByPlatform(apps)`, and `filterCatalogApps(apps, opts)` — shared server/client catalog filtering, platform counting, and sorting (`popular`, `rating`, `newest`)
+- `getPackageFormatCode(app)`, `getAppPackageFormatLabel(app)`, `getPackageMimeType(fileName)`, `getAppMinOsLabel(app)`, `getDefaultPackagePermissions(app)` — standardized binary format labels (`Direct EXE`, `Direct MSI`, `Direct MSIX`, `Direct APPX`, `Direct ZIP`, `Direct APK`), HTTP `Content-Type` headers, minimum OS strings, and permission defaults
+- `getAppShareTitle(app)` & `getAppShareText(app)` — standardized share titles (`Official Windows Package`, `Official Windows & Android Package`, or `Official APK`) used across `AppCard`, `HeroFeatured`, and `AppDetailModal`
+- `APP_STORE_CATEGORIES`, `MRS_GRAVATAR_OWNER_PROFILE`, `DEFAULT_SPONSOR_LINKS`, `buildBuiltinApps()`, and `buildSiteMeta()` — single source of truth for store categories, owner identity, built-in packages, legal policies, and sponsor placements (`src/data/catalog.ts` adds client asset normalization and static/localStorage fallback helpers)
 
 ---
 

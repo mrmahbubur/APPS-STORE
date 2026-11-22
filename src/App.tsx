@@ -14,6 +14,9 @@ import {
   DEFAULT_APPS,
   DEFAULT_SPONSOR_LINKS,
   MRS_GRAVATAR_OWNER_PROFILE,
+  countAppsByPlatform,
+  filterCatalogApps,
+  getDefaultPlatformForFilter,
   getDefaultSiteMeta,
   normalizeAssetPath,
   getAppLocalPackageUrl,
@@ -173,34 +176,12 @@ export default function App() {
   };
 
   const filteredApps = useMemo(() => {
-    return apps
-      .filter((app) => {
-        const matchesCategory =
-          selectedCategory === 'All' ||
-          app.category.toLowerCase() === selectedCategory.toLowerCase();
-
-        const matchesPlatform = matchesPlatformFilter(app, selectedPlatform);
-
-        const q = searchQuery.toLowerCase().trim();
-        const matchesSearch =
-          !q ||
-          app.title.toLowerCase().includes(q) ||
-          app.fileName.toLowerCase().includes(q) ||
-          app.tagline.toLowerCase().includes(q) ||
-          app.description.toLowerCase().includes(q) ||
-          app.developer.toLowerCase().includes(q) ||
-          app.platform.toLowerCase().includes(q);
-
-        return matchesCategory && matchesPlatform && matchesSearch;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'popular') return b.downloads - a.downloads;
-        if (sortBy === 'rating') return b.rating - a.rating;
-        if (sortBy === 'newest') {
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-        }
-        return 0;
-      });
+    return filterCatalogApps(apps, {
+      category: selectedCategory,
+      platform: selectedPlatform,
+      search: searchQuery,
+      sortBy,
+    });
   }, [apps, selectedCategory, selectedPlatform, searchQuery, sortBy]);
 
   const featuredApp = useMemo(() => {
@@ -223,28 +204,11 @@ export default function App() {
     return counts;
   }, [apps]);
 
-  const platformCounts = useMemo(() => {
-    return {
-      All: apps.length,
-      Android: apps.filter((a) => matchesPlatformFilter(a, 'Android')).length,
-      'Smart TV': apps.filter((a) => matchesPlatformFilter(a, 'Smart TV')).length,
-      Windows: apps.filter((a) => matchesPlatformFilter(a, 'Windows')).length,
-    };
-  }, [apps]);
+  const platformCounts = useMemo(() => countAppsByPlatform(apps), [apps]);
 
   const openPublishWithContext = (cat?: string, plat?: StorePlatformFilter | string) => {
     setPublishInitialCategory(cat && cat !== 'All' ? cat : undefined);
-    if (plat === 'Windows') {
-      setPublishInitialPlatform('Windows PC (10 / 11)');
-    } else if (plat === 'Smart TV') {
-      setPublishInitialPlatform('Smart TV (Firestick / Android TV)');
-    } else if (plat === 'Android') {
-      setPublishInitialPlatform('Android Mobile');
-    } else if (plat && plat !== 'All') {
-      setPublishInitialPlatform(plat);
-    } else {
-      setPublishInitialPlatform(undefined);
-    }
+    setPublishInitialPlatform(getDefaultPlatformForFilter(plat));
     setIsPublishModalOpen(true);
   };
 

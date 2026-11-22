@@ -16,9 +16,10 @@ import {
 
 import {
   SUPPORTED_PACKAGE_EXTENSIONS,
+  filterCatalogApps,
+  getBuiltinPackageFile,
   getPackageExtension,
   getPackageMimeType,
-  matchesPlatformFilter,
 } from './shared/package-utils.ts';
 
 function getCliFlagValue(flags: string[]): string | undefined {
@@ -102,35 +103,21 @@ app.use((_req, res, next) => {
 
 // API Routes
 
-// 1. Get apps catalog (exclusively genuine M R S IPTV apps)
+// 1. Get apps catalog (exclusively genuine M R S apps)
 app.get('/api/apps', (req: Request, res: Response) => {
-  const { search, category, platform } = req.query;
-  let apps = [...AppDatabase.getAllApps()];
-
-  if (category && typeof category === 'string' && category !== 'All') {
-    apps = apps.filter((app) => app.category.toLowerCase() === category.toLowerCase());
-  }
-
-  if (platform && typeof platform === 'string' && platform !== 'All') {
-    apps = apps.filter((app) => matchesPlatformFilter(app, platform));
-  }
-
-  if (search && typeof search === 'string' && search.trim() !== '') {
-    const q = search.trim().toLowerCase();
-    apps = apps.filter(
-      (app) =>
-        app.title.toLowerCase().includes(q) ||
-        app.fileName.toLowerCase().includes(q) ||
-        app.tagline.toLowerCase().includes(q) ||
-        app.description.toLowerCase().includes(q)
-    );
-  }
+  const { search, category, platform, sort } = req.query;
+  const apps = filterCatalogApps(AppDatabase.getAllApps(), {
+    category: typeof category === 'string' ? category : undefined,
+    platform: typeof platform === 'string' ? platform : undefined,
+    search: typeof search === 'string' ? search : undefined,
+    sortBy: typeof sort === 'string' ? sort : undefined,
+  });
 
   res.setHeader('Cache-Control', 'public, max-age=5');
   res.json({
     success: true,
     total: apps.length,
-    apps
+    apps,
   });
 });
 
@@ -154,14 +141,9 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
   // Increment download counter
   AppDatabase.incrementDownload(appItem.id);
 
-  const builtinPackageMap: Record<string, string> = {
-    'm-r-s-iptv': 'M_R_S_IPTV.apk',
-    'm-r-s-iptv-pro': 'M_R_S_IPTV_Pro.apk',
-    'camellia-ai': 'Camillia_Ai.apk',
-  };
-
-  if (builtinPackageMap[appItem.id]) {
-    const filePath = path.resolve(process.cwd(), 'public/apks', builtinPackageMap[appItem.id]);
+  const builtinPackageFile = getBuiltinPackageFile(appItem.id);
+  if (builtinPackageFile) {
+    const filePath = path.resolve(process.cwd(), 'public/apks', builtinPackageFile);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);

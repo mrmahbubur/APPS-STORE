@@ -9,6 +9,9 @@ import type {
   SiteMeta,
   SponsorAdLink,
   SponsorFilterTab,
+  SponsorGroupingOptions,
+  SponsorIconKey,
+  SponsorSpotlightGroup,
   StorePlatformFilter,
 } from './types.ts';
 import { isWindowsPackage } from './package-utils.ts';
@@ -517,10 +520,21 @@ export const SPONSOR_FILTER_TABS: readonly SponsorFilterTab[] = [
   'Windows PC',
 ] as const;
 
-export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
+export function resolveSpotlightDevice(
+  platform?: StorePlatformFilter | string
+): StorePlatformFilter {
   const clean = (platform || '').trim().toLowerCase();
-  if (/windows/.test(clean)) return 'Windows PC';
-  if (/android|smart tv|\btv\b|mobile/.test(clean)) return 'Android & TV';
+  if (!clean || clean === 'all' || clean === 'all partners') return 'All';
+  if (/windows/.test(clean)) return 'Windows';
+  if (/smart tv|\btv\b|firestick|google tv|android tv/.test(clean)) return 'Smart TV';
+  if (/android|mobile/.test(clean)) return 'Android';
+  return 'All';
+}
+
+export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {
+  const resolved = resolveSpotlightDevice(platform);
+  if (resolved === 'Windows') return 'Windows PC';
+  if (resolved === 'Android' || resolved === 'Smart TV') return 'Android & TV';
   return 'All Partners';
 }
 
@@ -547,29 +561,94 @@ export function filterSponsorsByTab(
   return pool.filter((item) => item.platformHint === tab || item.platformHint === 'All Devices');
 }
 
+function getSponsorDeviceAffinityScore(
+  sponsor: SponsorAdLink,
+  device: StorePlatformFilter
+): number {
+  if (device === 'All') return 0;
+  const targetTab = mapPlatformToSponsorTab(device);
+  let score = sponsor.platformHint === targetTab ? 20 : sponsor.platformHint === 'All Devices' ? 5 : 0;
+
+  const text = `${sponsor.title} ${sponsor.category} ${sponsor.subtitle}`.toLowerCase();
+  if (device === 'Smart TV' && /tv|stream|cast/.test(text)) score += 10;
+  if (device === 'Android' && /android|apk|mobile/.test(text)) score += 10;
+  if (device === 'Windows' && /windows|pc|desktop|driver|codec/.test(text)) score += 10;
+  return score;
+}
+
+export function getSponsorIconKey(
+  sponsor: Pick<SponsorAdLink, 'zoneId' | 'platformHint' | 'category'>,
+  devicePlatform?: StorePlatformFilter | string
+): SponsorIconKey {
+  const resolvedDevice = resolveSpotlightDevice(devicePlatform);
+
+  // Device-adaptive spotlight icons for platform-spanning featured or device-aware slots
+  if (sponsor.zoneId === '11226634') {
+    return resolvedDevice === 'Android' ? 'smartphone' : 'tv';
+  }
+  if (sponsor.zoneId === '11683565') {
+    return 'monitor';
+  }
+
+  switch (sponsor.zoneId) {
+    case '11242745':
+      return 'lock';
+    case '11242069':
+      return resolvedDevice === 'Android' ? 'smartphone' : 'cast';
+    case '11242067':
+      return 'smartphone';
+    case '11242742':
+      return 'cpu';
+    case '11230440':
+      return 'cloud';
+    case '11683560':
+      return 'gamepad';
+    case '9912130':
+      return 'server';
+    case '11242744':
+      return 'shield';
+    default: {
+      if (resolvedDevice === 'Windows' || sponsor.platformHint === 'Windows PC') return 'monitor';
+      if (resolvedDevice === 'Smart TV') return 'tv';
+      if (resolvedDevice === 'Android' || sponsor.platformHint === 'Android & TV') {
+        return 'smartphone';
+      }
+      return 'shield';
+    }
+  }
+}
+
 export function groupSponsorsForSpotlight(
   sponsors: readonly SponsorAdLink[],
-  tabOrOptions:
-    | SponsorFilterTab
-    | { tab?: SponsorFilterTab | string; platform?: StorePlatformFilter | string } = 'All Partners'
-): {
-  activeTab: SponsorFilterTab;
-  filtered: SponsorAdLink[];
-  featured: SponsorAdLink[];
-  list: SponsorAdLink[];
-  detail: SponsorAdLink[];
-  primaryFeatured: SponsorAdLink | null;
-} {
-  const activeTab =
-    typeof tabOrOptions === 'string'
-      ? normalizeSponsorFilterTab(tabOrOptions)
-      : normalizeSponsorFilterTab(tabOrOptions.tab, tabOrOptions.platform);
-  const filtered = filterSponsorsByTab(sponsors, activeTab);
+  tabOrOptions: SponsorFilterTab | SponsorGroupingOptions = 'All Partners'
+): SponsorSpotlightGroup {
+  const options: SponsorGroupingOptions =
+    typeof tabOrOptions === 'string' ? { tab: tabOrOptions } : tabOrOptions || {};
+
+  const activeTab = normalizeSponsorFilterTab(options.tab, options.platform);
+  const resolvedFromPlatform = resolveSpotlightDevice(options.platform || options.tab);
+  const resolvedDevice =
+    resolvedFromPlatform !== 'All'
+      ? resolvedFromPlatform
+      : resolveSpotlightDevice(options.preferredDevice);
+
+  const filteredBase = filterSponsorsByTab(sponsors, activeTab);
+  const filtered =
+    resolvedDevice === 'All'
+      ? filteredBase
+      : [...filteredBase].sort(
+          (a, b) =>
+            getSponsorDeviceAffinityScore(b, resolvedDevice) -
+            getSponsorDeviceAffinityScore(a, resolvedDevice)
+        );
+
   const featured = filtered.filter((item) => item.placement === 'featured');
   const list = filtered.filter((item) => item.placement !== 'featured');
   const detail = filtered.filter((item) => item.placement === 'detail');
+
   return {
     activeTab,
+    resolvedDevice,
     filtered,
     featured,
     list,
@@ -586,7 +665,10 @@ export function getDetailPageSponsors(
   const pool = sponsors && sponsors.length > 0 ? sponsors : DEFAULT_SPONSOR_LINKS;
   const isWindowsPkg = isWindowsPackage(app);
   const targetTab: SponsorFilterTab = isWindowsPkg ? 'Windows PC' : 'Android & TV';
-  const grouped = groupSponsorsForSpotlight(pool, targetTab);
+  const grouped = groupSponsorsForSpotlight(pool, {
+    tab: targetTab,
+    preferredDevice: app.platform,
+  });
   const platformSpecific = grouped.filtered.filter((item) => item.platformHint === targetTab);
   const prioritized = isWindowsPkg
     ? [...platformSpecific, ...grouped.detail, ...pool]

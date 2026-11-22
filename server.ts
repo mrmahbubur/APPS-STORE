@@ -733,20 +733,23 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 });
 
 app.get('/api/sponsors', (req: Request, res: Response) => {
-  const { tab, platform } = req.query;
+  const { tab, platform, device } = req.query;
   const grouped = groupSponsorsForSpotlight(AppDatabase.getSponsors(), {
     tab: typeof tab === 'string' ? tab : undefined,
     platform: typeof platform === 'string' ? platform : undefined,
+    preferredDevice: typeof device === 'string' ? device : undefined,
   });
   res.setHeader('Cache-Control', 'public, max-age=30');
   res.json({
     success: true,
     activeTab: grouped.activeTab,
+    resolvedDevice: grouped.resolvedDevice,
     total: grouped.filtered.length,
     sponsors: grouped.filtered,
     featured: grouped.featured,
     list: grouped.list,
     detail: grouped.detail,
+    primaryFeatured: grouped.primaryFeatured,
   });
 });
 

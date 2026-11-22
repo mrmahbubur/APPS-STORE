@@ -42,6 +42,7 @@ import {
   getDetailPageSponsors,
   pickContextualSponsor,
 } from '../data/catalog';
+import { SponsorIcon } from './SponsorIcon';
 
 interface AppDetailModalProps {
   app: AppItem | null;
@@ -449,17 +450,26 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           if (!companion) return null;
           return (
             <div className="my-5 rounded-2xl bg-zinc-900/80 border border-white/[0.08] px-4 py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-zinc-400 truncate">
-                  <span className="text-[#0a84ff]">Sponsored</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{downloadStarted ? 'Recommended Companion' : companion.category}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>External Link</span>
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-white truncate">
-                  {companion.title}
-                </p>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                  <SponsorIcon
+                    sponsor={companion}
+                    devicePlatform={app.platform}
+                    className="w-4 h-4"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-zinc-400 truncate">
+                    <span className="text-[#0a84ff]">Sponsored</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{downloadStarted ? 'Recommended Companion' : companion.category}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>External Link</span>
+                  </p>
+                  <p className="text-xs sm:text-sm font-bold text-white truncate">
+                    {companion.title}
+                  </p>
+                </div>
               </div>
               <a
                 href={companion.url}
@@ -1099,16 +1109,25 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     key={item.id}
                     className="p-4 flex items-center justify-between gap-3"
                   >
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="text-[11px] font-medium text-zinc-400 truncate">
-                        <span className="text-[#0a84ff]">Sponsored</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{item.category}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>External Link</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                        <SponsorIcon
+                          sponsor={item}
+                          devicePlatform={app.platform}
+                          className="w-4 h-4"
+                        />
                       </div>
-                      <h4 className="text-sm font-bold text-white truncate">{item.title}</h4>
-                      <p className="text-xs text-zinc-400 truncate">{item.subtitle}</p>
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="text-[11px] font-medium text-zinc-400 truncate">
+                          <span className="text-[#0a84ff]">Sponsored</span>
+                          <span aria-hidden="true"> · </span>
+                          <span>{item.category}</span>
+                          <span aria-hidden="true"> · </span>
+                          <span>External Link</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white truncate">{item.title}</h4>
+                        <p className="text-xs text-zinc-400 truncate">{item.subtitle}</p>
+                      </div>
                     </div>
                     <a
                       href={item.url}

@@ -6,7 +6,34 @@ export type LegalPolicyTab = 'privacy' | 'terms' | 'developer' | 'dmca';
 export type SponsorPlatformHint = 'Android & TV' | 'Windows PC' | 'All Devices';
 export type SponsorPlacement = 'featured' | 'catalog' | 'detail';
 export type SponsorFilterTab = 'All Partners' | 'Android & TV' | 'Windows PC';
+export type SponsorIconKey =
+  | 'tv'
+  | 'monitor'
+  | 'smartphone'
+  | 'lock'
+  | 'cast'
+  | 'cpu'
+  | 'cloud'
+  | 'gamepad'
+  | 'server'
+  | 'shield';
 export type PublishingPaymentMethod = 'USDT (BEP-20)' | 'Binance Pay';
+
+export interface SponsorGroupingOptions {
+  tab?: SponsorFilterTab | string;
+  platform?: StorePlatformFilter | string;
+  preferredDevice?: StorePlatformFilter | string;
+}
+
+export interface SponsorSpotlightGroup {
+  activeTab: SponsorFilterTab;
+  resolvedDevice: StorePlatformFilter;
+  filtered: SponsorAdLink[];
+  featured: SponsorAdLink[];
+  list: SponsorAdLink[];
+  detail: SponsorAdLink[];
+  primaryFeatured: SponsorAdLink | null;
+}
 
 export interface PackageMetadataInput {
   platform?: string;

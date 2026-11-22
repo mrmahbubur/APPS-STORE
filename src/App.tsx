@@ -8,6 +8,7 @@ import { LegalPoliciesModal } from './components/LegalPoliciesModal';
 import { Footer } from './components/Footer';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { SponsoredSpotlight } from './components/SponsoredSpotlight';
+import { SponsorIcon } from './components/SponsorIcon';
 import type {
   AppItem,
   CatalogSortOption,
@@ -196,6 +197,15 @@ export default function App() {
     return apps.find((a) => a.featured) || apps[0];
   }, [apps]);
 
+  const todaySpotlight = useMemo(
+    () =>
+      groupSponsorsForSpotlight(sponsors, {
+        platform: selectedPlatform,
+        preferredDevice: featuredApp?.platform,
+      }).primaryFeatured,
+    [sponsors, selectedPlatform, featuredApp]
+  );
+
   const categories = useMemo(() => {
     const dynamicCats = apps.map((a) => (a.category || '').trim()).filter(Boolean);
     const metaCats = siteMeta?.categories || [];
@@ -314,47 +324,41 @@ export default function App() {
               onDirectDownload={handleDirectDownload}
               hasBackend={hasBackend}
             />
-            {(() => {
-              const todayPartner = groupSponsorsForSpotlight(sponsors, {
-                platform: selectedPlatform,
-              }).primaryFeatured;
-              if (!todayPartner) return null;
-              return (
-                <div className="mb-4 rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
-                      {todayPartner.platformHint === 'Windows PC' ? (
-                        <Monitor className="w-4 h-4" />
-                      ) : (
-                        <Tv className="w-4 h-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium text-zinc-400 truncate">
-                        <span className="text-[#0a84ff]">Sponsored</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{todayPartner.category}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>External Partner</span>
-                      </p>
-                      <p className="text-xs sm:text-sm font-bold text-white truncate">
-                        {todayPartner.title}
-                      </p>
-                    </div>
+            {todaySpotlight && (
+              <div className="mb-4 rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                    <SponsorIcon
+                      sponsor={todaySpotlight}
+                      devicePlatform={selectedPlatform !== 'All' ? selectedPlatform : featuredApp?.platform}
+                      className="w-4 h-4"
+                    />
                   </div>
-                  <a
-                    href={todayPartner.url}
-                    target="_blank"
-                    rel="noopener noreferrer sponsored"
-                    onClick={() => handleSponsorClick(todayPartner)}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#0a84ff] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[38px]"
-                  >
-                    <span>{todayPartner.ctaLabel || 'Open'}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-zinc-400 truncate">
+                      <span className="text-[#0a84ff]">Sponsored</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>{todaySpotlight.category}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>External Partner</span>
+                    </p>
+                    <p className="text-xs sm:text-sm font-bold text-white truncate">
+                      {todaySpotlight.title}
+                    </p>
+                  </div>
                 </div>
-              );
-            })()}
+                <a
+                  href={todaySpotlight.url}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() => handleSponsorClick(todaySpotlight)}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#0a84ff] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[38px]"
+                >
+                  <span>{todaySpotlight.ctaLabel || 'Open'}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
+              </div>
+            )}
           </>
         )}
 
@@ -630,27 +634,36 @@ export default function App() {
               platform: selectedPlatform === 'All' ? undefined : selectedPlatform,
               category: selectedCategory === 'All' ? undefined : selectedCategory,
               excludeIds:
-                featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All'
-                  ? ['sponsor-11226634']
+                featuredApp && !searchQuery && selectedCategory === 'All' && selectedPlatform === 'All' && todaySpotlight
+                  ? [todaySpotlight.id]
                   : [],
             });
             if (!contextual) return null;
             return (
               <div className="rounded-[20px] bg-[#1c1c1e] border border-white/[0.08] px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0 space-y-0.5">
-                  <div className="text-[11px] font-medium text-zinc-400 truncate">
-                    <span className="text-[#0a84ff]">Sponsored</span>
-                    <span aria-hidden="true"> · </span>
-                    <span>{contextual.platformHint}</span>
-                    <span aria-hidden="true"> · </span>
-                    <span>{contextual.category}</span>
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                    <SponsorIcon
+                      sponsor={contextual}
+                      devicePlatform={selectedPlatform}
+                      className="w-4 h-4"
+                    />
                   </div>
-                  <p className="text-xs sm:text-sm font-bold text-white truncate">
-                    {contextual.title}
-                  </p>
-                  <p className="text-xs text-zinc-400 truncate">
-                    {contextual.subtitle}
-                  </p>
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="text-[11px] font-medium text-zinc-400 truncate">
+                      <span className="text-[#0a84ff]">Sponsored</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>{contextual.platformHint}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span>{contextual.category}</span>
+                    </div>
+                    <p className="text-xs sm:text-sm font-bold text-white truncate">
+                      {contextual.title}
+                    </p>
+                    <p className="text-xs text-zinc-400 truncate">
+                      {contextual.subtitle}
+                    </p>
+                  </div>
                 </div>
                 <a
                   href={contextual.url}

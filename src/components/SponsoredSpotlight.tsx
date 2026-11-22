@@ -1,54 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Tv,
-  Monitor,
-  ShieldCheck,
-  Cast,
-  Smartphone,
-  Cpu,
-  Cloud,
-  Gamepad2,
-  Server,
-  Lock,
-  ExternalLink,
-} from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { SponsorAdLink, SponsorFilterTab, StorePlatformFilter } from '../types';
 import {
   SPONSOR_FILTER_TABS,
   groupSponsorsForSpotlight,
   mapPlatformToSponsorTab,
 } from '../data/catalog';
+import { SponsorIcon } from './SponsorIcon';
 
 interface SponsoredSpotlightProps {
   sponsors: SponsorAdLink[];
   activePlatform?: StorePlatformFilter;
   onSponsorClick?: (sponsor: SponsorAdLink) => void;
-}
-
-function getSponsorIcon(zoneId: string) {
-  switch (zoneId) {
-    case '11226634':
-      return Tv;
-    case '11683565':
-      return Monitor;
-    case '11242745':
-      return Lock;
-    case '11242069':
-      return Cast;
-    case '11242067':
-      return Smartphone;
-    case '11242742':
-      return Cpu;
-    case '11230440':
-      return Cloud;
-    case '11683560':
-      return Gamepad2;
-    case '9912130':
-      return Server;
-    case '11242744':
-    default:
-      return ShieldCheck;
-  }
 }
 
 export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
@@ -64,9 +27,17 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
     setFilterTab(mapPlatformToSponsorTab(activePlatform));
   }, [activePlatform]);
 
-  const { featured: featuredSponsors, list: listSponsors } = useMemo(
-    () => groupSponsorsForSpotlight(sponsors, filterTab),
-    [sponsors, filterTab]
+  const {
+    featured: featuredSponsors,
+    list: listSponsors,
+    resolvedDevice,
+  } = useMemo(
+    () =>
+      groupSponsorsForSpotlight(sponsors, {
+        tab: filterTab,
+        platform: activePlatform,
+      }),
+    [sponsors, filterTab, activePlatform]
   );
 
   if (!sponsors || sponsors.length === 0) return null;
@@ -114,93 +85,95 @@ export const SponsoredSpotlight: React.FC<SponsoredSpotlightProps> = ({
             featuredSponsors.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
           }`}
         >
-          {featuredSponsors.map((sponsor) => {
-            const Icon = getSponsorIcon(sponsor.zoneId);
-            return (
-              <div
-                key={sponsor.id}
-                className="rounded-[22px] bg-[#1c1c1e] border border-white/[0.08] p-5 flex items-center justify-between gap-4"
-              >
-                <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="w-12 h-12 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <div className="text-[11px] font-semibold text-zinc-400 truncate">
-                      <span className="text-[#0a84ff]">Sponsored</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>{sponsor.category}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>External</span>
-                    </div>
-                    <h3 className="text-sm sm:text-base font-bold text-white truncate">
-                      {sponsor.title}
-                    </h3>
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                      {sponsor.subtitle}
-                    </p>
-                  </div>
+          {featuredSponsors.map((sponsor) => (
+            <div
+              key={sponsor.id}
+              className="rounded-[22px] bg-[#1c1c1e] border border-white/[0.08] p-5 flex items-center justify-between gap-4"
+            >
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-[#0a84ff] shrink-0">
+                  <SponsorIcon
+                    sponsor={sponsor}
+                    devicePlatform={resolvedDevice}
+                    className="w-5 h-5"
+                  />
                 </div>
-
-                <a
-                  href={sponsor.url}
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                  onClick={() => onSponsorClick?.(sponsor)}
-                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
-                >
-                  <span>{sponsor.ctaLabel || 'Open'}</span>
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                </a>
+                <div className="min-w-0 space-y-1">
+                  <div className="text-[11px] font-semibold text-zinc-400 truncate">
+                    <span className="text-[#0a84ff]">Sponsored</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{sponsor.category}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>External</span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                    {sponsor.title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                    {sponsor.subtitle}
+                  </p>
+                </div>
               </div>
-            );
-          })}
+
+              <a
+                href={sponsor.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => onSponsorClick?.(sponsor)}
+                className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
+              >
+                <span>{sponsor.ctaLabel || 'Open'}</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            </div>
+          ))}
         </div>
       )}
 
       {listSponsors.length > 0 && (
         <div className="bg-[#1c1c1e] border border-white/[0.08] rounded-[22px] divide-y divide-white/[0.08] overflow-hidden">
-          {listSponsors.map((sponsor) => {
-            const Icon = getSponsorIcon(sponsor.zoneId);
-            return (
-              <div
-                key={sponsor.id}
-                className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 sm:gap-4"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-zinc-300 shrink-0">
-                    <Icon className="w-4 h-4 text-[#0a84ff]" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[11px] font-medium text-zinc-400 truncate">
-                      <span>Sponsored</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>{sponsor.platformHint}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>{sponsor.category}</span>
-                    </div>
-                    <h3 className="text-sm font-semibold text-white truncate">
-                      {sponsor.title}
-                    </h3>
-                    <p className="text-xs text-zinc-400 truncate mt-0.5">
-                      {sponsor.subtitle}
-                    </p>
-                  </div>
+          {listSponsors.map((sponsor) => (
+            <div
+              key={sponsor.id}
+              className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 sm:gap-4"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-10 h-10 rounded-[22.5%] bg-[#2c2c2e] ring-1 ring-white/10 flex items-center justify-center text-zinc-300 shrink-0">
+                  <SponsorIcon
+                    sponsor={sponsor}
+                    devicePlatform={resolvedDevice}
+                    className="w-4 h-4 text-[#0a84ff]"
+                  />
                 </div>
-
-                <a
-                  href={sponsor.url}
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                  onClick={() => onSponsorClick?.(sponsor)}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#0a84ff] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
-                >
-                  <span>{sponsor.ctaLabel || 'Visit'}</span>
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                </a>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium text-zinc-400 truncate">
+                    <span>Sponsored</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{sponsor.platformHint}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{sponsor.category}</span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white truncate">
+                    {sponsor.title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 truncate mt-0.5">
+                    {sponsor.subtitle}
+                  </p>
+                </div>
               </div>
-            );
-          })}
+
+              <a
+                href={sponsor.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                onClick={() => onSponsorClick?.(sponsor)}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#2c2c2e] hover:bg-[#3a3a3c] text-[#0a84ff] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0 min-h-[40px]"
+              >
+                <span>{sponsor.ctaLabel || 'Visit'}</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            </div>
+          ))}
         </div>
       )}
     </section>

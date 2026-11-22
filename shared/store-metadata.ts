@@ -545,28 +545,53 @@ export function resolveSpotlightDevice(
   return 'All';
 }
 
+export function detectDeviceFromUserAgent(
+  userAgent?: string,
+  chPlatform?: string,
+  chMobile?: boolean | string
+): StorePlatformFilter {
+  const fromUa = resolveSpotlightDevice(userAgent);
+  if (fromUa === 'Smart TV') return 'Smart TV';
+
+  const fromCh = resolveSpotlightDevice(chPlatform);
+  if (fromCh !== 'All') return fromCh;
+
+  if (fromUa !== 'All') return fromUa;
+
+  const isMobileHint =
+    chMobile === true ||
+    (typeof chMobile === 'string' && /^(?:\?1|1|true)$/i.test(chMobile.trim()));
+  if (isMobileHint) return 'Android';
+
+  return 'All';
+}
+
 export function resolveDeviceContext(
   input?: DeviceContextInput | StorePlatformFilter | string
 ): StorePlatformFilter {
   if (!input) return 'All';
   if (typeof input === 'string') return resolveSpotlightDevice(input);
 
-  const candidates: Array<string | undefined> = [
+  const explicitCandidates: Array<string | undefined> = [
     input.platform,
     input.tab,
     input.preferredDevice,
     input.headerDevice,
-    input.chPlatform,
-    input.userAgent,
-    input.fallbackDevice,
   ];
 
-  for (const candidate of candidates) {
+  for (const candidate of explicitCandidates) {
     const resolved = resolveSpotlightDevice(candidate);
     if (resolved !== 'All') return resolved;
   }
 
-  return 'All';
+  const fromHeaders = detectDeviceFromUserAgent(
+    input.userAgent,
+    input.chPlatform,
+    input.chMobile
+  );
+  if (fromHeaders !== 'All') return fromHeaders;
+
+  return resolveSpotlightDevice(input.fallbackDevice);
 }
 
 export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {

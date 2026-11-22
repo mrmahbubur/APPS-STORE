@@ -43,6 +43,7 @@ import {
   SPONSOR_FILTER_TABS,
   DEVICE_PLATFORM_HEADER,
   resolveSpotlightDevice,
+  detectDeviceFromUserAgent,
   resolveDeviceContext,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
@@ -97,6 +98,7 @@ export {
   computeReviewStats,
   DEVICE_PLATFORM_HEADER,
   resolveSpotlightDevice,
+  detectDeviceFromUserAgent,
   resolveDeviceContext,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
@@ -114,6 +116,7 @@ export function detectClientDevicePlatform(
   return resolveDeviceContext({
     platform: platformOverride,
     chPlatform: nav?.userAgentData?.platform || nav?.platform,
+    chMobile: nav?.userAgentData?.mobile,
     userAgent: nav?.userAgent,
   });
 }

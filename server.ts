@@ -47,6 +47,7 @@ function getRequestSponsorGroupingOptions(req: Request): SponsorGroupingOptions 
         : undefined,
     headerDevice: readHeaderString(req, DEVICE_PLATFORM_HEADER),
     chPlatform: readHeaderString(req, 'sec-ch-ua-platform'),
+    chMobile: readHeaderString(req, 'sec-ch-ua-mobile'),
     userAgent: readHeaderString(req, 'user-agent'),
   };
 }
@@ -127,6 +128,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Accept-CH', 'Sec-CH-UA-Platform, Sec-CH-UA-Mobile');
   next();
 });
 
@@ -780,7 +782,10 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
   });
 
   res.setHeader('Cache-Control', 'public, max-age=30');
-  res.setHeader('Vary', `${DEVICE_PLATFORM_HEADER}, Sec-CH-UA-Platform, User-Agent`);
+  res.setHeader(
+    'Vary',
+    `${DEVICE_PLATFORM_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
+  );
   res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
   res.json({
     success: true,

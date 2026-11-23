@@ -551,7 +551,7 @@ export function resolveSpotlightDevice(
   ) {
     return 'Smart TV';
   }
-  if (/android|mobile/.test(clean)) return 'Android';
+  if (/android|mobile|linux\s+(?:armv[0-9]+|aarch64)/.test(clean)) return 'Android';
   return 'All';
 }
 
@@ -566,21 +566,15 @@ export function detectDeviceFromUserAgent(
   const fromCh = resolveSpotlightDevice(chPlatform);
   const mobileHint = parseSecChUaMobile(chMobile);
 
-  if (fromCh !== 'All') {
-    if (fromCh === 'Windows') return 'Windows';
-    if (fromCh === 'Smart TV') return 'Smart TV';
-    if (fromCh === 'Android') return 'Android';
-  }
+  if (fromCh === 'Smart TV') return 'Smart TV';
+  if (fromCh === 'Android') return 'Android';
+  if (fromUa === 'Android') return 'Android';
 
-  if (fromUa !== 'All') {
-    if (fromUa === 'Android' && mobileHint === false) {
-      // Non-mobile Chrome desktop/tablet UA spoofed or desktop-mode check still keeps Smart TV caught above
-      return 'Android';
-    }
-    return fromUa;
-  }
-
+  // Mobile-hinted Chromium / Android desktop-mode clients resolve to Android when not Windows/Smart TV
   if (mobileHint === true) return 'Android';
+
+  if (fromCh !== 'All') return fromCh;
+  if (fromUa !== 'All') return fromUa;
 
   return 'All';
 }
@@ -603,13 +597,17 @@ export function resolveDeviceContext(
     if (resolved !== 'All') return resolved;
   }
 
-  const resolvedMobileHint =
-    parseSecChUaMobile(input.chMobile) ?? parseSecChUaMobile(input.headerMobile);
+  const uaDevice = resolveSpotlightDevice(input.userAgent);
+  const explicitHeaderMobile = parseSecChUaMobile(input.headerMobile);
+  if (explicitHeaderMobile === true && uaDevice !== 'Smart TV') {
+    return 'Android';
+  }
 
+  const passiveMobileHint = parseSecChUaMobile(input.chMobile);
   const fromHeaders = detectDeviceFromUserAgent(
     input.userAgent,
     input.chPlatform,
-    resolvedMobileHint
+    explicitHeaderMobile ?? passiveMobileHint
   );
   if (fromHeaders !== 'All') return fromHeaders;
 

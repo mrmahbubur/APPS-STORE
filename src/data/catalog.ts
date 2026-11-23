@@ -113,6 +113,24 @@ export {
   pickContextualSponsor,
 };
 
+function inferBrowserMobileHint(): boolean | undefined {
+  const nav = typeof navigator !== 'undefined' ? (navigator as any) : undefined;
+  const uaDataMobile = parseSecChUaMobile(nav?.userAgentData?.mobile);
+  if (typeof uaDataMobile === 'boolean') return uaDataMobile;
+
+  if (typeof window !== 'undefined' && nav) {
+    const rawPlatform = `${nav?.userAgentData?.platform || nav?.platform || ''} ${nav?.userAgent || ''}`;
+    if (!/windows|win32|win64/i.test(rawPlatform)) {
+      const hasCoarseTouch =
+        Number(nav.maxTouchPoints || 0) > 0 &&
+        Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+      if (hasCoarseTouch) return true;
+    }
+  }
+
+  return undefined;
+}
+
 export function detectClientDevicePlatform(
   platformOverride?: StorePlatformFilter | string
 ): StorePlatformFilter {
@@ -120,7 +138,7 @@ export function detectClientDevicePlatform(
   return resolveDeviceContext({
     platform: platformOverride,
     chPlatform: nav?.userAgentData?.platform || nav?.platform,
-    chMobile: nav?.userAgentData?.mobile,
+    chMobile: inferBrowserMobileHint(),
     userAgent: nav?.userAgent,
   });
 }
@@ -128,9 +146,8 @@ export function detectClientDevicePlatform(
 export function buildClientDeviceHeaders(
   platformOverride?: StorePlatformFilter | string
 ): Record<string, string> {
-  const nav = typeof navigator !== 'undefined' ? (navigator as any) : undefined;
   const resolved = detectClientDevicePlatform(platformOverride);
-  const mobileHint = parseSecChUaMobile(nav?.userAgentData?.mobile);
+  const mobileHint = inferBrowserMobileHint();
   const headers: Record<string, string> = {};
 
   if (resolved && resolved !== 'All') {

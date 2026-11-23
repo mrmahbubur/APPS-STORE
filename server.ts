@@ -132,6 +132,7 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Accept-CH', 'Sec-CH-UA-Platform, Sec-CH-UA-Mobile');
+  res.setHeader('Access-Control-Expose-Headers', `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}`);
   next();
 });
 
@@ -785,8 +786,8 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
   });
 
   const resolvedMobile =
-    parseSecChUaMobile(groupingOptions.chMobile) ??
     parseSecChUaMobile(groupingOptions.headerMobile) ??
+    parseSecChUaMobile(groupingOptions.chMobile) ??
     grouped.resolvedDevice === 'Android';
 
   res.setHeader('Cache-Control', 'public, max-age=30');

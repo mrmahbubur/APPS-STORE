@@ -151,10 +151,6 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   res.locals.resolvedMobile = resolvedMobile;
 
   res.setHeader('Cache-Control', 'no-store');
-  res.setHeader(
-    'Vary',
-    `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
-  );
   res.setHeader(DEVICE_PLATFORM_HEADER, resolvedDevice);
   res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   next();
@@ -189,13 +185,16 @@ app.get('/api/apps', (req: Request, res: Response) => {
 
 // Static route for direct APK & Windows package files with correct MIME type
 app.use('/apks', express.static(path.resolve(process.cwd(), 'public/apks'), {
+  maxAge: '1d',
   setHeaders: (res, filePath) => {
     res.setHeader('Content-Type', getPackageMimeType(filePath));
   }
 }));
 
 // Static route for dynamically uploaded app icons in both dev and production
-app.use('/assets/uploads', express.static(path.resolve(process.cwd(), 'public/assets/uploads')));
+app.use('/assets/uploads', express.static(path.resolve(process.cwd(), 'public/assets/uploads'), {
+  maxAge: '7d',
+}));
 
 // 2. Direct download handling - streams APK directly from server storage
 app.get('/api/download/:id', (req: Request, res: Response) => {
@@ -213,7 +212,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
-      return res.sendFile(filePath);
+      return res.sendFile(filePath, { cacheControl: false });
     }
   }
 
@@ -229,7 +228,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     ) {
       res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
-      return res.sendFile(filePath);
+      return res.sendFile(filePath, { cacheControl: false });
     }
   }
 
@@ -816,6 +815,10 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     grouped.resolvedDevice === 'Android';
 
   res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+  res.setHeader(
+    'Vary',
+    `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
+  );
   res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
   res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   res.json({

@@ -150,6 +150,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   res.locals.resolvedDevice = resolvedDevice;
   res.locals.resolvedMobile = resolvedMobile;
 
+  res.setHeader('Cache-Control', 'no-store');
   res.setHeader(
     'Vary',
     `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
@@ -178,7 +179,7 @@ app.get('/api/apps', (req: Request, res: Response) => {
     sortBy: rawSort,
   });
 
-  res.setHeader('Cache-Control', 'public, max-age=5');
+  res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
   res.json({
     success: true,
     total: apps.length,
@@ -773,7 +774,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
 // 4. Backend site metadata, real store owner profile, categories & policies
 app.get('/api/meta', (_req: Request, res: Response) => {
   const meta = AppDatabase.getSiteMeta();
-  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json({
     success: true,
     meta
@@ -782,7 +783,7 @@ app.get('/api/meta', (_req: Request, res: Response) => {
 
 app.get('/api/categories', (_req: Request, res: Response) => {
   const categories = AppDatabase.getCategoriesWithCounts();
-  res.setHeader('Cache-Control', 'public, max-age=15');
+  res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
   res.json({
     success: true,
     categories,
@@ -814,7 +815,7 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     parseSecChUaMobile(groupingOptions.chMobile) ??
     grouped.resolvedDevice === 'Android';
 
-  res.setHeader('Cache-Control', 'public, max-age=30');
+  res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
   res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
   res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   res.json({
@@ -845,7 +846,7 @@ app.get('/api/owner', async (req: Request, res: Response) => {
   const profile = forceRefresh
     ? await AppDatabase.refreshOwnerProfile()
     : AppDatabase.getOwnerProfile();
-  res.setHeader('Cache-Control', forceRefresh ? 'no-cache' : 'public, max-age=60');
+  res.setHeader('Cache-Control', forceRefresh ? 'no-store' : 'public, max-age=60, stale-while-revalidate=300');
   res.json({
     success: true,
     owner: profile,
@@ -947,11 +948,22 @@ async function startServer() {
   } else {
     const distPath = path.resolve(process.cwd(), 'dist');
     const distIndex = path.join(distPath, 'index.html');
-    app.use(express.static(distPath));
+    app.use(
+      express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache');
+          } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+          }
+        },
+      })
+    );
     app.get('*', (_req, res) => {
       if (!fs.existsSync(distIndex)) {
         return res.status(503).send('Production bundle not found. Run npm run build first.');
       }
+      res.setHeader('Cache-Control', 'no-cache');
       return res.sendFile(distIndex);
     });
   }

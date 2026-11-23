@@ -25,6 +25,7 @@ import {
   buildSiteMeta,
   computeReviewStats,
   createDefaultSponsorLinks,
+  getDefaultReviewDeviceLabel,
 } from '../shared/store-metadata.ts';
 
 export type {
@@ -306,6 +307,7 @@ export const AppDatabase = {
     const list = reviewsStore[appId] ? [...reviewsStore[appId]] : [];
     const cleanRating = Math.min(5, Math.max(1, Math.round(Number(payload.rating) || 5)));
 
+    const cleanDevice = String(payload.device || '').trim();
     const newReview: ReviewItem = {
       id: `rev-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
       appId,
@@ -313,7 +315,7 @@ export const AppDatabase = {
       title: String(payload.title || 'App Review').trim().slice(0, 100),
       rating: cleanRating,
       comment: String(payload.comment || '').trim().slice(0, 1200),
-      device: String(payload.device || 'Android Device').trim().slice(0, 60),
+      device: (cleanDevice || getDefaultReviewDeviceLabel(undefined, app)).slice(0, 60),
       helpfulCount: 0,
       createdAt: new Date().toISOString().split('T')[0],
     };

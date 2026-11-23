@@ -15,7 +15,7 @@ import type {
   SponsorSpotlightGroup,
   StorePlatformFilter,
 } from './types.ts';
-import { isWindowsPackage } from './package-utils.ts';
+import { isHybridPackage, isSmartTvPackage, isWindowsPackage } from './package-utils.ts';
 
 export type { BinaryMetaOverride, BuildBuiltinAppsOptions } from './types.ts';
 
@@ -627,6 +627,29 @@ export function resolveDeviceContext(
   if (fromHeaders !== 'All') return fromHeaders;
 
   return resolveSpotlightDevice(input.fallbackDevice);
+}
+
+export function getDefaultReviewDeviceLabel(
+  detectedDevice?: StorePlatformFilter | string,
+  app?: PackageMetadataInput
+): 'Windows 11 PC' | 'Android TV / Google TV' | 'Android Mobile' {
+  const isWinApp = app ? isWindowsPackage(app) : false;
+  const isHybApp = app ? isHybridPackage(app) : false;
+  const isTvApp = app ? isSmartTvPackage(app) : false;
+
+  if (isWinApp && !isHybApp) return 'Windows 11 PC';
+
+  const resolvedClient = resolveSpotlightDevice(detectedDevice);
+  if (resolvedClient === 'Windows') {
+    if (isWinApp || !app) return 'Windows 11 PC';
+  }
+  if (resolvedClient === 'Smart TV') return 'Android TV / Google TV';
+
+  if (app && isTvApp && !isWinApp && !/android mobile/i.test(app.platform || '')) {
+    return 'Android TV / Google TV';
+  }
+
+  return 'Android Mobile';
 }
 
 export function mapPlatformToSponsorTab(platform?: StorePlatformFilter | string): SponsorFilterTab {

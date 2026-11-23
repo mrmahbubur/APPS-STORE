@@ -47,6 +47,7 @@ import {
   resolveSpotlightDevice,
   detectDeviceFromUserAgent,
   resolveDeviceContext,
+  getDefaultReviewDeviceLabel,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
@@ -104,6 +105,7 @@ export {
   resolveSpotlightDevice,
   detectDeviceFromUserAgent,
   resolveDeviceContext,
+  getDefaultReviewDeviceLabel,
   normalizeSponsorFilterTab,
   mapPlatformToSponsorTab,
   filterSponsorsByTab,
@@ -177,6 +179,7 @@ export function apiFetch(
   const isInternalApi =
     input.startsWith('./api/') ||
     input.startsWith('/api/') ||
+    input.startsWith('api/') ||
     (typeof window !== 'undefined' && input.startsWith(`${window.location.origin}/api/`));
 
   if (!isInternalApi) {

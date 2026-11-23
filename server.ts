@@ -24,6 +24,7 @@ import {
 import {
   DEVICE_MOBILE_HEADER,
   DEVICE_PLATFORM_HEADER,
+  getDefaultReviewDeviceLabel,
   groupSponsorsForSpotlight,
   parseSecChUaMobile,
   pickContextualSponsor,
@@ -145,6 +146,14 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     parseSecChUaMobile(ctx.chMobile) ??
     resolvedDevice === 'Android';
 
+  res.locals.deviceGroupingOptions = ctx;
+  res.locals.resolvedDevice = resolvedDevice;
+  res.locals.resolvedMobile = resolvedMobile;
+
+  res.setHeader(
+    'Vary',
+    `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
+  );
   res.setHeader(DEVICE_PLATFORM_HEADER, resolvedDevice);
   res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   next();
@@ -781,7 +790,8 @@ app.get('/api/categories', (_req: Request, res: Response) => {
 });
 
 app.get('/api/sponsors', (req: Request, res: Response) => {
-  const groupingOptions = getRequestSponsorGroupingOptions(req);
+  const groupingOptions: SponsorGroupingOptions =
+    res.locals.deviceGroupingOptions || getRequestSponsorGroupingOptions(req);
   const allSponsors = AppDatabase.getSponsors();
   const grouped = groupSponsorsForSpotlight(allSponsors, groupingOptions);
   const category = typeof req.query.category === 'string' ? req.query.category : undefined;
@@ -805,10 +815,6 @@ app.get('/api/sponsors', (req: Request, res: Response) => {
     grouped.resolvedDevice === 'Android';
 
   res.setHeader('Cache-Control', 'public, max-age=30');
-  res.setHeader(
-    'Vary',
-    `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}, Sec-CH-UA-Platform, Sec-CH-UA-Mobile, User-Agent`
-  );
   res.setHeader(DEVICE_PLATFORM_HEADER, grouped.resolvedDevice);
   res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   res.json({
@@ -863,12 +869,17 @@ app.post('/api/reviews/:appId', (req: Request, res: Response) => {
       message: 'Author name, star rating, and review comment are required.'
     });
   }
+  const appItem = AppDatabase.getAppById(req.params.appId);
+  const defaultReviewDevice = getDefaultReviewDeviceLabel(
+    res.locals.resolvedDevice,
+    appItem || undefined
+  );
   const result = AppDatabase.addReview(req.params.appId, {
     author: String(author),
     title: String(title || 'App Review'),
     rating: Number(rating),
     comment: String(comment),
-    device: device ? String(device) : 'Android Device'
+    device: device ? String(device) : defaultReviewDevice
   });
   return res.status(201).json({
     success: true,

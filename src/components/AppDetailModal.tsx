@@ -32,9 +32,9 @@ import {
   getAppShareText,
   getAppShareTitle,
   isHybridPackage,
-  isSmartTvPackage,
   isWindowsPackage,
   detectClientDevicePlatform,
+  getDefaultReviewDeviceLabel,
   apiFetch,
   normalizeAssetPath,
   computeReviewStats,
@@ -98,19 +98,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   useEffect(() => {
     if (!app) return;
-    const isWin = isWindowsPackage(app);
-    const isHyb = isHybridPackage(app);
-    const isTv = isSmartTvPackage(app);
-    const detectedClient = detectClientDevicePlatform();
-    if (isWin && !isHyb) {
-      setReviewDevice('Windows 11 PC');
-    } else if (detectedClient === 'Smart TV' || (isTv && !isWin && !/android mobile/i.test(app.platform))) {
-      setReviewDevice('Android TV / Google TV');
-    } else if (detectedClient === 'Windows' && isHyb) {
-      setReviewDevice('Windows 11 PC');
-    } else {
-      setReviewDevice('Android Mobile');
-    }
+    setReviewDevice(getDefaultReviewDeviceLabel(detectClientDevicePlatform(), app));
     setShowQrCode(false);
     setShowSharePanel(false);
     setShowPermissions(false);

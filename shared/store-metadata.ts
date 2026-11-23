@@ -543,15 +543,30 @@ export function resolveSpotlightDevice(
   if (!clean || clean === 'all' || clean === 'all partners' || clean === 'all platforms') {
     return 'All';
   }
-  if (/windows|win32|win64/.test(clean)) return 'Windows';
+  if (/windows|win32|win64|wow64/.test(clean)) return 'Windows';
   if (
-    /smart[\s_-]?tv|\btv\b|fire\s?tv|firestick|google\s?tv|android\s?tv|tizen|webos|bravia|\baft[a-z0-9]*/.test(
+    /smart[\s_-]?tv|\btv\b|fire\s?tv|firestick|google\s?tv|android\s?tv|tizen|webos|bravia|mibox|mi\s?tv|nvidia\s?shield|chromecast|\baft[a-z0-9]*/.test(
       clean
     )
   ) {
     return 'Smart TV';
   }
-  if (/android|mobile|linux\s+(?:armv[0-9]+|aarch64)/.test(clean)) return 'Android';
+  // Identify genuine Android devices, WebViews (; wv), Dalvik, HarmonyOS, Fire tablets (Silk/KF*), Linux ARM browsers,
+  // or generic mobile hints while avoiding false matches on non-Android iOS Safari/iPadOS strings.
+  const isAppleHandheldUa = /\b(?:iphone|ipad|ipod)\b/.test(clean) && !/\bandroid\b/.test(clean);
+  if (
+    !isAppleHandheldUa &&
+    (/\bandroid\b/.test(clean) ||
+      /;\s*wv\b|\bwv\)/.test(clean) ||
+      /\bdalvik\//.test(clean) ||
+      /\bharmonyos\b/.test(clean) ||
+      /\bsilk\//.test(clean) ||
+      /\bkf[a-z]{2,5}\b/.test(clean) ||
+      /\blinux\s+(?:armv[0-9]*l?|aarch64)\b/.test(clean) ||
+      /\bmobile\b/.test(clean))
+  ) {
+    return 'Android';
+  }
   return 'All';
 }
 
@@ -570,7 +585,7 @@ export function detectDeviceFromUserAgent(
   if (fromCh === 'Android') return 'Android';
   if (fromUa === 'Android') return 'Android';
 
-  // Mobile-hinted Chromium / Android desktop-mode clients resolve to Android when not Windows/Smart TV
+  // Heuristic mobile detection: non-Windows/non-TV mobile-hinted browsers (e.g., Chromium Android desktop mode or ?1)
   if (mobileHint === true) return 'Android';
 
   if (fromCh !== 'All') return fromCh;

@@ -44,6 +44,7 @@ import {
   getLocalSubmissions,
   saveLocalSubmission,
   normalizeAssetPath,
+  apiFetch,
 } from '../data/catalog';
 
 export { getLocalPublishedApps, getLocalSubmissions };
@@ -299,7 +300,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setCategoryOptions(baseMerged.map((name) => ({ name, count: 0 })));
 
     if (hasBackend) {
-      fetch('./api/categories')
+      apiFetch('./api/categories')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (Array.isArray(data?.categories)) {
@@ -333,7 +334,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     try {
       const localSubs = getLocalSubmissions();
       if (hasBackend) {
-        const res = await fetch('./api/publish/submissions');
+        const res = await apiFetch('./api/publish/submissions');
         const ct = res.headers.get('content-type') || '';
         if (res.ok && ct.includes('application/json')) {
           const data = await res.json();
@@ -397,7 +398,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     try {
       let profile: AppOwnerProfile | undefined;
       if (hasBackend) {
-        const res = await fetch(`./api/publish/gravatar/${encodeURIComponent(clean)}`);
+        const res = await apiFetch(`./api/publish/gravatar/${encodeURIComponent(clean)}`);
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success || !data?.profile) {
           setGravatarMessage(data?.message || 'Gravatar profile not found.');
@@ -461,7 +462,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     try {
       if (hasBackend) {
         const buf = await file.arrayBuffer();
-        const res = await fetch('./api/publish/upload-icon', {
+        const res = await apiFetch('./api/publish/upload-icon', {
           method: 'POST',
           headers: { 'Content-Type': 'application/octet-stream' },
           body: buf,
@@ -550,7 +551,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       };
 
       if (hasBackend) {
-        const res = await fetch('./api/publish/verify-payment', {
+        const res = await apiFetch('./api/publish/verify-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -724,18 +725,22 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
           return;
         }
 
-        const res = await fetch('./api/publish/upload-package', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'x-file-name': encodeURIComponent(file.name),
-            'x-platform': platform,
-            'x-payment-token': verificationToken,
-            'x-tx-hash': verifiedPaymentInfo.txHash,
-            'x-payment-method': verifiedPaymentInfo.paymentMethod,
+        const res = await apiFetch(
+          './api/publish/upload-package',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'x-file-name': encodeURIComponent(file.name),
+              'x-platform': platform,
+              'x-payment-token': verificationToken,
+              'x-tx-hash': verifiedPaymentInfo.txHash,
+              'x-payment-method': verifiedPaymentInfo.paymentMethod,
+            },
+            body: arrayBuf,
           },
-          body: arrayBuf,
-        });
+          platform
+        );
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json') ? await res.json().catch(() => null) : null;
         if (!res.ok || !data?.success) {
@@ -814,10 +819,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
     setSubmitting(true);
     try {
       if (hasBackend) {
-        const res = await fetch('./api/publish/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const res = await apiFetch(
+          './api/publish/submit',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
             appTitle: appTitle.trim(),
             packageId: packageId.trim() || undefined,
             fileName: resolvedFileName,
@@ -845,7 +852,9 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
               cryptoNetwork: activeMethod.network,
             },
           }),
-        });
+          },
+          platform
+        );
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success) {
           setFormError(data?.message || 'Failed to finalize app publication.');

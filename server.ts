@@ -27,6 +27,7 @@ import {
   groupSponsorsForSpotlight,
   parseSecChUaMobile,
   pickContextualSponsor,
+  resolveDeviceContext,
 } from './shared/store-metadata.ts';
 import type { SponsorGroupingOptions } from './shared/types.ts';
 
@@ -133,6 +134,19 @@ app.use((_req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Accept-CH', 'Sec-CH-UA-Platform, Sec-CH-UA-Mobile');
   res.setHeader('Access-Control-Expose-Headers', `${DEVICE_PLATFORM_HEADER}, ${DEVICE_MOBILE_HEADER}`);
+  next();
+});
+
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  const ctx = getRequestSponsorGroupingOptions(req);
+  const resolvedDevice = resolveDeviceContext(ctx);
+  const resolvedMobile =
+    parseSecChUaMobile(ctx.headerMobile) ??
+    parseSecChUaMobile(ctx.chMobile) ??
+    resolvedDevice === 'Android';
+
+  res.setHeader(DEVICE_PLATFORM_HEADER, resolvedDevice);
+  res.setHeader(DEVICE_MOBILE_HEADER, resolvedMobile ? '?1' : '?0');
   next();
 });
 

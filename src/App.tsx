@@ -33,7 +33,7 @@ import {
   mergeCatalogApps,
   resolveDeviceContext,
   detectClientDevicePlatform,
-  buildClientDeviceHeaders,
+  apiFetch,
   groupSponsorsForSpotlight,
   pickContextualSponsor,
 } from './data/catalog';
@@ -91,11 +91,10 @@ export default function App() {
       setLoading(true);
       setError(null);
 
-      const deviceHeaders = buildClientDeviceHeaders();
       const [appsRes, metaRes, sponsorsRes] = await Promise.all([
-        fetch('./api/apps', { headers: deviceHeaders }).catch(() => null),
-        fetch('./api/meta', { headers: deviceHeaders }).catch(() => null),
-        fetch('./api/sponsors', { headers: deviceHeaders }).catch(() => null),
+        apiFetch('./api/apps').catch(() => null),
+        apiFetch('./api/meta').catch(() => null),
+        apiFetch('./api/sponsors').catch(() => null),
       ]);
 
       const localPublished = getLocalPublishedApps();
@@ -273,13 +272,11 @@ export default function App() {
       )
     );
     if (hasBackend) {
-      fetch(`./api/sponsors/${encodeURIComponent(sponsor.id)}/click`, {
-        method: 'POST',
-        headers: buildClientDeviceHeaders(
-          selectedPlatform !== 'All' ? selectedPlatform : undefined
-        ),
-        keepalive: true,
-      }).catch(() => {});
+      apiFetch(
+        `./api/sponsors/${encodeURIComponent(sponsor.id)}/click`,
+        { method: 'POST', keepalive: true },
+        selectedPlatform !== 'All' ? selectedPlatform : undefined
+      ).catch(() => {});
     }
   };
 

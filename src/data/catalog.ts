@@ -120,11 +120,16 @@ function inferBrowserMobileHint(): boolean | undefined {
 
   if (typeof window !== 'undefined' && nav) {
     const rawPlatform = `${nav?.userAgentData?.platform || nav?.platform || ''} ${nav?.userAgent || ''}`;
-    if (!/windows|win32|win64/i.test(rawPlatform)) {
-      const hasCoarseTouch =
-        Number(nav.maxTouchPoints || 0) > 0 &&
-        Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
-      if (hasCoarseTouch) return true;
+    if (!/windows|win32|win64|macintosh|macintel/i.test(rawPlatform)) {
+      const hasTouchPoints = Number(nav.maxTouchPoints || 0) > 0;
+      const isCoarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+      const hasNoHover = Boolean(window.matchMedia?.('(hover: none)')?.matches);
+      const isNarrowViewport =
+        Math.min(window.screen?.width || window.innerWidth, window.innerHeight || 1080) <= 960;
+
+      if (hasTouchPoints && (isCoarsePointer || (hasNoHover && isNarrowViewport))) {
+        return true;
+      }
     }
   }
 
@@ -162,6 +167,34 @@ export function buildClientDeviceHeaders(
   }
 
   return headers;
+}
+
+export function apiFetch(
+  input: string,
+  init: RequestInit = {},
+  platformOverride?: StorePlatformFilter | string
+): Promise<Response> {
+  const isInternalApi =
+    input.startsWith('./api/') ||
+    input.startsWith('/api/') ||
+    (typeof window !== 'undefined' && input.startsWith(`${window.location.origin}/api/`));
+
+  if (!isInternalApi) {
+    return fetch(input, init);
+  }
+
+  const deviceHeaders = buildClientDeviceHeaders(platformOverride);
+  const mergedHeaders = new Headers(init.headers || undefined);
+  for (const [key, value] of Object.entries(deviceHeaders)) {
+    if (!mergedHeaders.has(key)) {
+      mergedHeaders.set(key, value);
+    }
+  }
+
+  return fetch(input, {
+    ...init,
+    headers: mergedHeaders,
+  });
 }
 
 export function isGitHubRootStaticMode(): boolean {

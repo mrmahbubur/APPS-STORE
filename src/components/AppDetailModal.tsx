@@ -32,7 +32,10 @@ import {
   getAppShareText,
   getAppShareTitle,
   isHybridPackage,
+  isSmartTvPackage,
   isWindowsPackage,
+  detectClientDevicePlatform,
+  apiFetch,
   normalizeAssetPath,
   computeReviewStats,
   getLocalReviews,
@@ -97,7 +100,17 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     if (!app) return;
     const isWin = isWindowsPackage(app);
     const isHyb = isHybridPackage(app);
-    setReviewDevice(isWin && !isHyb ? 'Windows 11 PC' : 'Android Mobile');
+    const isTv = isSmartTvPackage(app);
+    const detectedClient = detectClientDevicePlatform();
+    if (isWin && !isHyb) {
+      setReviewDevice('Windows 11 PC');
+    } else if (detectedClient === 'Smart TV' || (isTv && !isWin && !/android mobile/i.test(app.platform))) {
+      setReviewDevice('Android TV / Google TV');
+    } else if (detectedClient === 'Windows' && isHyb) {
+      setReviewDevice('Windows 11 PC');
+    } else {
+      setReviewDevice('Android Mobile');
+    }
     setShowQrCode(false);
     setShowSharePanel(false);
     setShowPermissions(false);
@@ -109,7 +122,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
     const loadReviews = async () => {
       if (hasBackend) {
         try {
-          const res = await fetch(`./api/reviews/${app.id}`);
+          const res = await apiFetch(`./api/reviews/${app.id}`, {}, app.platform);
           const ct = res.headers.get('content-type') || '';
           if (res.ok && ct.includes('application/json')) {
             const data = await res.json();
@@ -207,17 +220,21 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
     try {
       if (hasBackend) {
-        const res = await fetch(`./api/reviews/${app.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            author: reviewerName.trim(),
-            title: reviewTitle.trim() || `${newRating}-Star Experience`,
-            rating: newRating,
-            device: reviewDevice,
-            comment: reviewComment.trim(),
-          }),
-        });
+        const res = await apiFetch(
+          `./api/reviews/${app.id}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              author: reviewerName.trim(),
+              title: reviewTitle.trim() || `${newRating}-Star Experience`,
+              rating: newRating,
+              device: reviewDevice,
+              comment: reviewComment.trim(),
+            }),
+          },
+          app.platform
+        );
         if (res.ok) {
           const data = await res.json();
           setReviews(sortReviewsByDate<ReviewItem>(data.reviews || []));
@@ -273,7 +290,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
     if (hasBackend) {
       try {
-        const res = await fetch(`./api/reviews/${app.id}/${reviewId}/helpful`, { method: 'POST' });
+        const res = await apiFetch(
+          `./api/reviews/${app.id}/${reviewId}/helpful`,
+          { method: 'POST' },
+          app.platform
+        );
         if (res.ok) {
           const data = await res.json();
           setReviews(sortReviewsByDate<ReviewItem>(data.reviews || []));

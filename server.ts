@@ -203,15 +203,17 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     return res.status(404).send('Application package not found.');
   }
 
-  // Increment download counter on actual GET downloads (ignore HEAD probes)
-  if (req.method !== 'HEAD') {
-    AppDatabase.incrementDownload(appItem.id);
-  }
+  const recordDownload = () => {
+    if (req.method !== 'HEAD') {
+      AppDatabase.incrementDownload(appItem.id);
+    }
+  };
 
   const builtinPackageFile = getBuiltinPackageFile(appItem.id);
   if (builtinPackageFile) {
     const filePath = path.resolve(process.cwd(), 'public/apks', builtinPackageFile);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      recordDownload();
       res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath, { cacheControl: false });
@@ -228,6 +230,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
       fs.existsSync(filePath) &&
       fs.statSync(filePath).isFile()
     ) {
+      recordDownload();
       res.setHeader('Content-Type', getPackageMimeType(appItem.fileName || filePath));
       res.setHeader('Content-Disposition', `attachment; filename="${appItem.fileName}"`);
       return res.sendFile(filePath, { cacheControl: false });
@@ -239,6 +242,7 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     appItem.directDownloadUrl &&
     (appItem.directDownloadUrl.startsWith('https://') || appItem.directDownloadUrl.startsWith('http://'))
   ) {
+    recordDownload();
     return res.redirect(302, appItem.directDownloadUrl);
   }
 

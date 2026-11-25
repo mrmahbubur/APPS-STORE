@@ -285,6 +285,8 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
   ];
 }
 
+export const PUBLISHING_FEE_USD = 5.0;
+
 export function buildSiteMeta(options?: {
   ownerProfile?: AppOwnerProfile;
   extraCategories?: string[];
@@ -295,6 +297,8 @@ export function buildSiteMeta(options?: {
   const categories = options?.extraCategories
     ? Array.from(new Set([...APP_STORE_CATEGORIES, ...options.extraCategories.filter(Boolean)]))
     : [...APP_STORE_CATEGORIES];
+  const feeShortLabel = `$${PUBLISHING_FEE_USD.toFixed(0)} USD`;
+  const feeExactLabel = `$${PUBLISHING_FEE_USD.toFixed(2)} USD`;
 
   return {
     appName: 'MRS App Store',
@@ -309,12 +313,12 @@ export function buildSiteMeta(options?: {
       role: 'Store Owner',
       location: '',
       supportResponseTime: '',
-      publishingFeeUsd: 25.0,
+      publishingFeeUsd: PUBLISHING_FEE_USD,
       verificationNote: 'Store Owner',
     },
     ownerProfile,
     categories,
-    submissionFeeUsd: 25.0,
+    submissionFeeUsd: PUBLISHING_FEE_USD,
     lastUpdated: new Date().toISOString(),
     policies: {
       privacy: {
@@ -357,12 +361,12 @@ export function buildSiteMeta(options?: {
         title: 'Developer Publishing & Review Agreement',
         lastRenewed: `January 1, ${currentYear}`,
         summary:
-          'Developers may publish Android APKs, Smart TV apps, and Windows (.exe, .msi, .msix, .appx, .zip) packages across all 28 categories after completing the $25.00 USD publishing fee via Binance Pay or USDT BEP-20.',
+          `Developers may publish Android APKs, Smart TV apps, and Windows (.exe, .msi, .msix, .appx, .zip) packages across all 28 categories after completing the ${feeExactLabel} publishing fee via Binance Pay or USDT BEP-20.`,
         sections: [
           {
-            heading: '1. Submission Fee & Payment Options ($25 USD)',
+            heading: `1. Submission Fee & Payment Options (${feeShortLabel})`,
             content:
-              'A one-time publishing fee of $25.00 USD is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).',
+              `A one-time publishing fee of ${feeExactLabel} is accepted via Binance Pay QR (M R S) or USDT (BNB Smart Chain BEP20: 0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e).`,
           },
           {
             heading: '2. Supported Packages & Binary Inspection',

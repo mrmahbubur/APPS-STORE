@@ -94,7 +94,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
-            <span>Developer Publishing ($25)</span>
+            <span>Developer Publishing ($5)</span>
           </button>
           <button
             type="button"

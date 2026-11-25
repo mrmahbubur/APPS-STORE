@@ -24,6 +24,7 @@ import {
 import {
   DEVICE_MOBILE_HEADER,
   DEVICE_PLATFORM_HEADER,
+  PUBLISHING_FEE_USD,
   getDefaultReviewDeviceLabel,
   groupSponsorsForSpotlight,
   parseSecChUaMobile,
@@ -272,7 +273,7 @@ app.get('/api/publish/gravatar/:handle', async (req: Request, res: Response) => 
   return res.json({ success: true, profile: result.profile });
 });
 
-// 3a-1. Real Payment Verification Gate ($25 USD USDT BEP-20 On-Chain or Binance Pay Order Record)
+// 3a-1. Real Payment Verification Gate ($5 USD USDT BEP-20 On-Chain or Binance Pay Order Record)
 app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
   try {
     const { paymentMethod, txHash, appDetails } = req.body || {};
@@ -312,7 +313,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
       const token = issuePaymentVerificationToken({
         txHash: cleanTx,
         paymentMethod,
-        amountPaidUsd: check.amountPaidUsd || 25.0,
+        amountPaidUsd: check.amountPaidUsd || PUBLISHING_FEE_USD,
         fromAddress: check.fromAddress,
         blockNumber: check.blockNumber,
         confirmations: check.confirmations,
@@ -363,7 +364,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
         developerEmail,
         targetAdminEmail: 'mr216873@gmail.com',
         tier: 'Standard',
-        amountPaidUsd: 25.0,
+        amountPaidUsd: PUBLISHING_FEE_USD,
         paymentMethod: 'Binance Pay',
         paymentDetails: {
           cryptoTxHash: cleanTx,
@@ -376,7 +377,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[Binance Pay Verification] ${submission.appTitle} (${submission.invoiceNumber})`
     )}&body=${encodeURIComponent(
-      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: $25.00 USD\nApp Name: ${submission.appTitle}\nPlatform: ${submission.platform}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: $${PUBLISHING_FEE_USD.toFixed(2)} USD\nApp Name: ${submission.appTitle}\nPlatform: ${submission.platform}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.json({
@@ -744,7 +745,7 @@ app.post('/api/publish/submit', async (req: Request, res: Response) => {
         developerEmail: publishedApp.developerEmail,
         targetAdminEmail: 'mr216873@gmail.com',
         tier: tier as any,
-        amountPaidUsd: Number(tokenCheck.payload.amountPaidUsd) || 25.0,
+        amountPaidUsd: Number(tokenCheck.payload.amountPaidUsd) || PUBLISHING_FEE_USD,
         paymentMethod: String(paymentMethod),
         paymentDetails: {
           cryptoTxHash: txHash,

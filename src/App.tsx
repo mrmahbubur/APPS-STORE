@@ -474,7 +474,7 @@ export default function App() {
               className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff] hover:underline underline-offset-4 whitespace-nowrap shrink-0"
             >
               <UploadCloud className="w-3.5 h-3.5" />
-              <span>Publish Your App ($25 USD) ›</span>
+              <span>Publish Your App ($5 USD) ›</span>
             </button>
           </div>
 
@@ -591,7 +591,7 @@ export default function App() {
                     <UploadCloud className="w-3.5 h-3.5" />
                     <span>
                       Publish First {selectedPlatform !== 'All' ? `${selectedPlatform} ` : ''}
-                      {selectedCategory !== 'All' ? `${selectedCategory} ` : ''}App ($25 USD)
+                      {selectedCategory !== 'All' ? `${selectedCategory} ` : ''}App ($5 USD)
                     </span>
                   </button>
                 )}
@@ -762,7 +762,7 @@ export default function App() {
                       Publish your Android, Smart TV &amp; Windows app across any category
                     </h3>
                     <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-2xl">
-                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $25.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature (.apk, .exe, .msi, .msix, .appx, .zip), and publish live with direct downloads.
+                      Direct marketplace operated by {storeOwner.displayName}. Verify your one-time $5.00 USD publishing fee on BNB Smart Chain (BEP-20), inspect your package manifest and SHA-256 signature (.apk, .exe, .msi, .msix, .appx, .zip), and publish live with direct downloads.
                     </p>
                   </div>
 
@@ -772,7 +772,7 @@ export default function App() {
                       onClick={() => openPublishWithContext(selectedCategory, selectedPlatform)}
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0071e3] hover:bg-[#0a84ff] text-white text-xs font-bold transition-colors min-h-[42px] whitespace-nowrap"
                     >
-                      <span>Start App Submission ($25 USD)</span>
+                      <span>Start App Submission ($5 USD)</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                     <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">

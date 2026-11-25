@@ -89,7 +89,7 @@ npm run build
 | `GET` | `/api/meta` | Store metadata, owner profile (`M R S`), 28 store categories, and policies |
 | `GET` | `/api/sponsors` | Device-aware sponsor grouping (`?platform=`, `?tab=`, `?device=`, `?category=`, `X-Device-Platform`, `X-Device-Mobile`, `Sec-CH-UA-Platform`, `Sec-CH-UA-Mobile`, `User-Agent`) returning `resolvedDevice`, `isMobile`, `primaryFeatured`, `contextual`, `featured`, `list`, and `detail` plus `POST /api/sponsors/:id/click` |
 | `GET/POST` | `/api/reviews/:appId` | Persistent ratings & device reviews (`Windows 11 PC`, `Android Mobile`, `Android TV`, etc.) |
-| `POST` | `/api/publish/verify-payment` | Verifies `$25.00 USD` BEP-20 USDT transfer on BNB Smart Chain or records Binance Pay Order ID |
+| `POST` | `/api/publish/verify-payment` | Verifies `$5.00 USD` BEP-20 USDT transfer on BNB Smart Chain or records Binance Pay Order ID |
 | `POST` | `/api/publish/upload-apk` / `/api/publish/upload-package` | Accepts `.apk`, `.exe`, `.msi`, `.msix`, `.msixbundle`, `.appx`, `.appxbundle`, or `.zip` binaries up to 150 MB |
 | `POST` | `/api/publish/submit` | Finalizes listing creation, SHA-256 auditing, and live catalog persistence |
 | `GET` | `/api/health` | Verifies `data/` storage access and SHA-256 integrity across self-hosted packages |

@@ -61,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({
               className="min-h-[36px] hover:text-white transition-colors flex items-center gap-1.5 text-[#0a84ff] font-semibold"
             >
               <UploadCloud className="w-3.5 h-3.5" />
-              <span>Publish App ($25 USD)</span>
+              <span>Publish App ($5 USD)</span>
             </button>
             <button
               type="button"

@@ -17,6 +17,7 @@ import {
   isSmartTvPackage,
   isWindowsPackage,
 } from '../shared/package-utils.ts';
+import { PUBLISHING_FEE_USD } from '../shared/store-metadata.ts';
 
 export type {
   ApkInspectionResult,
@@ -26,7 +27,7 @@ export type {
 };
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
-const REQUIRED_FEE_USD = 25.0;
+const REQUIRED_FEE_USD = PUBLISHING_FEE_USD;
 
 // Official BNB Smart Chain USD stablecoin contracts (18 decimals)
 const BSC_STABLECOINS: Record<string, { symbol: string; decimals: number }> = {

@@ -45,6 +45,7 @@ import {
   saveLocalSubmission,
   normalizeAssetPath,
   apiFetch,
+  PUBLISHING_FEE_USD,
 } from '../data/catalog';
 
 export { getLocalPublishedApps, getLocalSubmissions };
@@ -63,7 +64,7 @@ interface PublishAppModalProps {
 const CUSTOM_CATEGORY_VALUE = '__custom__';
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
-const REQUIRED_FEE_USD = 25.0;
+const REQUIRED_FEE_USD = PUBLISHING_FEE_USD;
 const ERC20_TRANSFER_TOPIC =
   '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const BSC_STABLECOINS: Record<string, { symbol: string; decimals: number }> = {
@@ -364,7 +365,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       label: 'Deposit Wallet Address',
       value: OWNER_BSC_WALLET,
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__2__145559af.png'),
-      notice: "Send at least $25.00 USDT/USDC via BNB Smart Chain (BEP20) for instant automated on-chain verification.",
+      notice: `Send at least $${REQUIRED_FEE_USD.toFixed(2)} USDT/USDC via BNB Smart Chain (BEP20) for instant automated on-chain verification.`,
     },
     BINANCE_PAY: {
       title: 'Binance Pay' as const,
@@ -373,7 +374,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       label: 'Recipient Name',
       value: 'M R S',
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__1__2b5c7e8c.png'),
-      notice: 'Scan the Binance Pay QR code in your Binance App to send $25.00 USD to M R S, then enter your Order ID for store owner review.',
+      notice: `Scan the Binance Pay QR code in your Binance App to send $${REQUIRED_FEE_USD.toFixed(2)} USD to M R S, then enter your Order ID for store owner review.`,
     },
   };
 
@@ -1032,7 +1033,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-[#0a84ff]">
                 <span>App Publishing</span>
                 <span aria-hidden="true" className="text-zinc-600">·</span>
-                <span className="text-emerald-400">$25.00 USD</span>
+                <span className="text-emerald-400">$5.00 USD</span>
               </div>
               <h2 className="text-base sm:text-xl font-black text-white tracking-tight truncate">
                 Publish App on MRS App Store
@@ -1053,7 +1054,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         {/* Subtitle & Switcher */}
         <div className="pb-5 border-b border-white/[0.08]">
           <p className="text-xs text-zinc-400">
-            Enter app &amp; owner details, verify your $25.00 USD payment on-chain, then upload your Android or Windows package to publish live.
+            Enter app &amp; owner details, verify your $5.00 USD payment on-chain, then upload your Android or Windows package to publish live.
           </p>
 
           {/* Navigation Switcher */}
@@ -1305,7 +1306,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
                 { step: 1 as const, shortLabel: '1. Details', label: '1. App & Owner Details' },
-                { step: 2 as const, shortLabel: '2. Pay ($25)', label: '2. Verify Payment ($25)' },
+                { step: 2 as const, shortLabel: '2. Pay ($5)', label: '2. Verify Payment ($5)' },
                 { step: 3 as const, shortLabel: '3. Upload', label: '3. Upload & Publish' },
               ].map((item) => {
                 const isActive = currentStep === item.step;
@@ -1631,7 +1632,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     onClick={handleContinueToStep2}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold text-xs tracking-wide transition-all shadow-lg shadow-blue-600/25"
                   >
-                    <span>Continue to Verify Payment ($25)</span>
+                    <span>Continue to Verify Payment ($5)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1677,7 +1678,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         Step 2 of 3 · One-Time Fee Verification
                       </span>
                       <p className="text-sm font-bold text-white">
-                        Pay &amp; Verify <span className="text-emerald-400">$25.00 USD</span>
+                        Pay &amp; Verify <span className="text-emerald-400">$5.00 USD</span>
                       </p>
                     </div>
 
@@ -1771,7 +1772,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       }}
                       placeholder={
                         paymentOption === 'USDT_BEP20'
-                          ? '0x... (66-character BEP-20 TxHash after sending $25 USDT)'
+                          ? '0x... (66-character BEP-20 TxHash after sending $5 USDT)'
                           : 'Paste your Binance Pay Order ID after completing payment'
                       }
                       className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white font-mono focus:outline-none focus:border-blue-500"
@@ -1910,7 +1911,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     <div className="flex items-center gap-2 text-emerald-300 font-bold">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>
-                        Payment Verified · ${verifiedPaymentInfo.amountPaidUsd?.toFixed(2) || '25.00'} USD ({verifiedPaymentInfo.tokenSymbol || verifiedPaymentInfo.paymentMethod})
+                        Payment Verified · ${verifiedPaymentInfo.amountPaidUsd?.toFixed(2) || REQUIRED_FEE_USD.toFixed(2)} USD ({verifiedPaymentInfo.tokenSymbol || verifiedPaymentInfo.paymentMethod})
                       </span>
                     </div>
                     {verifiedPaymentInfo.explorerUrl && (

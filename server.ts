@@ -203,8 +203,10 @@ app.get('/api/download/:id', (req: Request, res: Response) => {
     return res.status(404).send('Application package not found.');
   }
 
-  // Increment download counter
-  AppDatabase.incrementDownload(appItem.id);
+  // Increment download counter on actual GET downloads (ignore HEAD probes)
+  if (req.method !== 'HEAD') {
+    AppDatabase.incrementDownload(appItem.id);
+  }
 
   const builtinPackageFile = getBuiltinPackageFile(appItem.id);
   if (builtinPackageFile) {

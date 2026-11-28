@@ -36,8 +36,10 @@ import {
   BUILTIN_APP_IDS,
   APP_STORE_CATEGORIES,
   PUBLISHING_FEE_USD,
+  parsePublishingFeeUsd,
   getPublishingFeeUsd,
   formatPublishingFeeLabel,
+  getPublishingFeeLabels,
   MRS_GRAVATAR_OWNER_PROFILE,
   DEFAULT_SPONSOR_LINKS,
   buildBuiltinApps,
@@ -78,8 +80,10 @@ export {
   BUILTIN_APP_IDS,
   APP_STORE_CATEGORIES,
   PUBLISHING_FEE_USD,
+  parsePublishingFeeUsd,
   getPublishingFeeUsd,
   formatPublishingFeeLabel,
+  getPublishingFeeLabels,
   MRS_GRAVATAR_OWNER_PROFILE,
   DEFAULT_SPONSOR_LINKS,
   SPONSOR_FILTER_TABS,
@@ -449,5 +453,11 @@ export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewI
 }
 
 export function getDefaultSiteMeta(): SiteMeta {
-  return buildSiteMeta({ ownerProfile: MRS_GRAVATAR_OWNER_PROFILE });
+  const envFee = parsePublishingFeeUsd(
+    typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_PUBLISHING_FEE_USD : undefined
+  );
+  return buildSiteMeta({
+    ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,
+    publishingFeeUsd: envFee,
+  });
 }

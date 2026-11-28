@@ -24,9 +24,8 @@ import {
 import {
   DEVICE_MOBILE_HEADER,
   DEVICE_PLATFORM_HEADER,
-  PUBLISHING_FEE_USD,
-  formatPublishingFeeLabel,
   getDefaultReviewDeviceLabel,
+  getPublishingFeeLabels,
   getPublishingFeeUsd,
   groupSponsorsForSpotlight,
   parseSecChUaMobile,
@@ -278,7 +277,9 @@ app.get('/api/publish/gravatar/:handle', async (req: Request, res: Response) => 
 // 3a-1. Real Payment Verification Gate (USDT BEP-20 On-Chain or Binance Pay Order Record)
 app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
   try {
-    const activeFeeUsd = getPublishingFeeUsd(AppDatabase.getSiteMeta());
+    const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(
+      AppDatabase.getSiteMeta()
+    );
     const { paymentMethod, txHash, appDetails } = req.body || {};
     const cleanTx = String(txHash || '').trim();
 
@@ -380,7 +381,7 @@ app.post('/api/publish/verify-payment', async (req: Request, res: Response) => {
     const mailtoUrl = `mailto:mr216873@gmail.com?subject=${encodeURIComponent(
       `[Binance Pay Verification] ${submission.appTitle} (${submission.invoiceNumber})`
     )}&body=${encodeURIComponent(
-      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: ${formatPublishingFeeLabel(activeFeeUsd, 'exact')} USD\nApp Name: ${submission.appTitle}\nPlatform: ${submission.platform}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
+      `Dear Store Owner (mr216873@gmail.com),\n\nA developer submitted a Binance Pay Order ID for payment confirmation.\n\nInvoice Number: ${submission.invoiceNumber}\nTransaction ID: ${submission.transactionId}\nRecipient: M R S\nBinance Pay Order ID: ${cleanTx}\nAmount: ${activeFeeExactUsd}\nApp Name: ${submission.appTitle}\nPlatform: ${submission.platform}\nVersion: ${submission.version}\nDeveloper / Owner: ${submission.developerName} (${submission.developerEmail})\nSubmitted At: ${submission.submittedAt}`
     )}`;
 
     return res.json({

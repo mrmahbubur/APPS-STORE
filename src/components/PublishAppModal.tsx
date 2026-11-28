@@ -47,8 +47,8 @@ import {
   normalizeAssetPath,
   apiFetch,
   PUBLISHING_FEE_USD,
-  getPublishingFeeUsd,
-  formatPublishingFeeLabel,
+  getPublishingFeeLabels,
+  parsePublishingFeeUsd,
 } from '../data/catalog';
 
 export { getLocalPublishedApps, getLocalSubmissions };
@@ -184,15 +184,12 @@ async function verifyBscPaymentClientSide(
       message: `No BEP-20 USDT/USDC transfer to ${OWNER_BSC_WALLET} found in this transaction.`,
     };
   }
-  const activeFeeUsd =
-    typeof requiredFeeUsd === 'number' && Number.isFinite(requiredFeeUsd) && requiredFeeUsd > 0
-      ? requiredFeeUsd
-      : PUBLISHING_FEE_USD;
+  const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(requiredFeeUsd);
 
   if (totalReceivedUsd + 0.0001 < activeFeeUsd) {
     return {
       verified: false,
-      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required ${formatPublishingFeeLabel(activeFeeUsd, 'exact')} USD publishing fee.`,
+      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required ${activeFeeExactUsd} publishing fee.`,
     };
   }
 
@@ -224,12 +221,12 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   onSelectApp,
 }) => {
   const adminEmail = siteMeta?.adminEmail || 'mr216873@gmail.com';
-  const publishingFee =
-    typeof publishingFeeUsd === 'number' && Number.isFinite(publishingFeeUsd) && publishingFeeUsd > 0
-      ? publishingFeeUsd
-      : getPublishingFeeUsd(siteMeta);
-  const shortFeeLabel = formatPublishingFeeLabel(publishingFee, 'short');
-  const exactFeeLabel = formatPublishingFeeLabel(publishingFee, 'exact');
+  const {
+    feeUsd: publishingFee,
+    short: shortFeeLabel,
+    exact: exactFeeLabel,
+    exactUsd: exactFeeUsdLabel,
+  } = getPublishingFeeLabels(parsePublishingFeeUsd(publishingFeeUsd) ?? siteMeta);
 
   // Modal Tabs & Stepper
   const [activeTab, setActiveTab] = useState<'submit' | 'receipts'>('submit');
@@ -393,7 +390,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       label: 'Recipient Name',
       value: 'M R S',
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__1__2b5c7e8c.png'),
-      notice: `Scan the Binance Pay QR code in your Binance App to send ${exactFeeLabel} USD to M R S, then enter your Order ID for store owner review.`,
+      notice: `Scan the Binance Pay QR code in your Binance App to send ${exactFeeUsdLabel} to M R S, then enter your Order ID for store owner review.`,
     },
   };
 
@@ -1052,7 +1049,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-[#0a84ff]">
                 <span>App Publishing</span>
                 <span aria-hidden="true" className="text-zinc-600">·</span>
-                <span className="text-emerald-400">{exactFeeLabel} USD</span>
+                <span className="text-emerald-400">{exactFeeUsdLabel}</span>
               </div>
               <h2 className="text-base sm:text-xl font-black text-white tracking-tight truncate">
                 Publish App on MRS App Store
@@ -1073,7 +1070,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         {/* Subtitle & Switcher */}
         <div className="pb-5 border-b border-white/[0.08]">
           <p className="text-xs text-zinc-400">
-            Enter app &amp; owner details, verify your {exactFeeLabel} USD payment on-chain, then upload your Android or Windows package to publish live.
+            Enter app &amp; owner details, verify your {exactFeeUsdLabel} payment on-chain, then upload your Android or Windows package to publish live.
           </p>
 
           {/* Navigation Switcher */}
@@ -1701,7 +1698,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         Step 2 of 3 · One-Time Fee Verification
                       </span>
                       <p className="text-sm font-bold text-white">
-                        Pay &amp; Verify <span className="text-emerald-400">{exactFeeLabel} USD</span>
+                        Pay &amp; Verify <span className="text-emerald-400">{exactFeeUsdLabel}</span>
                       </p>
                     </div>
 

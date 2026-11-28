@@ -26,6 +26,7 @@ import {
   computeReviewStats,
   createDefaultSponsorLinks,
   getDefaultReviewDeviceLabel,
+  parsePublishingFeeUsd,
 } from '../shared/store-metadata.ts';
 
 export type {
@@ -601,6 +602,7 @@ export const AppDatabase = {
     return buildSiteMeta({
       ownerProfile: currentOwnerProfile,
       extraCategories: memoryStore.map((a) => (a.category || '').trim()).filter(Boolean),
+      publishingFeeUsd: parsePublishingFeeUsd(process.env.PUBLISHING_FEE_USD),
     });
   },
 

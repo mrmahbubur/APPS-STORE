@@ -3,8 +3,7 @@ import { X, ShieldCheck, Scale, DollarSign, UserCheck } from 'lucide-react';
 import type { LegalPolicyTab, SiteMeta } from '../types';
 import {
   MRS_GRAVATAR_OWNER_PROFILE,
-  formatPublishingFeeLabel,
-  getPublishingFeeUsd,
+  getPublishingFeeLabels,
 } from '../data/catalog';
 
 interface LegalPoliciesModalProps {
@@ -99,7 +98,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
           >
             <DollarSign className="w-3.5 h-3.5" />
             <span>
-              Developer Publishing ({formatPublishingFeeLabel(getPublishingFeeUsd(siteMeta), 'short')})
+              Developer Publishing ({getPublishingFeeLabels(siteMeta).short})
             </span>
           </button>
           <button

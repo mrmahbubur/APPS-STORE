@@ -287,6 +287,19 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
 
 export const PUBLISHING_FEE_USD = 5.0;
 
+export function parsePublishingFeeUsd(raw: unknown): number | undefined {
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) && raw > 0 ? Number(raw.toFixed(2)) : undefined;
+  }
+  if (typeof raw === 'string') {
+    const clean = raw.trim().replace(/^\$/, '').replace(/\s*USD$/i, '').trim();
+    if (!clean) return undefined;
+    const parsed = Number(clean);
+    return Number.isFinite(parsed) && parsed > 0 ? Number(parsed.toFixed(2)) : undefined;
+  }
+  return undefined;
+}
+
 export function getPublishingFeeUsd(
   siteMeta?: Pick<SiteMeta, 'submissionFeeUsd' | 'ownerInfo'> | null
 ): number {
@@ -296,8 +309,9 @@ export function getPublishingFeeUsd(
     PUBLISHING_FEE_USD,
   ];
   for (const val of candidates) {
-    if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
-      return val;
+    const parsed = parsePublishingFeeUsd(val);
+    if (parsed !== undefined) {
+      return parsed;
     }
   }
   return PUBLISHING_FEE_USD;
@@ -307,13 +321,35 @@ export function formatPublishingFeeLabel(
   feeUsd: number = PUBLISHING_FEE_USD,
   variant: 'short' | 'exact' = 'short'
 ): string {
-  const safeFee = typeof feeUsd === 'number' && Number.isFinite(feeUsd) && feeUsd > 0
-    ? feeUsd
-    : PUBLISHING_FEE_USD;
+  const safeFee = parsePublishingFeeUsd(feeUsd) ?? PUBLISHING_FEE_USD;
   if (variant === 'exact') {
     return `$${safeFee.toFixed(2)}`;
   }
   return Number.isInteger(safeFee) ? `$${safeFee}` : `$${safeFee.toFixed(2)}`;
+}
+
+export function getPublishingFeeLabels(
+  siteMetaOrFee?: Pick<SiteMeta, 'submissionFeeUsd' | 'ownerInfo'> | number | null
+): {
+  feeUsd: number;
+  short: string;
+  exact: string;
+  shortUsd: string;
+  exactUsd: string;
+} {
+  const feeUsd =
+    typeof siteMetaOrFee === 'number'
+      ? parsePublishingFeeUsd(siteMetaOrFee) ?? PUBLISHING_FEE_USD
+      : getPublishingFeeUsd(siteMetaOrFee);
+  const short = formatPublishingFeeLabel(feeUsd, 'short');
+  const exact = formatPublishingFeeLabel(feeUsd, 'exact');
+  return {
+    feeUsd,
+    short,
+    exact,
+    shortUsd: `${short} USD`,
+    exactUsd: `${exact} USD`,
+  };
 }
 
 export function buildSiteMeta(options?: {
@@ -327,14 +363,9 @@ export function buildSiteMeta(options?: {
   const categories = options?.extraCategories
     ? Array.from(new Set([...APP_STORE_CATEGORIES, ...options.extraCategories.filter(Boolean)]))
     : [...APP_STORE_CATEGORIES];
-  const feeUsd =
-    typeof options?.publishingFeeUsd === 'number' &&
-    Number.isFinite(options.publishingFeeUsd) &&
-    options.publishingFeeUsd > 0
-      ? options.publishingFeeUsd
-      : PUBLISHING_FEE_USD;
-  const feeShortLabel = `${formatPublishingFeeLabel(feeUsd, 'short')} USD`;
-  const feeExactLabel = `${formatPublishingFeeLabel(feeUsd, 'exact')} USD`;
+  const { feeUsd, shortUsd: feeShortLabel, exactUsd: feeExactLabel } = getPublishingFeeLabels(
+    options?.publishingFeeUsd
+  );
 
   return {
     appName: 'MRS App Store',

@@ -79,7 +79,7 @@ function readRealApkFileMeta(relApkPath: string, fallbackSize: string, fallbackS
   } catch (err) {
     console.error('Error reading real APK stats:', err);
   }
-  return { size: fallbackSize, sha256: fallbackSha256, updatedAt: '2026-11-12' };
+  return { size: fallbackSize, sha256: fallbackSha256, updatedAt: '2026-11-28' };
 }
 
 const GRAVATAR_PROFILE_ENDPOINT = 'https://gravatar.com/mrxshahin.json';

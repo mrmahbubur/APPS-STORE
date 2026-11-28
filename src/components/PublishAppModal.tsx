@@ -178,18 +178,20 @@ async function verifyBscPaymentClientSide(
     }
   }
 
+  const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(requiredFeeUsd);
+
   if (totalReceivedUsd <= 0) {
     return {
       verified: false,
-      message: `No BEP-20 USDT/USDC transfer to ${OWNER_BSC_WALLET} found in this transaction.`,
+      message: `No BEP-20 USDT, USDC, or BUSD transfer to ${OWNER_BSC_WALLET} was found in this transaction. Send at least ${activeFeeExactUsd} on BNB Smart Chain (BEP-20).`,
     };
   }
-  const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(requiredFeeUsd);
 
   if (totalReceivedUsd + 0.0001 < activeFeeUsd) {
+    const shortfall = Math.max(0.01, activeFeeUsd - totalReceivedUsd).toFixed(2);
     return {
       verified: false,
-      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required ${activeFeeExactUsd} publishing fee.`,
+      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is $${shortfall} USD short of the required ${activeFeeExactUsd} publishing fee.`,
     };
   }
 

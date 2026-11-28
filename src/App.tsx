@@ -59,7 +59,9 @@ const CATEGORIES = ['All', ...APP_STORE_CATEGORIES];
 export default function App() {
   const [apps, setApps] = useState<AppItem[]>([]);
   const [siteMeta, setSiteMeta] = useState<SiteMeta | null>(null);
-  const { shortUsd: shortFeeUsdLabel, exactUsd: exactFeeUsdLabel } = getPublishingFeeLabels(siteMeta);
+  const resolvedSiteMeta = siteMeta ?? getDefaultSiteMeta();
+  const { shortUsd: shortFeeUsdLabel, exactUsd: exactFeeUsdLabel } =
+    getPublishingFeeLabels(resolvedSiteMeta);
   const [sponsors, setSponsors] = useState<SponsorAdLink[]>(DEFAULT_SPONSOR_LINKS);
   const [hasBackend, setHasBackend] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -791,7 +793,7 @@ export default function App() {
       </main>
 
       <Footer
-        siteMeta={siteMeta}
+        siteMeta={resolvedSiteMeta}
         onOpenLegal={handleOpenLegal}
         onOpenPublish={() => openPublishWithContext(selectedCategory, selectedPlatform)}
       />
@@ -816,7 +818,7 @@ export default function App() {
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         hasBackend={hasBackend}
-        siteMeta={siteMeta}
+        siteMeta={resolvedSiteMeta}
         initialCategory={publishInitialCategory}
         initialPlatform={publishInitialPlatform}
         availableCategories={categories.filter((c) => c !== 'All')}
@@ -841,7 +843,7 @@ export default function App() {
       <LegalPoliciesModal
         isOpen={isLegalModalOpen}
         onClose={() => setIsLegalModalOpen(false)}
-        siteMeta={siteMeta}
+        siteMeta={resolvedSiteMeta}
         initialTab={legalTab}
       />
     </div>

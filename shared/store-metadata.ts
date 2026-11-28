@@ -73,7 +73,7 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
     sha256:
       overrides['m-r-s-iptv']?.sha256 ||
       'd8358fae651e182a9dae7e098962b94afd9ddb8eb228923c76184250d7ccf28c',
-    updatedAt: overrides['m-r-s-iptv']?.updatedAt || '2026-11-12',
+    updatedAt: overrides['m-r-s-iptv']?.updatedAt || '2026-11-28',
   };
 
   const mrsTvMeta = {
@@ -81,7 +81,7 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
     sha256:
       overrides['m-r-s-iptv-pro']?.sha256 ||
       'ca281af2533f519db49f507719af574f0761b44d94135643733b2d5c6a473c92',
-    updatedAt: overrides['m-r-s-iptv-pro']?.updatedAt || '2026-11-12',
+    updatedAt: overrides['m-r-s-iptv-pro']?.updatedAt || '2026-11-28',
   };
 
   const camelliaMeta = {
@@ -89,7 +89,7 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
     sha256:
       overrides['camellia-ai']?.sha256 ||
       '6ebf12098208a31dbb00a15864d95e966aae11b441975fb240b8ce78a35676cd',
-    updatedAt: overrides['camellia-ai']?.updatedAt || '2026-11-17',
+    updatedAt: overrides['camellia-ai']?.updatedAt || '2026-11-28',
   };
 
   return [

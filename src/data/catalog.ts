@@ -454,7 +454,7 @@ export function markLocalReviewHelpful(appId: string, reviewId: string): ReviewI
 
 export function getDefaultSiteMeta(): SiteMeta {
   const envFee = parsePublishingFeeUsd(
-    typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_PUBLISHING_FEE_USD : undefined
+    typeof import.meta !== 'undefined' ? import.meta.env?.VITE_PUBLISHING_FEE_USD : undefined
   );
   return buildSiteMeta({
     ownerProfile: MRS_GRAVATAR_OWNER_PROFILE,

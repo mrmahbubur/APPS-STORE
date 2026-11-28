@@ -164,7 +164,10 @@ interface BscReceipt {
   logs?: BscLog[];
 }
 
-export async function verifyBscUsdtPayment(txHashRaw: string): Promise<BscVerificationResult> {
+export async function verifyBscUsdtPayment(
+  txHashRaw: string,
+  requiredFeeUsd: number = REQUIRED_FEE_USD
+): Promise<BscVerificationResult> {
   const txHash = txHashRaw.trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
     return {
@@ -228,10 +231,15 @@ export async function verifyBscUsdtPayment(txHashRaw: string): Promise<BscVerifi
       };
     }
 
-    if (totalReceivedUsd + 0.0001 < REQUIRED_FEE_USD) {
+    const activeFeeUsd =
+      typeof requiredFeeUsd === 'number' && Number.isFinite(requiredFeeUsd) && requiredFeeUsd > 0
+        ? requiredFeeUsd
+        : REQUIRED_FEE_USD;
+
+    if (totalReceivedUsd + 0.0001 < activeFeeUsd) {
       return {
         verified: false,
-        message: `Transaction transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required $${REQUIRED_FEE_USD.toFixed(2)} USD publishing fee.`,
+        message: `Transaction transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required $${activeFeeUsd.toFixed(2)} USD publishing fee.`,
       };
     }
 

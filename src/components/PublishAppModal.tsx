@@ -26,6 +26,7 @@ import type {
   AppItem,
   AppOwnerProfile,
   DeveloperSubmission,
+  SiteMeta,
   UploadedApkTelemetry,
   VerifiedPaymentInfo,
 } from '../types';
@@ -46,6 +47,8 @@ import {
   normalizeAssetPath,
   apiFetch,
   PUBLISHING_FEE_USD,
+  getPublishingFeeUsd,
+  formatPublishingFeeLabel,
 } from '../data/catalog';
 
 export { getLocalPublishedApps, getLocalSubmissions };
@@ -54,6 +57,8 @@ interface PublishAppModalProps {
   isOpen: boolean;
   onClose: () => void;
   hasBackend?: boolean;
+  siteMeta?: SiteMeta | null;
+  publishingFeeUsd?: number;
   initialCategory?: string;
   initialPlatform?: string;
   availableCategories?: string[];
@@ -64,7 +69,6 @@ interface PublishAppModalProps {
 const CUSTOM_CATEGORY_VALUE = '__custom__';
 
 const OWNER_BSC_WALLET = '0xdf90b9c9703b6ffd96d9dc195fffe81ecb71d83e';
-const REQUIRED_FEE_USD = PUBLISHING_FEE_USD;
 const ERC20_TRANSFER_TOPIC =
   '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const BSC_STABLECOINS: Record<string, { symbol: string; decimals: number }> = {
@@ -82,7 +86,10 @@ async function computeFileSha256Hex(buffer: ArrayBuffer): Promise<string> {
   return 'SHA-256 requires HTTPS / localhost';
 }
 
-async function verifyBscPaymentClientSide(txHashRaw: string): Promise<{
+async function verifyBscPaymentClientSide(
+  txHashRaw: string,
+  requiredFeeUsd: number = PUBLISHING_FEE_USD
+): Promise<{
   verified: boolean;
   message: string;
   tokenSymbol?: string;
@@ -177,10 +184,15 @@ async function verifyBscPaymentClientSide(txHashRaw: string): Promise<{
       message: `No BEP-20 USDT/USDC transfer to ${OWNER_BSC_WALLET} found in this transaction.`,
     };
   }
-  if (totalReceivedUsd + 0.0001 < REQUIRED_FEE_USD) {
+  const activeFeeUsd =
+    typeof requiredFeeUsd === 'number' && Number.isFinite(requiredFeeUsd) && requiredFeeUsd > 0
+      ? requiredFeeUsd
+      : PUBLISHING_FEE_USD;
+
+  if (totalReceivedUsd + 0.0001 < activeFeeUsd) {
     return {
       verified: false,
-      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required $${REQUIRED_FEE_USD.toFixed(2)} USD publishing fee.`,
+      message: `Transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required ${formatPublishingFeeLabel(activeFeeUsd, 'exact')} USD publishing fee.`,
     };
   }
 
@@ -203,14 +215,21 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
   isOpen,
   onClose,
   hasBackend = true,
+  siteMeta = null,
+  publishingFeeUsd,
   initialCategory,
   initialPlatform,
   availableCategories = [],
   onAppPublished,
   onSelectApp,
 }) => {
-  const adminEmail = 'mr216873@gmail.com';
-  const publishingFee = REQUIRED_FEE_USD;
+  const adminEmail = siteMeta?.adminEmail || 'mr216873@gmail.com';
+  const publishingFee =
+    typeof publishingFeeUsd === 'number' && Number.isFinite(publishingFeeUsd) && publishingFeeUsd > 0
+      ? publishingFeeUsd
+      : getPublishingFeeUsd(siteMeta);
+  const shortFeeLabel = formatPublishingFeeLabel(publishingFee, 'short');
+  const exactFeeLabel = formatPublishingFeeLabel(publishingFee, 'exact');
 
   // Modal Tabs & Stepper
   const [activeTab, setActiveTab] = useState<'submit' | 'receipts'>('submit');
@@ -365,7 +384,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       label: 'Deposit Wallet Address',
       value: OWNER_BSC_WALLET,
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__2__145559af.png'),
-      notice: `Send at least $${REQUIRED_FEE_USD.toFixed(2)} USDT/USDC via BNB Smart Chain (BEP20) for instant automated on-chain verification.`,
+      notice: `Send at least ${exactFeeLabel} USDT/USDC via BNB Smart Chain (BEP20) for instant automated on-chain verification.`,
     },
     BINANCE_PAY: {
       title: 'Binance Pay' as const,
@@ -374,7 +393,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       label: 'Recipient Name',
       value: 'M R S',
       qrImage: normalizeAssetPath('./assets/aistudio/unnamed__1__2b5c7e8c.png'),
-      notice: `Scan the Binance Pay QR code in your Binance App to send $${REQUIRED_FEE_USD.toFixed(2)} USD to M R S, then enter your Order ID for store owner review.`,
+      notice: `Scan the Binance Pay QR code in your Binance App to send ${exactFeeLabel} USD to M R S, then enter your Order ID for store owner review.`,
     },
   };
 
@@ -603,7 +622,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
       }
 
       if (paymentOption === 'USDT_BEP20') {
-        const rpcCheck = await verifyBscPaymentClientSide(cleanTx);
+        const rpcCheck = await verifyBscPaymentClientSide(cleanTx, publishingFee);
         if (!rpcCheck.verified) {
           setFormError(rpcCheck.message);
           return;
@@ -1033,7 +1052,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-[#0a84ff]">
                 <span>App Publishing</span>
                 <span aria-hidden="true" className="text-zinc-600">·</span>
-                <span className="text-emerald-400">${REQUIRED_FEE_USD.toFixed(2)} USD</span>
+                <span className="text-emerald-400">{exactFeeLabel} USD</span>
               </div>
               <h2 className="text-base sm:text-xl font-black text-white tracking-tight truncate">
                 Publish App on MRS App Store
@@ -1054,7 +1073,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
         {/* Subtitle & Switcher */}
         <div className="pb-5 border-b border-white/[0.08]">
           <p className="text-xs text-zinc-400">
-            Enter app &amp; owner details, verify your ${REQUIRED_FEE_USD.toFixed(2)} USD payment on-chain, then upload your Android or Windows package to publish live.
+            Enter app &amp; owner details, verify your {exactFeeLabel} USD payment on-chain, then upload your Android or Windows package to publish live.
           </p>
 
           {/* Navigation Switcher */}
@@ -1308,8 +1327,8 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                 { step: 1 as const, shortLabel: '1. Details', label: '1. App & Owner Details' },
                 {
                   step: 2 as const,
-                  shortLabel: `2. Pay (${Number.isInteger(REQUIRED_FEE_USD) ? `$${REQUIRED_FEE_USD}` : `$${REQUIRED_FEE_USD.toFixed(2)}`})`,
-                  label: `2. Verify Payment (${Number.isInteger(REQUIRED_FEE_USD) ? `$${REQUIRED_FEE_USD}` : `$${REQUIRED_FEE_USD.toFixed(2)}`})`,
+                  shortLabel: `2. Pay (${shortFeeLabel})`,
+                  label: `2. Verify Payment (${shortFeeLabel})`,
                 },
                 { step: 3 as const, shortLabel: '3. Upload', label: '3. Upload & Publish' },
               ].map((item) => {
@@ -1636,13 +1655,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     onClick={handleContinueToStep2}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold text-xs tracking-wide transition-all shadow-lg shadow-blue-600/25"
                   >
-                    <span>
-                      Continue to Verify Payment (
-                      {Number.isInteger(REQUIRED_FEE_USD)
-                        ? `$${REQUIRED_FEE_USD}`
-                        : `$${REQUIRED_FEE_USD.toFixed(2)}`}
-                      )
-                    </span>
+                    <span>Continue to Verify Payment ({shortFeeLabel})</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1688,7 +1701,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                         Step 2 of 3 · One-Time Fee Verification
                       </span>
                       <p className="text-sm font-bold text-white">
-                        Pay &amp; Verify <span className="text-emerald-400">${REQUIRED_FEE_USD.toFixed(2)} USD</span>
+                        Pay &amp; Verify <span className="text-emerald-400">{exactFeeLabel} USD</span>
                       </p>
                     </div>
 
@@ -1782,7 +1795,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                       }}
                       placeholder={
                         paymentOption === 'USDT_BEP20'
-                          ? `0x... (66-character BEP-20 TxHash after sending ${Number.isInteger(REQUIRED_FEE_USD) ? `$${REQUIRED_FEE_USD}` : `$${REQUIRED_FEE_USD.toFixed(2)}`} USDT)`
+                          ? `0x... (66-character BEP-20 TxHash after sending ${shortFeeLabel} USDT)`
                           : 'Paste your Binance Pay Order ID after completing payment'
                       }
                       className="w-full bg-black border border-white/[0.12] rounded-xl px-3.5 py-2.5 text-sm sm:text-xs text-white font-mono focus:outline-none focus:border-blue-500"
@@ -1921,7 +1934,7 @@ export const PublishAppModal: React.FC<PublishAppModalProps> = ({
                     <div className="flex items-center gap-2 text-emerald-300 font-bold">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>
-                        Payment Verified · ${verifiedPaymentInfo.amountPaidUsd?.toFixed(2) || REQUIRED_FEE_USD.toFixed(2)} USD ({verifiedPaymentInfo.tokenSymbol || verifiedPaymentInfo.paymentMethod})
+                        Payment Verified · ${verifiedPaymentInfo.amountPaidUsd?.toFixed(2) || publishingFee.toFixed(2)} USD ({verifiedPaymentInfo.tokenSymbol || verifiedPaymentInfo.paymentMethod})
                       </span>
                     </div>
                     {verifiedPaymentInfo.explorerUrl && (

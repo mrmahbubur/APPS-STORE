@@ -287,9 +287,39 @@ export function buildBuiltinApps(options: BuildBuiltinAppsOptions = {}): AppItem
 
 export const PUBLISHING_FEE_USD = 5.0;
 
+export function getPublishingFeeUsd(
+  siteMeta?: Pick<SiteMeta, 'submissionFeeUsd' | 'ownerInfo'> | null
+): number {
+  const candidates = [
+    siteMeta?.submissionFeeUsd,
+    siteMeta?.ownerInfo?.publishingFeeUsd,
+    PUBLISHING_FEE_USD,
+  ];
+  for (const val of candidates) {
+    if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+      return val;
+    }
+  }
+  return PUBLISHING_FEE_USD;
+}
+
+export function formatPublishingFeeLabel(
+  feeUsd: number = PUBLISHING_FEE_USD,
+  variant: 'short' | 'exact' = 'short'
+): string {
+  const safeFee = typeof feeUsd === 'number' && Number.isFinite(feeUsd) && feeUsd > 0
+    ? feeUsd
+    : PUBLISHING_FEE_USD;
+  if (variant === 'exact') {
+    return `$${safeFee.toFixed(2)}`;
+  }
+  return Number.isInteger(safeFee) ? `$${safeFee}` : `$${safeFee.toFixed(2)}`;
+}
+
 export function buildSiteMeta(options?: {
   ownerProfile?: AppOwnerProfile;
   extraCategories?: string[];
+  publishingFeeUsd?: number;
 }): SiteMeta {
   const currentYear = new Date().getFullYear();
   const ownerProfile = options?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
@@ -297,8 +327,14 @@ export function buildSiteMeta(options?: {
   const categories = options?.extraCategories
     ? Array.from(new Set([...APP_STORE_CATEGORIES, ...options.extraCategories.filter(Boolean)]))
     : [...APP_STORE_CATEGORIES];
-  const feeShortLabel = `$${PUBLISHING_FEE_USD.toFixed(0)} USD`;
-  const feeExactLabel = `$${PUBLISHING_FEE_USD.toFixed(2)} USD`;
+  const feeUsd =
+    typeof options?.publishingFeeUsd === 'number' &&
+    Number.isFinite(options.publishingFeeUsd) &&
+    options.publishingFeeUsd > 0
+      ? options.publishingFeeUsd
+      : PUBLISHING_FEE_USD;
+  const feeShortLabel = `${formatPublishingFeeLabel(feeUsd, 'short')} USD`;
+  const feeExactLabel = `${formatPublishingFeeLabel(feeUsd, 'exact')} USD`;
 
   return {
     appName: 'MRS App Store',
@@ -313,12 +349,12 @@ export function buildSiteMeta(options?: {
       role: 'Store Owner',
       location: '',
       supportResponseTime: '',
-      publishingFeeUsd: PUBLISHING_FEE_USD,
+      publishingFeeUsd: feeUsd,
       verificationNote: 'Store Owner',
     },
     ownerProfile,
     categories,
-    submissionFeeUsd: PUBLISHING_FEE_USD,
+    submissionFeeUsd: feeUsd,
     lastUpdated: new Date().toISOString(),
     policies: {
       privacy: {

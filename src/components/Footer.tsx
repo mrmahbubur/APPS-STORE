@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import type { LegalPolicyTab, SiteMeta } from '../types';
 import { ShieldCheck, UploadCloud, AppWindow } from 'lucide-react';
-import { MRS_GRAVATAR_OWNER_PROFILE, PUBLISHING_FEE_USD, normalizeAssetPath } from '../data/catalog';
+import {
+  MRS_GRAVATAR_OWNER_PROFILE,
+  formatPublishingFeeLabel,
+  getPublishingFeeUsd,
+  normalizeAssetPath,
+} from '../data/catalog';
 
 interface FooterProps {
   siteMeta: SiteMeta | null;
@@ -17,8 +22,7 @@ export const Footer: React.FC<FooterProps> = ({
   const [logoError, setLogoError] = useState(false);
   const currentYear = siteMeta?.currentYear || new Date().getFullYear();
   const owner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
-  const feeUsd = siteMeta?.submissionFeeUsd ?? PUBLISHING_FEE_USD;
-  const feeShort = Number.isInteger(feeUsd) ? `$${feeUsd}` : `$${feeUsd.toFixed(2)}`;
+  const feeShort = formatPublishingFeeLabel(getPublishingFeeUsd(siteMeta), 'short');
   const copyright =
     siteMeta?.copyrightNotice ||
     `© ${currentYear} ${owner.displayName}. All rights reserved.`;

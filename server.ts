@@ -461,10 +461,21 @@ app.post(
       const targetPlatform = String(req.headers['x-platform'] || '');
 
       const tokenCheck = verifyPaymentVerificationToken(token, txHash, paymentMethod);
-      if (!tokenCheck.valid) {
+      if (!tokenCheck.valid || !tokenCheck.payload) {
         return res.status(403).json({
           success: false,
           message: tokenCheck.message || 'Complete payment verification in Step 2 before uploading your app package.',
+        });
+      }
+      const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(
+        AppDatabase.getSiteMeta()
+      );
+      const paidUsd = Number(tokenCheck.payload.amountPaidUsd || 0);
+      if (paidUsd + 0.0001 < activeFeeUsd) {
+        const shortfall = Math.max(0.01, activeFeeUsd - paidUsd).toFixed(2);
+        return res.status(403).json({
+          success: false,
+          message: `Verified payment ($${paidUsd.toFixed(2)} USD) is $${shortfall} USD short of the current ${activeFeeExactUsd} publishing fee.`,
         });
       }
       if (AppDatabase.isPaymentProofUsed(txHash)) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Scale, DollarSign, UserCheck } from 'lucide-react';
 import type { LegalPolicyTab, SiteMeta } from '../types';
-import { MRS_GRAVATAR_OWNER_PROFILE } from '../data/catalog';
+import { MRS_GRAVATAR_OWNER_PROFILE, PUBLISHING_FEE_USD } from '../data/catalog';
 
 interface LegalPoliciesModalProps {
   isOpen: boolean;
@@ -94,7 +94,14 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
             }`}
           >
             <DollarSign className="w-3.5 h-3.5" />
-            <span>Developer Publishing ($5)</span>
+            <span>
+              Developer Publishing (
+              {(() => {
+                const feeUsd = siteMeta?.submissionFeeUsd ?? PUBLISHING_FEE_USD;
+                return Number.isInteger(feeUsd) ? `$${feeUsd}` : `$${feeUsd.toFixed(2)}`;
+              })()}
+              )
+            </span>
           </button>
           <button
             type="button"

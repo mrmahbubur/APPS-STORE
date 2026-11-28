@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { LegalPolicyTab, SiteMeta } from '../types';
 import { ShieldCheck, UploadCloud, AppWindow } from 'lucide-react';
-import { MRS_GRAVATAR_OWNER_PROFILE, normalizeAssetPath } from '../data/catalog';
+import { MRS_GRAVATAR_OWNER_PROFILE, PUBLISHING_FEE_USD, normalizeAssetPath } from '../data/catalog';
 
 interface FooterProps {
   siteMeta: SiteMeta | null;
@@ -17,6 +17,8 @@ export const Footer: React.FC<FooterProps> = ({
   const [logoError, setLogoError] = useState(false);
   const currentYear = siteMeta?.currentYear || new Date().getFullYear();
   const owner = siteMeta?.ownerProfile || MRS_GRAVATAR_OWNER_PROFILE;
+  const feeUsd = siteMeta?.submissionFeeUsd ?? PUBLISHING_FEE_USD;
+  const feeShort = Number.isInteger(feeUsd) ? `$${feeUsd}` : `$${feeUsd.toFixed(2)}`;
   const copyright =
     siteMeta?.copyrightNotice ||
     `© ${currentYear} ${owner.displayName}. All rights reserved.`;
@@ -61,7 +63,7 @@ export const Footer: React.FC<FooterProps> = ({
               className="min-h-[36px] hover:text-white transition-colors flex items-center gap-1.5 text-[#0a84ff] font-semibold"
             >
               <UploadCloud className="w-3.5 h-3.5" />
-              <span>Publish App ($5 USD)</span>
+              <span>Publish App ({feeShort} USD)</span>
             </button>
             <button
               type="button"

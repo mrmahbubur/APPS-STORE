@@ -602,7 +602,9 @@ export const AppDatabase = {
     return buildSiteMeta({
       ownerProfile: currentOwnerProfile,
       extraCategories: memoryStore.map((a) => (a.category || '').trim()).filter(Boolean),
-      publishingFeeUsd: parsePublishingFeeUsd(process.env.PUBLISHING_FEE_USD),
+      publishingFeeUsd: parsePublishingFeeUsd(
+        process.env.PUBLISHING_FEE_USD || process.env.VITE_PUBLISHING_FEE_USD
+      ),
     });
   },
 

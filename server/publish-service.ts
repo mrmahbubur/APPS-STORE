@@ -17,7 +17,7 @@ import {
   isSmartTvPackage,
   isWindowsPackage,
 } from '../shared/package-utils.ts';
-import { PUBLISHING_FEE_USD } from '../shared/store-metadata.ts';
+import { PUBLISHING_FEE_USD, getPublishingFeeLabels } from '../shared/store-metadata.ts';
 
 export type {
   ApkInspectionResult,
@@ -231,15 +231,12 @@ export async function verifyBscUsdtPayment(
       };
     }
 
-    const activeFeeUsd =
-      typeof requiredFeeUsd === 'number' && Number.isFinite(requiredFeeUsd) && requiredFeeUsd > 0
-        ? requiredFeeUsd
-        : REQUIRED_FEE_USD;
+    const { feeUsd: activeFeeUsd, exactUsd: activeFeeExactUsd } = getPublishingFeeLabels(requiredFeeUsd);
 
     if (totalReceivedUsd + 0.0001 < activeFeeUsd) {
       return {
         verified: false,
-        message: `Transaction transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required $${activeFeeUsd.toFixed(2)} USD publishing fee.`,
+        message: `Transaction transferred $${totalReceivedUsd.toFixed(2)} USD, which is below the required ${activeFeeExactUsd} publishing fee.`,
       };
     }
 
